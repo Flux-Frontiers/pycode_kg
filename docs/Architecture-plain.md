@@ -1,13 +1,13 @@
-CodeKG Architecture - A Deterministic Knowledge Graph for Python Codebases
+PyCodeKG Architecture - A Deterministic Knowledge Graph for Python Codebases
 
 Version: 0.5.0
 Author: Eric G. Suchanek, PhD
 
 OVERVIEW
 
-CodeKG constructs a deterministic, explainable knowledge graph from a Python codebase using static analysis. The graph captures structural relationships (definitions, calls, imports, inheritance) and data-flow relationships (reads, writes, attribute access) directly from the Python AST, stores them in SQLite, and augments retrieval with vector embeddings via LanceDB. Structure is treated as ground truth; semantic search is an acceleration layer. Every node and edge maps to a concrete file and line number.
+PyCodeKG constructs a deterministic, explainable knowledge graph from a Python codebase using static analysis. The graph captures structural relationships (definitions, calls, imports, inheritance) and data-flow relationships (reads, writes, attribute access) directly from the Python AST, stores them in SQLite, and augments retrieval with vector embeddings via LanceDB. Structure is treated as ground truth; semantic search is an acceleration layer. Every node and edge maps to a concrete file and line number.
 
-The system ships with: a Python library with a layered class API, a Click-based CLI (codekg) with subcommands, a Streamlit web application (codekg viz) for 2D interactive exploration, a 3D PyVista visualizer (codekg viz3d) for immersive graph navigation, a thorough analysis tool (codekg analyze) for architectural insights, an MCP server (codekg-mcp) for AI agent integration, and a /setup-mcp Claude skill for automated MCP configuration.
+The system ships with: a Python library with a layered class API, a Click-based CLI (pycodekg) with subcommands, a Streamlit web application (pycodekg viz) for 2D interactive exploration, a 3D PyVista visualizer (pycodekg viz3d) for immersive graph navigation, a thorough analysis tool (pycodekg analyze) for architectural insights, an MCP server (pycodekg-mcp) for AI agent integration, and a /setup-mcp Claude skill for automated MCP configuration.
 
 DESIGN PRINCIPLES
 
@@ -15,9 +15,9 @@ Structure is authoritative. Semantics accelerate, never decide. Everything is tr
 
 LAYERED ARCHITECTURE
 
-The system is organized into focused layers, each independently testable and composable. CodeKG (orchestrator) owns CodeGraph (pure AST extraction), GraphStore (SQLite canonical store), and SemanticIndex (LanceDB vector index). The primitives layer in codekg.py is the locked v0 contract. The visitor.py module provides Pass 3 data-flow extraction via CodeKGVisitor. The config.py module provides directory exclusion configuration via load_exclude_dirs().
+The system is organized into focused layers, each independently testable and composable. PyCodeKG (orchestrator) owns CodeGraph (pure AST extraction), GraphStore (SQLite canonical store), and SemanticIndex (LanceDB vector index). The primitives layer in pycodekg.py is the locked v0 contract. The visitor.py module provides Pass 3 data-flow extraction via PyCodeKGVisitor. The config.py module provides directory exclusion configuration via load_exclude_dirs().
 
-LAYER 1 - PRIMITIVES (codekg.py)
+LAYER 1 - PRIMITIVES (pycodekg.py)
 
 Node is a frozen dataclass with fields: id, kind, name, qualname, module_path, lineno, end_lineno, docstring. Edge is a frozen dataclass with fields: src, rel, dst, evidence. extract_repo(repo_root, exclude=None) performs three-pass AST extraction and returns (nodes, edges). iter_python_files(repo_root, exclude=None) yields .py files skipping SKIP_DIRS and any exclude directories.
 
@@ -26,16 +26,16 @@ Node kinds: module, class, function, method, symbol.
 Edge relations by extraction pass:
 Pass 1 (structure): CONTAINS (parent to child), IMPORTS (module dependency), INHERITS (class inheritance).
 Pass 2 (call graph): CALLS (function/method calls; unresolved calls become sym: stub nodes).
-Pass 3 (data-flow via CodeKGVisitor): READS (variable read), WRITES (variable write), ATTR_ACCESS (attribute access), DEPENDS_ON (placeholder for future control-flow).
+Pass 3 (data-flow via PyCodeKGVisitor): READS (variable read), WRITES (variable write), ATTR_ACCESS (attribute access), DEPENDS_ON (placeholder for future control-flow).
 Post-build: RESOLVES_TO (sym: stub to first-party fn:/cls:/m:/mod: definition, added by GraphStore.resolve_symbols()).
 
 LAYER 1a - DATA-FLOW VISITOR (visitor.py)
 
-CodeKGVisitor is an ast.NodeVisitor subclass implementing Pass 3 of the extraction pipeline. For each source file it emits data-flow edges. visit_FunctionDef and visit_AsyncFunctionDef emit CONTAINS edges. visit_Assign emits READS edges for right-hand-side variables and WRITES edges for targets. visit_Attribute emits ATTR_ACCESS edges when the object is a simple Name node. visit_Call emits READS edges for arguments. Every edge carries evidence (lineno, file) for traceability.
+PyCodeKGVisitor is an ast.NodeVisitor subclass implementing Pass 3 of the extraction pipeline. For each source file it emits data-flow edges. visit_FunctionDef and visit_AsyncFunctionDef emit CONTAINS edges. visit_Assign emits READS edges for right-hand-side variables and WRITES edges for targets. visit_Attribute emits ATTR_ACCESS edges when the object is a simple Name node. visit_Call emits READS edges for arguments. Every edge carries evidence (lineno, file) for traceability.
 
 LAYER 1b - CONFIGURATION (config.py)
 
-load_exclude_dirs(repo_root) reads the [tool.codekg].exclude list from pyproject.toml at the repository root. Returns a set of directory name strings to skip (e.g., old, vendor, generated). Returns an empty set if the section or key is absent, the file is missing, the TOML is invalid, or the value is not a list. CLI flags (--exclude-dir) are merged with the config-file set at build time.
+load_exclude_dirs(repo_root) reads the [tool.pycodekg].exclude list from pyproject.toml at the repository root. Returns a set of directory name strings to skip (e.g., old, vendor, generated). Returns an empty set if the section or key is absent, the file is missing, the TOML is invalid, or the value is not a list. CLI flags (--exclude-dir) are merged with the config-file set at build time.
 
 LAYER 2 - CodeGraph (graph.py)
 
@@ -49,7 +49,7 @@ LAYER 4 - SemanticIndex (index.py)
 
 LanceDB-backed vector index. Derived from SQLite; disposable and rebuildable. Embedder is an abstract interface with embed_texts(texts) and embed_query(query) methods. SentenceTransformerEmbedder is the default implementation using sentence-transformers (model: BAAI/bge-small-en-v1.5). SeedHit is a dataclass with fields: id, kind, name, qualname, module_path, distance, rank. Index text format (stable): KIND, NAME, QUALNAME, MODULE, LINE, DOCSTRING.
 
-ORCHESTRATOR - CodeKG (kg.py)
+ORCHESTRATOR - PyCodeKG (kg.py)
 
 Top-level entry point owning all four layers with lazy initialization. The embedder and LanceDB connection are only created on first use. Methods: build(wipe=True) for the full pipeline, build_graph(wipe=True) for AST to SQLite, build_index(wipe=True) for SQLite to LanceDB, query(q, k=8, hop=1, min_score=0.0, max_per_module=None) returning QueryResult, pack(q, k=8, hop=1, min_score=0.0, max_per_module=None) returning SnippetPack with source snippets, callers(node_id, rel=CALLS) for two-phase fan-in lookup with import-aware stub disambiguation, stats() for store stats, node(id) to fetch a node dict. Supports context manager.
 
@@ -63,7 +63,7 @@ SnippetPack: extends QueryResult with source snippets. Each node dict may contai
 
 BUILD PIPELINE
 
-Phase 1 - Static Analysis (AST to SQLite): Walk .py files skipping .venv, __pycache__, .git, and any configured exclude directories. Pass 1 extracts modules, classes, functions, methods, imports, and inheritance. Pass 2 extracts the call graph; unresolved calls become sym: stub nodes. Pass 3 emits data-flow edges via CodeKGVisitor (READS, WRITES, ATTR_ACCESS). Generate stable node IDs (mod:, cls:, fn:, m:, sym:) with evidence (lineno, expr, file). Persist to SQLite via upsert (idempotent). GraphStore.resolve_symbols() prefers exact qualified-name matches (including `src/` alias variants), then falls back to names and writes RESOLVES_TO edges with confidence metadata, enabling fan-in queries across module boundaries. Operation is idempotent.
+Phase 1 - Static Analysis (AST to SQLite): Walk .py files skipping .venv, __pycache__, .git, and any configured exclude directories. Pass 1 extracts modules, classes, functions, methods, imports, and inheritance. Pass 2 extracts the call graph; unresolved calls become sym: stub nodes. Pass 3 emits data-flow edges via PyCodeKGVisitor (READS, WRITES, ATTR_ACCESS). Generate stable node IDs (mod:, cls:, fn:, m:, sym:) with evidence (lineno, expr, file). Persist to SQLite via upsert (idempotent). GraphStore.resolve_symbols() prefers exact qualified-name matches (including `src/` alias variants), then falls back to names and writes RESOLVES_TO edges with confidence metadata, enabling fan-in queries across module boundaries. Operation is idempotent.
 
 Phase 2 - Semantic Indexing (SQLite to LanceDB): Read module, class, function, and method nodes from SQLite. Build canonical index text (name + qualname + module + docstring). Embed in batches via SentenceTransformerEmbedder. Upsert to LanceDB (delete-then-add per batch). The vector index is derived and disposable - rebuild from SQLite at any time.
 
@@ -81,50 +81,50 @@ For each retained node: resolve module_path to absolute path (path-traversal saf
 
 INTERFACES
 
-Streamlit Web App (codekg viz): Three tabs: Graph Browser (pyvis interactive graph, filter by kind or module, click for detail panels), Hybrid Query (NL query to semantic seeds to graph expansion to ranked results with graph/table/edge/JSON views), Snippet Pack (source-grounded snippets with Markdown and JSON download). Sidebar: Build Graph, Build Index, Build All controls. Reads CODEKG_DB and CODEKG_LANCEDB environment variables.
+Streamlit Web App (pycodekg viz): Three tabs: Graph Browser (pyvis interactive graph, filter by kind or module, click for detail panels), Hybrid Query (NL query to semantic seeds to graph expansion to ranked results with graph/table/edge/JSON views), Snippet Pack (source-grounded snippets with Markdown and JSON download). Sidebar: Build Graph, Build Index, Build All controls. Reads PYCODEKG_DB and PYCODEKG_LANCEDB environment variables.
 
-3D Visualizer (codekg viz3d): Optional PyVista/PyQt5 visualizer. Requires the viz3d dependency group (pyvista, pyvistaqt, PyQt5, param, markdown, trame-vtk). KGVisualizer is the param-reactive data model. MainWindow is the full Qt window with left control panel and right PyVista QtInteractor. DocstringPopup renders docstrings as HTML/Markdown. create_kg_visualization() renders the 3D scene with per-kind meshes and Bezier arc edges. Layouts: allium (hierarchical cluster, default), cake (layered by node kind). Right-click a node to highlight, focus camera, and show its docstring popup.
+3D Visualizer (pycodekg viz3d): Optional PyVista/PyQt5 visualizer. Requires the viz3d dependency group (pyvista, pyvistaqt, PyQt5, param, markdown, trame-vtk). KGVisualizer is the param-reactive data model. MainWindow is the full Qt window with left control panel and right PyVista QtInteractor. DocstringPopup renders docstrings as HTML/Markdown. create_kg_visualization() renders the 3D scene with per-kind meshes and Bezier arc edges. Layouts: allium (hierarchical cluster, default), cake (layered by node kind). Right-click a node to highlight, focus camera, and show its docstring popup.
 
-Thorough Analysis Tool (codekg analyze): CodeKGAnalyzer runs 7 analysis phases using the live knowledge graph: complexity hotspots (fan-in/fan-out), entry points (no callers), dead code candidates (unreachable), docstring coverage, module cohesion (internal coupling), module coupling (IMPORTS-based dependencies), and critical paths (deepest call chains). FunctionMetrics captures per-function fan-in, fan-out, line count, docstring, and risk level. ModuleMetrics captures per-module function/class counts, incoming/outgoing deps, and cohesion score. CallChain represents a critical path with chain, depth, and total callers. Outputs a Markdown report and a JSON snapshot.
+Thorough Analysis Tool (pycodekg analyze): PyCodeKGAnalyzer runs 7 analysis phases using the live knowledge graph: complexity hotspots (fan-in/fan-out), entry points (no callers), dead code candidates (unreachable), docstring coverage, module cohesion (internal coupling), module coupling (IMPORTS-based dependencies), and critical paths (deepest call chains). FunctionMetrics captures per-function fan-in, fan-out, line count, docstring, and risk level. ModuleMetrics captures per-module function/class counts, incoming/outgoing deps, and cohesion score. CallChain represents a critical path with chain, depth, and total callers. Outputs a Markdown report and a JSON snapshot.
 
-MCP Server (codekg-mcp): Thin wrapper around CodeKG. Stateful (one CodeKG instance per server process). Read-only. Start: codekg-mcp --repo /path/to/repo [--db ...] [--lancedb ...] [--transport stdio|sse]. Tools: query_codebase(q, k, hop, rels, include_symbols, max_nodes, min_score, max_per_module) returning JSON, pack_snippets(q, k, hop, rels, context, max_lines, max_nodes, min_score, max_per_module) returning Markdown, callers(node_id, rel) returning JSON (with import-aware stub filtering), get_node(node_id) returning JSON, graph_stats() returning JSON, plus snapshot_list/snapshot_show/snapshot_diff for temporal metrics keyed by tree hash. MCP server is included in the standard install: pip install 'code-kg @ git+https://github.com/Flux-Frontiers/code_kg.git'.
+MCP Server (pycodekg-mcp): Thin wrapper around PyCodeKG. Stateful (one PyCodeKG instance per server process). Read-only. Start: pycodekg-mcp --repo /path/to/repo [--db ...] [--lancedb ...] [--transport stdio|sse]. Tools: query_codebase(q, k, hop, rels, include_symbols, max_nodes, min_score, max_per_module) returning JSON, pack_snippets(q, k, hop, rels, context, max_lines, max_nodes, min_score, max_per_module) returning Markdown, callers(node_id, rel) returning JSON (with import-aware stub filtering), get_node(node_id) returning JSON, graph_stats() returning JSON, plus snapshot_list/snapshot_show/snapshot_diff for temporal metrics keyed by tree hash. MCP server is included in the standard install: pip install 'pycode-kg @ git+https://github.com/Flux-Frontiers/pycode_kg.git'.
 
-/setup-mcp Claude Skill: Automates full MCP setup. Steps: resolve repo path, verify CodeKG installation, build SQLite graph, build LanceDB index, smoke-test pipeline, configure .mcp.json, .vscode/mcp.json, and claude_desktop_config.json.
+/setup-mcp Claude Skill: Automates full MCP setup. Steps: resolve repo path, verify PyCodeKG installation, build SQLite graph, build LanceDB index, smoke-test pipeline, configure .mcp.json, .vscode/mcp.json, and claude_desktop_config.json.
 
 DIRECTORY EXCLUSION
 
-Exclude directories via pyproject.toml under [tool.codekg] exclude key (list of directory names), or via CLI --exclude-dir flag (repeatable). Both sources are merged at build time and apply to iter_python_files(), extract_repo(), CodeGraph, and CodeKG.
+Exclude directories via pyproject.toml under [tool.pycodekg] exclude key (list of directory names), or via CLI --exclude-dir flag (repeatable). Both sources are merged at build time and apply to iter_python_files(), extract_repo(), CodeGraph, and PyCodeKG.
 
 CLI ENTRY POINTS
 
-Primary interface: codekg (the main Click CLI). Each subcommand is also available as a standalone script alias.
+Primary interface: pycodekg (the main Click CLI). Each subcommand is also available as a standalone script alias.
 
-codekg build-sqlite (alias: codekg-build-sqlite): AST extraction to SQLite.
-codekg build-lancedb (alias: codekg-build-lancedb): SQLite to LanceDB embeddings.
-codekg build (alias: codekg-build): Full pipeline (SQLite + LanceDB), always wipes existing data.
-codekg update (alias: codekg-update): Incremental upsert pipeline (SQLite + LanceDB), no wipe.
-codekg query (alias: codekg-query): Hybrid query, text output.
-codekg pack (alias: codekg-pack): Hybrid query + snippet pack.
-codekg viz (alias: codekg-viz): Launch Streamlit 2D visualizer.
-codekg viz3d (alias: codekg-viz3d): Launch 3D PyVista visualizer.
-codekg analyze (alias: codekg-analyze): Thorough architectural analysis.
-codekg mcp (alias: codekg-mcp): Start MCP server.
+pycodekg build-sqlite (alias: pycodekg-build-sqlite): AST extraction to SQLite.
+pycodekg build-lancedb (alias: pycodekg-build-lancedb): SQLite to LanceDB embeddings.
+pycodekg build (alias: pycodekg-build): Full pipeline (SQLite + LanceDB), always wipes existing data.
+pycodekg update (alias: pycodekg-update): Incremental upsert pipeline (SQLite + LanceDB), no wipe.
+pycodekg query (alias: pycodekg-query): Hybrid query, text output.
+pycodekg pack (alias: pycodekg-pack): Hybrid query + snippet pack.
+pycodekg viz (alias: pycodekg-viz): Launch Streamlit 2D visualizer.
+pycodekg viz3d (alias: pycodekg-viz3d): Launch 3D PyVista visualizer.
+pycodekg analyze (alias: pycodekg-analyze): Thorough architectural analysis.
+pycodekg mcp (alias: pycodekg-mcp): Start MCP server.
 
-All subcommands live in src/code_kg/cli/. Shared options (repo path, db path, exclude dirs) live in cli/options.py.
+All subcommands live in src/pycode_kg/cli/. Shared options (repo path, db path, exclude dirs) live in cli/options.py.
 
 SOURCE LAYOUT
 
-src/code_kg/: codekg.py (locked v0 primitives), visitor.py (CodeKGVisitor, Pass 3 data-flow), config.py (load_exclude_dirs), graph.py (CodeGraph), store.py (GraphStore), index.py (SemanticIndex), kg.py (CodeKG orchestrator and result types), layout3d.py (3D layout algorithms), viz3d.py (3D PyVista/PyQt5 visualizer), codekg_thorough_analysis.py (CodeKGAnalyzer), app.py (Streamlit web app), mcp_server.py (MCP server), utils.py (shared utilities), cli/ (Click CLI subpackage: main.py, cmd_build.py, cmd_build_full.py, cmd_query.py, cmd_viz.py, cmd_analyze.py, cmd_mcp.py, options.py).
+src/pycode_kg/: pycodekg.py (locked v0 primitives), visitor.py (PyCodeKGVisitor, Pass 3 data-flow), config.py (load_exclude_dirs), graph.py (CodeGraph), store.py (GraphStore), index.py (SemanticIndex), kg.py (PyCodeKG orchestrator and result types), layout3d.py (3D layout algorithms), viz3d.py (3D PyVista/PyQt5 visualizer), pycodekg_thorough_analysis.py (PyCodeKGAnalyzer), app.py (Streamlit web app), mcp_server.py (MCP server), utils.py (shared utilities), cli/ (Click CLI subpackage: main.py, cmd_build.py, cmd_build_full.py, cmd_query.py, cmd_viz.py, cmd_analyze.py, cmd_mcp.py, options.py).
 
-tests/: test_primitives.py (Node, Edge, extract_repo), test_graph.py (CodeGraph), test_store.py (GraphStore), test_kg.py (CodeKG and result types), test_visitor.py (CodeKGVisitor), test_exclusions.py (directory exclusion), test_index.py (SemanticIndex).
+tests/: test_primitives.py (Node, Edge, extract_repo), test_graph.py (CodeGraph), test_store.py (GraphStore), test_kg.py (PyCodeKG and result types), test_visitor.py (PyCodeKGVisitor), test_exclusions.py (directory exclusion), test_index.py (SemanticIndex).
 
 docs/: Architecture.md (full reference with images), Architecture-brief.md (condensed), Architecture-plain.md (this file), MCP.md (MCP server reference).
 
-assets/: code_kg_arch_square-web.jpg, code_kg_arch_square.png, code_kg_arch_9x16.png, logo files (xs/sm/md/lg/xl).
+assets/: pycode_kg_arch_square-web.jpg, pycode_kg_arch_square.png, pycode_kg_arch_9x16.png, logo files (xs/sm/md/lg/xl).
 
 DATA FLOW
 
-.py files filtered by iter_python_files(exclude=...) to extract_repo() running three AST passes yielding (nodes, edges) with CONTAINS/IMPORTS/INHERITS from Pass 1, CALLS and sym: stubs from Pass 2, and READS/WRITES/ATTR_ACCESS from Pass 3 to GraphStore.write() persisting to .codekg/graph.sqlite (authoritative) to GraphStore.resolve_symbols() writing RESOLVES_TO edges (sym: to fn:/cls:/m:) to SemanticIndex.build() writing to .codekg/lancedb (derived, disposable) to CodeKG.query()/.pack() combining semantic seeds from LanceDB with structural BFS from SQLite to rank and dedupe to QueryResult/SnippetPack to Markdown/JSON output to Streamlit (codekg viz), 3D visualizer (codekg viz3d), thorough analyzer (codekg analyze), or MCP server (codekg-mcp).
+.py files filtered by iter_python_files(exclude=...) to extract_repo() running three AST passes yielding (nodes, edges) with CONTAINS/IMPORTS/INHERITS from Pass 1, CALLS and sym: stubs from Pass 2, and READS/WRITES/ATTR_ACCESS from Pass 3 to GraphStore.write() persisting to .pycodekg/graph.sqlite (authoritative) to GraphStore.resolve_symbols() writing RESOLVES_TO edges (sym: to fn:/cls:/m:) to SemanticIndex.build() writing to .pycodekg/lancedb (derived, disposable) to PyCodeKG.query()/.pack() combining semantic seeds from LanceDB with structural BFS from SQLite to rank and dedupe to QueryResult/SnippetPack to Markdown/JSON output to Streamlit (pycodekg viz), 3D visualizer (pycodekg viz3d), thorough analyzer (pycodekg analyze), or MCP server (pycodekg-mcp).
 
 DEPENDENCIES
 

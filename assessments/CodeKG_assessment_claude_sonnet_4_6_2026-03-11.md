@@ -1,15 +1,15 @@
-# CodeKG Agent Assessment
+# PyCodeKG Agent Assessment
 ## Model: claude-sonnet-4-6 | Date: 2026-03-11
 
 **Assessor:** Claude Sonnet 4.6 (claude-sonnet-4-6)
-**Repository indexed:** code_kg itself (self-referential)
+**Repository indexed:** pycode_kg itself (self-referential)
 **Graph version:** 0.8.0 | 353 meaningful nodes | 5,369 edges
 
 ---
 
 ## 1. Executive Summary
 
-CodeKG is a genuinely useful tool that changes how an AI agent navigates a Python codebase. Rather than reading files sequentially or running grep searches in the dark, an agent equipped with CodeKG can orient itself in seconds using `graph_stats()`, pinpoint relevant code through hybrid semantic+structural search, and trace call relationships without ever opening a file. The workflow compression is real and substantial.
+PyCodeKG is a genuinely useful tool that changes how an AI agent navigates a Python codebase. Rather than reading files sequentially or running grep searches in the dark, an agent equipped with PyCodeKG can orient itself in seconds using `graph_stats()`, pinpoint relevant code through hybrid semantic+structural search, and trace call relationships without ever opening a file. The workflow compression is real and substantial.
 
 The tool suite is internally consistent and well-documented. Across all four phases of this assessment—orientation, semantic search, structural navigation, and temporal analysis—every tool returned useful output without errors. The standout tools are `get_node(include_edges=True)`, `explain()`, and `pack_snippets()`, which together replace what would otherwise require five or more file-read and grep operations. The hybrid reranker (70% semantic / 30% lexical) is a meaningful improvement over pure vector search, especially when docstrings are rich.
 
@@ -51,10 +51,10 @@ The nine-phase analysis covers all the right territory: fan-in/fan-out, module c
 Tested with three query types:
 
 **Precise query — "graph database storage SQLite persistence" (score range 0.49–0.69)**
-Results were highly accurate: `GraphStore` class, `store.py` module, and `_load_store` all correctly surfaced. The hop=1 expansion appropriately pulled in `CodeKG.store` (the lazy property that opens the store) and `build_graph` (which writes to it). Edge provenance was included in JSON and correctly reflected CALLS relationships with source line numbers.
+Results were highly accurate: `GraphStore` class, `store.py` module, and `_load_store` all correctly surfaced. The hop=1 expansion appropriately pulled in `PyCodeKG.store` (the lazy property that opens the store) and `build_graph` (which writes to it). Edge provenance was included in JSON and correctly reflected CALLS relationships with source line numbers.
 
 **Broad query — "error handling exception strategy" (score range 0.38–0.61)**
-Top result was `CodeKG.query` with score 0.61 — a **false positive**. The method's docstring happens to mention "error handling" in an example list of concepts, but the method itself is the hybrid query engine, not error-handling code. The codebase's actual error handling (simple `try/except` in CLI commands) was not surfaced at all. This illustrates a real weakness: the lexical boosting on docstring text can be gamed by incidental mentions.
+Top result was `PyCodeKG.query` with score 0.61 — a **false positive**. The method's docstring happens to mention "error handling" in an example list of concepts, but the method itself is the hybrid query engine, not error-handling code. The codebase's actual error handling (simple `try/except` in CLI commands) was not surfaced at all. This illustrates a real weakness: the lexical boosting on docstring text can be gamed by incidental mentions.
 
 **Exploratory query — "CLI entry points configuration startup" (score range 0.47–0.73)**
 Excellent results. `mcp_server.py` module ranked first (0.73) because its docstring explicitly lists "Entry points and configuration" as a section header. `main()` ranked second (0.67), `cli/__init__.py` third (0.61). The lexical boost correctly amplified exact phrase matches. This is the use case where hybrid reranking shines: the semantic vector alone would have ranked these lower.
@@ -77,23 +77,23 @@ The `max_lines=60` default is well-chosen for LLM token budgets. Setting `contex
 ### `get_node(node_id, include_edges=True)`
 **Rating: 5/5**
 
-Tested on `cls:src/code_kg/store.py:GraphStore`. With `include_edges=True`, a single call returned:
+Tested on `cls:src/pycode_kg/store.py:GraphStore`. With `include_edges=True`, a single call returned:
 - Full docstring with usage examples
 - 19 CONTAINS edges (all methods of GraphStore by name)
 - 8 incoming CALLS callers with source file and line number
 
 This completely replaces a typical "find the class, read the file, grep for usages" workflow. The caller list is cross-module and resolved through `sym:` stubs — `_load_store` in `app.py`, `build_sqlite` in CLI, `save_snapshot` in `cmd_snapshot.py` were all correctly included. Without this tool, tracing those cross-module callers would require multiple grep operations.
 
-The stable ID format (`cls:src/code_kg/store.py:GraphStore`) is predictable once learned. `query_codebase()` → `get_node()` is a natural two-step workflow.
+The stable ID format (`cls:src/pycode_kg/store.py:GraphStore`) is predictable once learned. `query_codebase()` → `get_node()` is a natural two-step workflow.
 
 ---
 
 ### `explain(node_id)`
 **Rating: 4.5/5**
 
-Tested on `m:src/code_kg/kg.py:CodeKG.query` and `fn:src/code_kg/mcp_server.py:main`.
+Tested on `m:src/pycode_kg/kg.py:PyCodeKG.query` and `fn:src/pycode_kg/mcp_server.py:main`.
 
-For `CodeKG.query`: returned 6 callers (analysis pipeline, app UI, CLI, MCP server), 8 callees (scoring helpers + index search), full docstring, and a role assessment. The output is immediately orientating. One quibble: the role assessment calls it a "🟢 Utility function: Called 6 time(s)" — with 6 callers across multiple subsystems and 8 callees including the entire scoring machinery, this is more accurately the *core query engine*, not a utility. The threshold for "high-value" vs. "utility" deserves tuning.
+For `PyCodeKG.query`: returned 6 callers (analysis pipeline, app UI, CLI, MCP server), 8 callees (scoring helpers + index search), full docstring, and a role assessment. The output is immediately orientating. One quibble: the role assessment calls it a "🟢 Utility function: Called 6 time(s)" — with 6 callers across multiple subsystems and 8 callees including the entire scoring machinery, this is more accurately the *core query engine*, not a utility. The threshold for "high-value" vs. "utility" deserves tuning.
 
 For `main()`: simple and accurate — 1 caller, 1 callee, clean role summary. Works correctly for simple functions.
 
@@ -104,9 +104,9 @@ For `main()`: simple and accurate — 1 caller, 1 callee, clean role summary. Wo
 ### `callers(node_id)`
 **Rating: 5/5**
 
-Tested on `m:src/code_kg/store.py:GraphStore.expand` with `paths="src/"`.
+Tested on `m:src/pycode_kg/store.py:GraphStore.expand` with `paths="src/"`.
 
-Returned exactly 2 callers: `CodeKG.query` (line 644) and `CodeKG.pack` (line 800). Both are correct. The `call_site_lineno` field makes this immediately actionable — I know exactly which line of `kg.py` to look at. The `sym:` resolution through import stubs is the key differentiator from a naive grep — cross-module callers that reference `expand` through an aliased import would still be found.
+Returned exactly 2 callers: `PyCodeKG.query` (line 644) and `PyCodeKG.pack` (line 800). Both are correct. The `call_site_lineno` field makes this immediately actionable — I know exactly which line of `kg.py` to look at. The `sym:` resolution through import stubs is the key differentiator from a naive grep — cross-module callers that reference `expand` through an aliased import would still be found.
 
 The `paths` scoping is important for large codebases; restricting to `src/` excluded test files from the count automatically.
 
@@ -135,7 +135,7 @@ This tells a coherent story: active function/method development, improving docum
 ### `list_nodes(module_path, kind)`
 **Rating: 4/5**
 
-Not explicitly in the protocol but used implicitly when exploring. Returns a flat JSON array of nodes matching a module prefix and/or kind filter. Useful for enumerating "all functions in `src/code_kg/store.py`" before deciding which to inspect with `get_node()`. Less useful than `get_node(include_edges=True)` for a single known class, but fills a gap when you need to survey a whole module.
+Not explicitly in the protocol but used implicitly when exploring. Returns a flat JSON array of nodes matching a module prefix and/or kind filter. Useful for enumerating "all functions in `src/pycode_kg/store.py`" before deciding which to inspect with `get_node()`. Less useful than `get_node(include_edges=True)` for a single known class, but fills a gap when you need to survey a whole module.
 
 ---
 
@@ -147,7 +147,7 @@ Not explicitly in the protocol but used implicitly when exploring. Returns a fla
 | **Relevance** | 3.5/5 | Precise and exploratory queries return excellent results. Broad/abstract queries (e.g., "error handling") can surface nodes that mention a concept without implementing it. Score range is narrow, making confidence discrimination difficult. |
 | **Completeness** | 4.5/5 | 97.2% docstring coverage → 353 meaningful nodes indexed with rich metadata. All 38 modules present. `sym:` stubs ensure cross-module edges are preserved. Minor gap: abstract concepts not expressed in docstrings are not findable semantically. |
 | **Efficiency** | 5/5 | `graph_stats()` in ~1s. `pack_snippets()` in ~2–3s for a complex query. Replaced what would be 5+ sequential file reads. `get_node(include_edges=True)` eliminates the grep-for-usages step entirely. |
-| **Insight Generation** | 4.5/5 | `snapshot_diff` revealed that 0 new classes were added across 33 hours of active development — structural stability during feature growth, not evident from commit messages alone. `explain()` showed `CodeKG.query` is called by the analysis pipeline internally, not just externally — a dependency I wouldn't have found by reading `kg.py` alone. |
+| **Insight Generation** | 4.5/5 | `snapshot_diff` revealed that 0 new classes were added across 33 hours of active development — structural stability during feature growth, not evident from commit messages alone. `explain()` showed `PyCodeKG.query` is called by the analysis pipeline internally, not just externally — a dependency I wouldn't have found by reading `kg.py` alone. |
 | **Usability** | 4.5/5 | Stable ID format is learnable. Markdown output is clean and directly renderable. `include_edges=True` is a well-designed opt-in. Primary friction: no way to autocomplete or discover node IDs without running `query_codebase()` first; could benefit from a `list_nodes(kind='class')` as a browsing entry point. |
 | **Architectural Value** | 3.5/5 | `analyze_repo()` correctly identifies `store.py` and `kg.py` as the high-coupling core. Module cohesion table is useful. Fan-in ranking is noisy (dataclass constructors dominate). The viz3d fan-out false positive reduces trust in the critical issues list. |
 | **Uniqueness** | 5/5 | No other codebase analysis approach I've encountered combines semantic vector search, structural graph traversal, source-grounded snippets, and temporal snapshots in a single MCP-accessible interface. The `sym:` import stub resolution for cross-module caller lookup is particularly novel. |
@@ -158,7 +158,7 @@ Not explicitly in the protocol but used implicitly when exploring. Returns a fla
 
 ## 4. Comparison to Default Workflow
 
-Without CodeKG, my default approach for understanding a new Python codebase is:
+Without PyCodeKG, my default approach for understanding a new Python codebase is:
 
 1. `ls`/`glob` to find files
 2. Read `__init__.py` files to understand package structure
@@ -166,7 +166,7 @@ Without CodeKG, my default approach for understanding a new Python codebase is:
 4. Read relevant files in full
 5. Manually trace imports across modules
 
-With CodeKG, that workflow compresses to:
+With PyCodeKG, that workflow compresses to:
 
 1. `graph_stats()` — understand scale and shape (replaces steps 1–2)
 2. `query_codebase()` or `pack_snippets()` — find relevant code by concept (replaces step 3)
@@ -174,7 +174,7 @@ With CodeKG, that workflow compresses to:
 
 The compression is most dramatic for **cross-module caller tracing** and **concept-first search**. Grep cannot find "all callers of `GraphStore.expand` across the entire codebase including through import aliases" — `callers()` does this in one call. Grep cannot find "code related to SQLite persistence" without knowing the class name first — `query_codebase()` does this without priors.
 
-The one area where CodeKG doesn't replace file reading: when I need to understand *implementation details* (the actual SQL in `GraphStore.write`, for example), `pack_snippets()` with `context=5` handles this but longer methods may still require a direct `Read` call if they exceed `max_lines`.
+The one area where PyCodeKG doesn't replace file reading: when I need to understand *implementation details* (the actual SQL in `GraphStore.write`, for example), `pack_snippets()` with `context=5` handles this but longer methods may still require a direct `Read` call if they exceed `max_lines`.
 
 ---
 
@@ -199,7 +199,7 @@ The one area where CodeKG doesn't replace file reading: when I need to understan
 ## 6. Weaknesses & Suggestions
 
 ### W1: Abstract queries return docstring-contaminated results
-**Observed:** "error handling exception strategy" returned `CodeKG.query` as top result because the method's docstring mentions "error handling" as an example concept, not as something the method implements.
+**Observed:** "error handling exception strategy" returned `PyCodeKG.query` as top result because the method's docstring mentions "error handling" as an example concept, not as something the method implements.
 
 **Suggestion:** Add a `min_score` threshold recommendation in the tool description (e.g., "for precision queries, use `min_score=0.5`"). Consider a `docstring_boost_cap` parameter that limits how much docstring lexical signal can inflate a result relative to its semantic score.
 
@@ -219,14 +219,14 @@ The one area where CodeKG doesn't replace file reading: when I need to understan
 **Suggestion:** Consider normalizing scores to the returned result set (rank-normalized rather than absolute scores), or providing a confidence tier (`HIGH` / `MEDIUM` / `LOW`) alongside the numeric score.
 
 ### W5: explain() "role assessment" thresholds need tuning
-**Observed:** `CodeKG.query` with 6 callers across 3 subsystems is labeled "🟢 Utility function." It is the core query engine of the entire system.
+**Observed:** `PyCodeKG.query` with 6 callers across 3 subsystems is labeled "🟢 Utility function." It is the core query engine of the entire system.
 
 **Suggestion:** Role assessment should consider the *diversity* of callers (cross-subsystem calls are more significant than 10 calls from within the same class) and the semantic content of the node. Alternatively, a callee-count threshold for "orchestrator" classification would catch query/pack methods that call many scoring helpers.
 
 ### W6: No way to list all available node IDs without a semantic query
-**Observed:** To explore what's in `src/code_kg/snapshots.py`, I must either know a function name to search for, or use `query_codebase()` with a broad query.
+**Observed:** To explore what's in `src/pycode_kg/snapshots.py`, I must either know a function name to search for, or use `query_codebase()` with a broad query.
 
-**Suggestion:** `list_nodes(module_path="src/code_kg/snapshots.py")` exists and works — but it's not prominent in the recommended workflow. Make it an explicit step in the "Explore unfamiliar code" workflow in tool documentation.
+**Suggestion:** `list_nodes(module_path="src/pycode_kg/snapshots.py")` exists and works — but it's not prominent in the recommended workflow. Make it an explicit step in the "Explore unfamiliar code" workflow in tool documentation.
 
 ---
 
@@ -234,7 +234,7 @@ The one area where CodeKG doesn't replace file reading: when I need to understan
 
 **Rating: 4.4/5 — Highly Recommended for AI Agents Working in Python Codebases**
 
-CodeKG is not a convenience wrapper around grep — it's a qualitatively different interface to a codebase. The combination of hybrid semantic+structural search, source-grounded snippets, precise reverse call lookup, and temporal evolution tracking enables an AI agent to understand a codebase with substantially less tool-call overhead and file-reading noise than any alternative I've encountered.
+PyCodeKG is not a convenience wrapper around grep — it's a qualitatively different interface to a codebase. The combination of hybrid semantic+structural search, source-grounded snippets, precise reverse call lookup, and temporal evolution tracking enables an AI agent to understand a codebase with substantially less tool-call overhead and file-reading noise than any alternative I've encountered.
 
 **Best use cases:**
 - Orienting in an unfamiliar codebase (graph_stats → query → explain → pack)
@@ -253,4 +253,4 @@ The `viz3d.__init__` false positive in `analyze_repo()` and the narrow score ran
 
 ---
 
-*Assessment performed 2026-03-11 against code_kg v0.8.0 (develop branch), 353 meaningful nodes, BAAI/bge-small-en-v1.5 embedding model.*
+*Assessment performed 2026-03-11 against pycode_kg v0.8.0 (develop branch), 353 meaningful nodes, BAAI/bge-small-en-v1.5 embedding model.*

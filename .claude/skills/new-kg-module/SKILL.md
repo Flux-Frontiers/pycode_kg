@@ -64,7 +64,7 @@ Read templates from `assets/` and substitute:
 
 ## Step 3 — Add CLI Integration (Optional but recommended)
 
-Create a click-based CLI following the code_kg pattern:
+Create a click-based CLI following the pycode_kg pattern:
 
 ```
 <name>/cli/
@@ -101,7 +101,7 @@ This allows users to call:
 - `<name>-analyze` — full analysis report
 - `<name>-snapshot` — domain-appropriate snapshot management
 
-Follow the code_kg pattern: prefix each script with `<name>-` and point to the function in the appropriate `cmd_*.py` module.
+Follow the pycode_kg pattern: prefix each script with `<name>-` and point to the function in the appropriate `cmd_*.py` module.
 
 Key patterns:
 - Use `@repo_option`, `@db_option`, `@include_option`, `@exclude_option` decorators

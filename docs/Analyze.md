@@ -1,4 +1,4 @@
-# CodeKG Thorough Analysis
+# PyCodeKG Thorough Analysis
 
 **Comprehensive Codebase Health & Complexity Assessment**
 
@@ -8,7 +8,7 @@ Analyze your Python codebase for complexity hotspots, code quality metrics, arch
 
 ## Overview
 
-The `codekg analyze` command performs deep structural and semantic analysis of your codebase:
+The `pycodekg analyze` command performs deep structural and semantic analysis of your codebase:
 
 **Markdown Report** — Human-readable summary for team communication
 - Complexity hotspots (high fan-in/fan-out functions)
@@ -32,17 +32,17 @@ The `codekg analyze` command performs deep structural and semantic analysis of y
 
 ### 1. Build the Knowledge Graph
 ```bash
-codekg build
+pycodekg build
 ```
 
 ### 2. Run Thorough Analysis
 ```bash
-codekg analyze --json ~/.claude/codekg_analysis_latest.json
+pycodekg analyze --json ~/.claude/pycodekg_analysis_latest.json
 ```
 
 ### 3. View the Results
 ```bash
-cat code_kg_analysis_*.md
+cat pycode_kg_analysis_*.md
 ```
 
 ---
@@ -50,17 +50,17 @@ cat code_kg_analysis_*.md
 ## Command Reference
 
 ```bash
-codekg analyze [OPTIONS] [REPO_ROOT]
+pycodekg analyze [OPTIONS] [REPO_ROOT]
 ```
 
 ### Options
 
 | Option | Description |
 |--------|-------------|
-| `--db PATH` | SQLite knowledge graph path (default: `<repo>/.codekg/graph.sqlite`) |
-| `--lancedb PATH` | LanceDB vector index path (default: `<repo>/.codekg/lancedb`) |
+| `--db PATH` | SQLite knowledge graph path (default: `<repo>/.pycodekg/graph.sqlite`) |
+| `--lancedb PATH` | LanceDB vector index path (default: `<repo>/.pycodekg/lancedb`) |
 | `--output FILE` | Markdown report output path (default: `<repo>_analysis_<YYYYMMDD>.md`) |
-| `--json FILE` | JSON snapshot output path (default: `~/.claude/codekg_analysis_latest.json`) |
+| `--json FILE` | JSON snapshot output path (default: `~/.claude/pycodekg_analysis_latest.json`) |
 | `--quiet` | Suppress the Rich console summary table |
 | `--exclude-dir DIR` | Exclude directory from analysis (can be repeated) |
 
@@ -166,8 +166,8 @@ Analyzes interdependencies:
 {
   "module_coupling": {
     "dependencies": {
-      "store": ["graph", "codekg"],
-      "graph": ["codekg"],
+      "store": ["graph", "pycodekg"],
+      "graph": ["pycodekg"],
       "visitor": []
     },
     "import_edges": 47,
@@ -239,13 +239,13 @@ These functions coordinate many other functions. Candidates for refactoring.
 
 ```bash
 # Run analysis
-codekg analyze --quiet --json ~/.claude/codekg_analysis_latest.json
+pycodekg analyze --quiet --json ~/.claude/pycodekg_analysis_latest.json
 
 # View report
-cat code_kg_analysis_*.md
+cat pycode_kg_analysis_*.md
 
 # Use JSON for tooling
-jq '.docstring_coverage.total' ~/.claude/codekg_analysis_latest.json
+jq '.docstring_coverage.total' ~/.claude/pycodekg_analysis_latest.json
 ```
 
 ### CI/CD Integration
@@ -268,10 +268,10 @@ For the richest insights:
 
 ```bash
 # 1. Run thorough analysis
-codekg analyze --quiet --json ~/.claude/codekg_analysis_latest.json
+pycodekg analyze --quiet --json ~/.claude/pycodekg_analysis_latest.json
 
 # 2. Generate architecture WITH analysis insights
-codekg architecture --load-latest \
+pycodekg architecture --load-latest \
   --markdown docs/architecture.md \
   --json assets/arch.json
 ```
@@ -329,13 +329,13 @@ The architecture description will include:
 ### Python Integration
 
 ```python
-from code_kg.codekg_thorough_analysis import CodeKGAnalyzer
-from code_kg.store import GraphStore
+from pycode_kg.pycodekg_thorough_analysis import PyCodeKGAnalyzer
+from pycode_kg.store import GraphStore
 from pathlib import Path
 import json
 
-store = GraphStore(Path(".codekg/graph.sqlite"))
-analyzer = CodeKGAnalyzer(store, repo_root=Path("."))
+store = GraphStore(Path(".pycodekg/graph.sqlite"))
+analyzer = PyCodeKGAnalyzer(store, repo_root=Path("."))
 
 # Run analysis
 results = analyzer.run_analysis()

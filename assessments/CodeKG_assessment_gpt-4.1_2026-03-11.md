@@ -1,8 +1,8 @@
-# CodeKG_assessment_gpt-4.1_2026-03-11.md
+# PyCodeKG_assessment_gpt-4.1_2026-03-11.md
 
 ## Executive Summary
 
-CodeKG provides a powerful, semantically-grounded interface for understanding Python codebases. Its hybrid semantic + structural knowledge graph, exposed via MCP tools, enables rapid orientation, deep architectural analysis, and efficient navigation of complex projects. Compared to traditional file reading and grep-based workflows, CodeKG delivers more relevant, context-rich results and surfaces architectural insights that would otherwise require significant manual effort. The tool is especially valuable for agents and developers seeking to quickly comprehend unfamiliar codebases, trace dependencies, and assess code health.
+PyCodeKG provides a powerful, semantically-grounded interface for understanding Python codebases. Its hybrid semantic + structural knowledge graph, exposed via MCP tools, enables rapid orientation, deep architectural analysis, and efficient navigation of complex projects. Compared to traditional file reading and grep-based workflows, PyCodeKG delivers more relevant, context-rich results and surfaces architectural insights that would otherwise require significant manual effort. The tool is especially valuable for agents and developers seeking to quickly comprehend unfamiliar codebases, trace dependencies, and assess code health.
 
 ## Tool-by-Tool Evaluation
 
@@ -45,7 +45,7 @@ CodeKG provides a powerful, semantically-grounded interface for understanding Py
 
 ## Comparison to Default Workflow
 
-Traditional file reading and grep-based exploration are slow, linear, and context-poor. CodeKG's semantic search, graph navigation, and architectural analysis provide a quantum leap in speed and depth of understanding. The ability to trace relationships, surface hotspots, and view code evolution is unmatched by manual methods.
+Traditional file reading and grep-based exploration are slow, linear, and context-poor. PyCodeKG's semantic search, graph navigation, and architectural analysis provide a quantum leap in speed and depth of understanding. The ability to trace relationships, surface hotspots, and view code evolution is unmatched by manual methods.
 
 ## Strengths
 - Hybrid semantic + structural search yields highly relevant results.
@@ -62,4 +62,4 @@ Traditional file reading and grep-based exploration are slow, linear, and contex
 
 ## Overall Verdict
 
-CodeKG is an exceptional tool for codebase comprehension, architectural analysis, and agent-driven exploration. It is highly recommended for developers, AI agents, and teams working with complex or unfamiliar Python projects. **Final rating: 5/5.**
+PyCodeKG is an exceptional tool for codebase comprehension, architectural analysis, and agent-driven exploration. It is highly recommended for developers, AI agents, and teams working with complex or unfamiliar Python projects. **Final rating: 5/5.**

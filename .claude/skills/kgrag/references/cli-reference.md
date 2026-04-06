@@ -165,7 +165,7 @@ kgrag viz [OPTIONS]
 **Tabs:**
 - **📋 Registry** — Browse KGs, view stats, check build status
 - **🔍 Federated Query** — Search across KGs, display ranked or grouped
-- **🧪 Analysis** — Run architectural analysis on CodeKGs
+- **🧪 Analysis** — Run architectural analysis on PyCodeKGs
 - **📦 Snippet Pack** — Extract snippets with configurable context
 
 **Launch:**
@@ -265,8 +265,8 @@ kgrag register [OPTIONS]
 kgrag register --name mykg \
   --kind code \
   --repo ~/repos/myproject \
-  --sqlite ~/.codekg/graph.sqlite \
-  --lancedb ~/.codekg/lancedb
+  --sqlite ~/.pycodekg/graph.sqlite \
+  --lancedb ~/.pycodekg/lancedb
 ```
 
 ---
@@ -287,7 +287,7 @@ kgrag unregister KG_NAME [OPTIONS]
 - `--registry PATH` — Override registry path
 - `--force` — Skip confirmation
 
-**Warning:** Only removes the registry entry, not the actual database files. To fully clean up, manually delete the `.codekg/`, `.dockg/`, or `.metakg/` directories.
+**Warning:** Only removes the registry entry, not the actual database files. To fully clean up, manually delete the `.pycodekg/`, `.dockg/`, or `.metakg/` directories.
 
 ---
 
@@ -298,7 +298,7 @@ kgrag unregister KG_NAME [OPTIONS]
 kgrag scan [DIRECTORY] [OPTIONS]
 ```
 
-**Purpose:** Scan directory tree for existing CodeKG/DocKG databases and suggest registration.
+**Purpose:** Scan directory tree for existing PyCodeKG/DocKG databases and suggest registration.
 
 **Arguments:**
 - `DIRECTORY` — Directory to scan (default: current directory)
@@ -360,13 +360,13 @@ Always use **absolute paths** in .mcp.json.
 | Variable | Purpose | Default |
 |----------|---------|---------|
 | `KGRAG_REGISTRY` | Path to registry SQLite file | `~/.kgrag/registry.sqlite` |
-| `CODEKG_MODEL_DIR` | Cache embedding model (CodeKG) | `.codekg/models` |
+| `PYCODEKG_MODEL_DIR` | Cache embedding model (PyCodeKG) | `.pycodekg/models` |
 | `DOCKG_MODEL_DIR` | Cache embedding model (DocKG) | `.dockg/models` |
 
 **Set in shell profile:**
 ```bash
 export KGRAG_REGISTRY=$HOME/.kgrag/registry.sqlite
-export CODEKG_MODEL_DIR=$HOME/.models/codekg
+export PYCODEKG_MODEL_DIR=$HOME/.models/pycodekg
 export DOCKG_MODEL_DIR=$HOME/.models/dockg
 ```
 

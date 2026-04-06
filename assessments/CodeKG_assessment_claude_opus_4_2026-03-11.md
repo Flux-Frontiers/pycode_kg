@@ -1,20 +1,20 @@
-# CodeKG Agent Assessment — Claude Opus 4
+# PyCodeKG Agent Assessment — Claude Opus 4
 
 **Assessor:** Claude Opus 4 (Anthropic)  
 **Date:** 2026-03-11  
-**Repository Under Test:** CodeKG v0.8.0 (self-indexed)  
+**Repository Under Test:** PyCodeKG v0.8.0 (self-indexed)  
 **Platform:** 2024 M3 Max MacBook Pro, 36GB RAM, 1TB SSD  
-**MCP Server:** `codekg-code_kg`  
+**MCP Server:** `pycodekg-pycode_kg`  
 
 ---
 
 ## 1. Executive Summary
 
-CodeKG is a genuinely impressive tool that fundamentally changes how an AI agent can engage with a Python codebase. Rather than the typical workflow of reading directory listings, grepping for patterns, and manually piecing together architectural understanding from scattered file reads, CodeKG provides a **pre-computed, semantically queryable knowledge graph** that delivers structured, ranked, source-grounded answers in seconds. During this assessment, I exercised all 18+ MCP tools across orientation, semantic search, structural navigation, temporal analysis, and advanced ranking — and the experience was qualitatively different from raw file access.
+PyCodeKG is a genuinely impressive tool that fundamentally changes how an AI agent can engage with a Python codebase. Rather than the typical workflow of reading directory listings, grepping for patterns, and manually piecing together architectural understanding from scattered file reads, PyCodeKG provides a **pre-computed, semantically queryable knowledge graph** that delivers structured, ranked, source-grounded answers in seconds. During this assessment, I exercised all 18+ MCP tools across orientation, semantic search, structural navigation, temporal analysis, and advanced ranking — and the experience was qualitatively different from raw file access.
 
 The tool's greatest strength is its **layered approach to codebase understanding**: `graph_stats()` for instant orientation, `analyze_repo()` for comprehensive architectural analysis, `query_codebase()` and `pack_snippets()` for targeted semantic exploration, and `get_node()`/`explain()`/`callers()` for precise structural navigation. The hybrid reranking (70% semantic + 30% lexical) is particularly effective — it surfaces results that match both conceptual intent and naming conventions, which is exactly what an agent needs when exploring unfamiliar code.
 
-The main areas for improvement are: (1) `bridge_centrality()` returned an empty table, suggesting either a bug or an edge case with the current graph topology; (2) the `centrality_score` component in `query_ranked()` was consistently 0.0, reducing the multi-signal ranking to effectively semantic-only; and (3) response times, while generally fast (1-6 seconds per call), could be noticeable for interactive workflows when chaining multiple tool calls. Despite these issues, CodeKG represents a significant advancement over my default workflow and I would recommend it for any non-trivial Python codebase exploration task.
+The main areas for improvement are: (1) `bridge_centrality()` returned an empty table, suggesting either a bug or an edge case with the current graph topology; (2) the `centrality_score` component in `query_ranked()` was consistently 0.0, reducing the multi-signal ranking to effectively semantic-only; and (3) response times, while generally fast (1-6 seconds per call), could be noticeable for interactive workflows when chaining multiple tool calls. Despite these issues, PyCodeKG represents a significant advancement over my default workflow and I would recommend it for any non-trivial Python codebase exploration task.
 
 ---
 
@@ -73,7 +73,7 @@ The snippet format is optimized for LLM consumption: Markdown code blocks with l
 **Response time:** ~2 seconds  
 **Output quality:** Excellent
 
-Tested on `GraphStore` and `CodeKG` classes. Returns clean Markdown with module, location, full docstring, outgoing CONTAINS edges (listing all methods), and incoming CALLS (listing all callers with module and line number). For `GraphStore`, this immediately revealed 19 methods and 8 cross-module callers — a complete picture of the class's interface and usage.
+Tested on `GraphStore` and `PyCodeKG` classes. Returns clean Markdown with module, location, full docstring, outgoing CONTAINS edges (listing all methods), and incoming CALLS (listing all callers with module and line number). For `GraphStore`, this immediately revealed 19 methods and 8 cross-module callers — a complete picture of the class's interface and usage.
 
 The `include_edges=True` option is a smart design choice — it eliminates the need for a separate `callers()` call in most cases, reducing round-trips.
 
@@ -145,7 +145,7 @@ Returned an empty table with no bridge modules identified. This appears to be a 
 **Response time:** ~2 seconds  
 **Output quality:** Good
 
-Global CodeRank correctly identified `GraphStore.con` (#1), `CodeKG.store` (#2), and `CodeGraph.extract` (#3) as the most structurally important nodes. The scores are very small (0.00065 for #1) due to normalization across 6,653 nodes, which makes relative comparison harder than the SIR scores.
+Global CodeRank correctly identified `GraphStore.con` (#1), `PyCodeKG.store` (#2), and `CodeGraph.extract` (#3) as the most structurally important nodes. The scores are very small (0.00065 for #1) due to normalization across 6,653 nodes, which makes relative comparison harder than the SIR scores.
 
 **Verdict:** Useful complement to centrality. The JSON output format is good for programmatic consumption.
 
@@ -154,7 +154,7 @@ Global CodeRank correctly identified `GraphStore.con` (#1), `CodeKG.store` (#2),
 **Response time:** ~3 seconds  
 **Output quality:** Good with caveats
 
-Tested with "semantic search query pipeline" — correctly returned `CodeKG.query` (#1), `SemanticIndex.search` (#2), `cmd_query.py:query` (#3), `mcp_server.py:query_codebase` (#4). The `why` explanations ("strong semantic match to the query", "direct semantic seed") are helpful.
+Tested with "semantic search query pipeline" — correctly returned `PyCodeKG.query` (#1), `SemanticIndex.search` (#2), `cmd_query.py:query` (#3), `mcp_server.py:query_codebase` (#4). The `why` explanations ("strong semantic match to the query", "direct semantic seed") are helpful.
 
 **Issue:** The `centrality_score` was 0.0 for all results, meaning the hybrid formula (0.60 × semantic + 0.25 × centrality + 0.15 × proximity) collapsed to effectively 0.60 × semantic + 0.15 × proximity. This reduces the tool's differentiation from plain `query_codebase()`. The centrality component may require `rank_nodes(persist_metric=...)` to be called first.
 
@@ -191,7 +191,7 @@ Returned all 21 methods in `store.py` with IDs, line numbers, and truncated docs
 | **Insight Generation** | 5/5 | `analyze_repo()` surfaced insights I wouldn't have found manually: the docstring coverage regression from 97.2% to 92.8%, the `__init__` fan-out issue (now resolved), the module cohesion scores, and the concern-based hybrid rankings. The snapshot diff showing 36 new functions added is genuinely useful for understanding development velocity. |
 | **Usability** | 4.5/5 | Tool interfaces are intuitive with sensible defaults. Output is well-structured Markdown optimized for LLM consumption. The node ID convention (`kind:module_path:qualname`) is consistent and predictable. The `include_edges=True` option on `get_node()` reduces round-trips. Minor: some tools return JSON while others return Markdown — consistency would help. |
 | **Architectural Value** | 5/5 | `analyze_repo()` is genuinely valuable. The SIR ranking, module cohesion, public API surface, inheritance hierarchy, and concern-based rankings provide a comprehensive architectural picture. The snapshot temporal analysis adds a dimension that no other tool I've encountered provides. |
-| **Uniqueness** | 5/5 | CodeKG occupies a unique niche: a pre-computed, semantically queryable knowledge graph exposed via MCP. Other tools (ctags, LSP, grep) provide fragments of this capability, but none combine semantic search, structural graph traversal, temporal snapshots, and PageRank-based importance ranking in a single coherent interface. The MCP integration means it's available in-context during any agent conversation. |
+| **Uniqueness** | 5/5 | PyCodeKG occupies a unique niche: a pre-computed, semantically queryable knowledge graph exposed via MCP. Other tools (ctags, LSP, grep) provide fragments of this capability, but none combine semantic search, structural graph traversal, temporal snapshots, and PageRank-based importance ranking in a single coherent interface. The MCP integration means it's available in-context during any agent conversation. |
 
 **Overall Score: 4.7 / 5.0**
 
@@ -199,7 +199,7 @@ Returned all 21 methods in `store.py` with IDs, line numbers, and truncated docs
 
 ## 4. Comparison to Default Workflow
 
-### Without CodeKG (Baseline)
+### Without PyCodeKG (Baseline)
 
 My default workflow for understanding a new Python codebase:
 
@@ -212,7 +212,7 @@ My default workflow for understanding a new Python codebase:
 
 **Total for basic orientation:** ~15-20 calls, ~30-60 seconds, significant manual synthesis.
 
-### With CodeKG
+### With PyCodeKG
 
 1. **`graph_stats()`** — Instant orientation (~1 second)
 2. **`analyze_repo()`** — Complete architectural picture (~5 seconds)
@@ -223,7 +223,7 @@ My default workflow for understanding a new Python codebase:
 
 ### Key Differences
 
-| Aspect | Baseline | CodeKG |
+| Aspect | Baseline | PyCodeKG |
 |--------|----------|--------|
 | **Orientation time** | 5-10 minutes | 6 seconds (graph_stats + analyze_repo) |
 | **"Find the storage layer"** | grep for "sqlite", read 3-4 files | `query_codebase("graph database storage")` — 1 call |
@@ -232,7 +232,7 @@ My default workflow for understanding a new Python codebase:
 | **"What's the architectural spine?"** | Read all files, mentally construct dependency graph | `centrality(group_by='module')` — 1 call |
 | **Conceptual queries** | Not possible with grep | `query_codebase("error handling strategy")` — works |
 
-**Bottom line:** CodeKG reduces my orientation time by ~80% and enables query types (conceptual search, structural importance, temporal analysis) that are simply not possible with raw file access.
+**Bottom line:** PyCodeKG reduces my orientation time by ~80% and enables query types (conceptual search, structural importance, temporal analysis) that are simply not possible with raw file access.
 
 ---
 
@@ -252,7 +252,7 @@ My default workflow for understanding a new Python codebase:
 
 7. **The node ID convention is stable and predictable.** `kind:module_path:qualname` makes it easy to construct IDs without discovery, and the convention is consistent across all tools.
 
-8. **Docstring-aware search is a force multiplier.** Because CodeKG indexes docstrings and uses them in hybrid reranking, well-documented codebases become dramatically more searchable. This creates a virtuous cycle: better docs → better search → better agent understanding.
+8. **Docstring-aware search is a force multiplier.** Because PyCodeKG indexes docstrings and uses them in hybrid reranking, well-documented codebases become dramatically more searchable. This creates a virtuous cycle: better docs → better search → better agent understanding.
 
 ---
 
@@ -273,8 +273,8 @@ My default workflow for understanding a new Python codebase:
    *Suggestion:* Consider offering a `format` parameter (json/markdown) on all tools, or at least document the rationale for each tool's format choice. Currently: `query_codebase` → JSON, `pack_snippets` → Markdown, `graph_stats` → Markdown, `callers` → JSON, `centrality` → Markdown, `rank_nodes` → JSON.
 
 4. **No way to search for specific code patterns (regex).**  
-   *Impact:* Low — CodeKG is semantic, not syntactic.  
-   *Suggestion:* Consider adding a `grep_codebase(pattern)` tool that searches within the indexed source files. This would make CodeKG a complete replacement for file-level tools.
+   *Impact:* Low — PyCodeKG is semantic, not syntactic.  
+   *Suggestion:* Consider adding a `grep_codebase(pattern)` tool that searches within the indexed source files. This would make PyCodeKG a complete replacement for file-level tools.
 
 5. **Module-level snippets in `pack_snippets()` show docstring rather than code.**  
    *Impact:* Low — module nodes naturally don't have a single code span.  
@@ -292,9 +292,9 @@ My default workflow for understanding a new Python codebase:
 
 ## 7. Overall Verdict
 
-### Would I recommend CodeKG?
+### Would I recommend PyCodeKG?
 
-**Yes, strongly.** CodeKG is the most useful codebase analysis tool I've encountered as an AI agent. It transforms the experience of understanding a Python codebase from a tedious, multi-step manual process into a fluid, query-driven exploration.
+**Yes, strongly.** PyCodeKG is the most useful codebase analysis tool I've encountered as an AI agent. It transforms the experience of understanding a Python codebase from a tedious, multi-step manual process into a fluid, query-driven exploration.
 
 ### For what use cases?
 
@@ -312,10 +312,10 @@ My default workflow for understanding a new Python codebase:
 
 ## **4.7 / 5.0** ⭐⭐⭐⭐⭐
 
-CodeKG is a mature, well-designed tool that delivers genuine value for AI agent workflows. The combination of semantic search, structural graph traversal, temporal analysis, and PageRank-based importance ranking is unique and powerful. The few issues found (`bridge_centrality` empty results, `query_ranked` centrality gap) are minor and fixable. The tool's output is thoughtfully optimized for LLM consumption, and the MCP integration makes it seamlessly available during any agent conversation.
+PyCodeKG is a mature, well-designed tool that delivers genuine value for AI agent workflows. The combination of semantic search, structural graph traversal, temporal analysis, and PageRank-based importance ranking is unique and powerful. The few issues found (`bridge_centrality` empty results, `query_ranked` centrality gap) are minor and fixable. The tool's output is thoughtfully optimized for LLM consumption, and the MCP integration makes it seamlessly available during any agent conversation.
 
-**In one sentence:** CodeKG gives AI agents the kind of deep, structural understanding of a codebase that previously required extensive manual exploration — and it does so in seconds rather than minutes.
+**In one sentence:** PyCodeKG gives AI agents the kind of deep, structural understanding of a codebase that previously required extensive manual exploration — and it does so in seconds rather than minutes.
 
 ---
 
-*Assessment performed by Claude Opus 4 (Anthropic) on 2026-03-11 using CodeKG v0.8.0 MCP tools against the CodeKG repository itself.*
+*Assessment performed by Claude Opus 4 (Anthropic) on 2026-03-11 using PyCodeKG v0.8.0 MCP tools against the PyCodeKG repository itself.*

@@ -1,10 +1,10 @@
-# CodeKG Assessment — cline — 2026-03-11
+# PyCodeKG Assessment — cline — 2026-03-11
 
 ## Executive Summary
 
-CodeKG is genuinely useful as an agent-facing code understanding system, and the MCP server in this session was clearly connected and operational from the first call. The strongest impression is that CodeKG compresses a multi-step workflow — semantic search, graph expansion, caller tracing, snippet retrieval, and architectural summarization — into a small set of tools that are fast to invoke and easy to chain. In practice, it let me move from broad orientation (`graph_stats`, `analyze_repo`) to intent-driven discovery (`query_codebase`, `pack_snippets`) and then to structural validation (`get_node`, `explain`, `callers`) without dropping down into manual grep or repeated file reads.
+PyCodeKG is genuinely useful as an agent-facing code understanding system, and the MCP server in this session was clearly connected and operational from the first call. The strongest impression is that PyCodeKG compresses a multi-step workflow — semantic search, graph expansion, caller tracing, snippet retrieval, and architectural summarization — into a small set of tools that are fast to invoke and easy to chain. In practice, it let me move from broad orientation (`graph_stats`, `analyze_repo`) to intent-driven discovery (`query_codebase`, `pack_snippets`) and then to structural validation (`get_node`, `explain`, `callers`) without dropping down into manual grep or repeated file reads.
 
-Its most distinctive strength is the combination of semantic retrieval with explicit structural context. The search results were not just “embedding-near” text fragments; they were typed code entities with stable IDs, graph edges, provenance, and source-grounded snippets. That said, the system is somewhat docstring-sensitive: broad conceptual queries such as “error handling strategy” and “entry points configuration” surfaced especially strong results because the repository’s docstrings explicitly mention those phrases. That is still useful, but it means quality depends partly on documentation discipline. Overall, I would rate CodeKG highly as an AI-facing exploration layer for Python repositories, especially for onboarding, architecture review, and tool-assisted navigation.
+Its most distinctive strength is the combination of semantic retrieval with explicit structural context. The search results were not just “embedding-near” text fragments; they were typed code entities with stable IDs, graph edges, provenance, and source-grounded snippets. That said, the system is somewhat docstring-sensitive: broad conceptual queries such as “error handling strategy” and “entry points configuration” surfaced especially strong results because the repository’s docstrings explicitly mention those phrases. That is still useful, but it means quality depends partly on documentation discipline. Overall, I would rate PyCodeKG highly as an AI-facing exploration layer for Python repositories, especially for onboarding, architecture review, and tool-assisted navigation.
 
 ## Tool-by-Tool Evaluation
 
@@ -28,7 +28,7 @@ This is the core discovery tool, and it performed well across three query styles
   - Top hit was `GraphStore`, followed by `store.py`, `_load_store`, `GraphStore.write`, and `GraphStore.expand`.
   - This felt highly relevant and matched likely agent intent.
 - **Broad:** `error handling strategy`
-  - Top hits included `mcp_server.py`, `_tab_query`, `CodeKG.query`, `_docstring_signal`, and `CodeKG.pack`.
+  - Top hits included `mcp_server.py`, `_tab_query`, `PyCodeKG.query`, `_docstring_signal`, and `PyCodeKG.pack`.
   - These were useful, though clearly influenced by docstring wording.
 - **Exploratory:** `entry points configuration`
   - Top hits included `mcp_server.py`, `main`, `_parse_args`, `cli/__init__.py`, and `_load_kg`.
@@ -46,23 +46,23 @@ This is a major improvement over my default workflow because it reduces the “q
 
 This worked well as a structural inspection tool. I used it on:
 
-- `fn:src/code_kg/mcp_server.py:main`
-- `cls:src/code_kg/store.py:GraphStore`
-- `m:src/code_kg/kg.py:CodeKG.query`
+- `fn:src/pycode_kg/mcp_server.py:main`
+- `cls:src/pycode_kg/store.py:GraphStore`
+- `m:src/pycode_kg/kg.py:PyCodeKG.query`
 
-The inclusion of outgoing and incoming edges made it easy to verify graph structure. For example, `main` correctly showed an outgoing call to `_parse_args` and an incoming call from CLI command `mcp`. `GraphStore` showed its contained methods plus incoming callers from app, CLI, viz, and build commands. `CodeKG.query` showed both its internal helper calls and its use by app, CLI, MCP, and analysis code.
+The inclusion of outgoing and incoming edges made it easy to verify graph structure. For example, `main` correctly showed an outgoing call to `_parse_args` and an incoming call from CLI command `mcp`. `GraphStore` showed its contained methods plus incoming callers from app, CLI, viz, and build commands. `PyCodeKG.query` showed both its internal helper calls and its use by app, CLI, MCP, and analysis code.
 
 This is a strong middle layer between search and raw source. A useful enhancement would be optional line-numbered edge evidence for every displayed caller/callee directly in the Markdown report.
 
 ### `explain(node_id)` — **4/5**
 
-I used `explain()` on `main` and `CodeKG.query`. The results were concise, readable, and useful for quick role comprehension. It is particularly helpful when I want a natural-language summary rather than raw graph metadata.
+I used `explain()` on `main` and `PyCodeKG.query`. The results were concise, readable, and useful for quick role comprehension. It is particularly helpful when I want a natural-language summary rather than raw graph metadata.
 
-Its main weakness is that the “Role in Codebase” classification is a little shallow. For example, `CodeKG.query` is described as a “Utility function” despite being a central operation used by CLI, MCP, UI, and analysis code. The tool is good, but its role labels could be more nuanced.
+Its main weakness is that the “Role in Codebase” classification is a little shallow. For example, `PyCodeKG.query` is described as a “Utility function” despite being a central operation used by CLI, MCP, UI, and analysis code. The tool is good, but its role labels could be more nuanced.
 
 ### `callers(node_id)` — **4.5/5**
 
-I used `callers()` on `m:src/code_kg/store.py:GraphStore.expand` and got exactly the kind of answer I would want: it identified `CodeKG.query` and `CodeKG.pack` as callers, with call-site line numbers (644 and 800). That is substantially better than a plain text search because it gives resolved structural usage rather than string matches.
+I used `callers()` on `m:src/pycode_kg/store.py:GraphStore.expand` and got exactly the kind of answer I would want: it identified `PyCodeKG.query` and `PyCodeKG.pack` as callers, with call-site line numbers (644 and 800). That is substantially better than a plain text search because it gives resolved structural usage rather than string matches.
 
 This tool is especially valuable for reverse navigation and impact analysis. The inclusion of `call_site_lineno` is excellent. If expanded further, showing evidence expressions everywhere would make it even more audit-friendly.
 
@@ -86,7 +86,7 @@ This is a strong tool for answering “what changed?” at the architectural lev
 
 | Dimension | Score | Justification |
 |-----------|------:|---------------|
-| **Accuracy** | 4.5/5 | Structural relationships I spot-checked were credible: `main -> _parse_args`, `CodeKG.query` callers, and `GraphStore.expand` reverse callers all matched plausible code behavior. |
+| **Accuracy** | 4.5/5 | Structural relationships I spot-checked were credible: `main -> _parse_args`, `PyCodeKG.query` callers, and `GraphStore.expand` reverse callers all matched plausible code behavior. |
 | **Relevance** | 4.5/5 | Precise and exploratory queries were very good. Broad queries were useful too, though somewhat boosted by exact docstring phrasing. |
 | **Completeness** | 4/5 | The graph covers modules, classes, functions, methods, callers, snapshots, and analysis well. I did not detect major missing surfaces, though confidence in completeness still depends on extraction quality. |
 | **Efficiency** | 5/5 | Faster than manual grep + file reading for almost every assessment step. `pack_snippets` in particular removes several navigation hops. |
@@ -97,9 +97,9 @@ This is a strong tool for answering “what changed?” at the architectural lev
 
 ## Comparison to Default Workflow
 
-Without CodeKG, my default approach would be: list files, grep for keywords, open candidate files, inspect call sites manually, and build a mental model incrementally. That works, but it is serial, brittle for conceptual queries, and expensive when exploring unfamiliar architecture.
+Without PyCodeKG, my default approach would be: list files, grep for keywords, open candidate files, inspect call sites manually, and build a mental model incrementally. That works, but it is serial, brittle for conceptual queries, and expensive when exploring unfamiliar architecture.
 
-CodeKG changes the workflow in two important ways. First, semantic search gets me to likely relevant nodes even when I do not know exact symbols. Second, once I have a node, graph-aware tools let me pivot structurally instead of textually: `get_node` for neighborhood, `callers` for reverse edges, `pack_snippets` for grounded source, and `analyze_repo` for macro-level context. I still value raw file access for final verification, but CodeKG dramatically reduces how often I need it.
+PyCodeKG changes the workflow in two important ways. First, semantic search gets me to likely relevant nodes even when I do not know exact symbols. Second, once I have a node, graph-aware tools let me pivot structurally instead of textually: `get_node` for neighborhood, `callers` for reverse edges, `pack_snippets` for grounded source, and `analyze_repo` for macro-level context. I still value raw file access for final verification, but PyCodeKG dramatically reduces how often I need it.
 
 ## Strengths
 
@@ -129,6 +129,6 @@ CodeKG changes the workflow in two important ways. First, semantic search gets m
 
 ## Overall Verdict
 
-Yes — I would recommend CodeKG, especially for AI agents, advanced code assistants, and developers doing onboarding, repository exploration, architecture review, or impact analysis on Python codebases. Its biggest advantage is not any single feature, but the way semantic search, graph structure, snippet grounding, and temporal analysis reinforce each other.
+Yes — I would recommend PyCodeKG, especially for AI agents, advanced code assistants, and developers doing onboarding, repository exploration, architecture review, or impact analysis on Python codebases. Its biggest advantage is not any single feature, but the way semantic search, graph structure, snippet grounding, and temporal analysis reinforce each other.
 
-**Final rating: 4.6/5.** CodeKG feels meaningfully ahead of a grep-plus-files workflow and more practically useful than many standalone AST or embedding-only approaches. With a bit more calibration around role classification, evidence visibility, and retrieval weighting transparency, it would be an exceptionally strong agent-facing code intelligence layer.
+**Final rating: 4.6/5.** PyCodeKG feels meaningfully ahead of a grep-plus-files workflow and more practically useful than many standalone AST or embedding-only approaches. With a bit more calibration around role classification, evidence visibility, and retrieval weighting transparency, it would be an exceptionally strong agent-facing code intelligence layer.

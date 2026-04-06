@@ -5,7 +5,7 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 
-from code_kg.analysis.centrality import StructuralImportanceRanker, aggregate_module_scores
+from pycode_kg.analysis.centrality import StructuralImportanceRanker, aggregate_module_scores
 
 SCHEMA = """
 CREATE TABLE nodes (

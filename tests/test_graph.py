@@ -9,7 +9,7 @@ from __future__ import annotations
 import textwrap
 from pathlib import Path
 
-from code_kg.graph import CodeGraph
+from pycode_kg.graph import CodeGraph
 
 
 def _write_repo(tmp_path: Path, files: dict) -> Path:

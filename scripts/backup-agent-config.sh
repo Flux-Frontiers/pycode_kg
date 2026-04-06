@@ -59,7 +59,7 @@ backup_file() {
 # ── Create destination ─────────────────────────────────────────────────────────
 mkdir -p "$DEST"
 echo ""
-echo "  CodeKG agent config backup"
+echo "  PyCodeKG agent config backup"
 echo "  Timestamp : $TIMESTAMP"
 echo "  Location  : $DEST"
 echo "  ────────────────────────────────────────"
@@ -129,7 +129,7 @@ echo "  Done. Total size: $TOTAL_SIZE"
 echo ""
 
 # ── Housekeeping: keep last N backups ─────────────────────────────────────────
-KEEP=${CODEKG_BACKUP_KEEP:-20}
+KEEP=${PYCODEKG_BACKUP_KEEP:-20}
 BACKUP_COUNT=$(find "$BACKUP_ROOT" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')
 if (( BACKUP_COUNT > KEEP )); then
     TO_DELETE=$(( BACKUP_COUNT - KEEP ))

@@ -1,12 +1,12 @@
 > **Analysis Report Metadata**
 > - **Generated:** 2026-03-10T21:54:54Z
-> - **Version:** code-kg 0.7.1
+> - **Version:** pycode-kg 0.7.1
 > - **Commit:** 4295d2b (develop)
 > - **Platform:** Darwin arm64 | Python 3.12.10
 > - **Graph:** 5301 nodes · 5222 edges (348 meaningful)
 > - **Included directories:** src
 
-# code_kg Analysis
+# pycode_kg Analysis
 
 **Generated:** 2026-03-10 21:54:54 UTC
 
@@ -14,7 +14,7 @@
 
 ## 📊 Executive Summary
 
-This report provides a comprehensive architectural analysis of the **code_kg** repository using CodeKG's knowledge graph. The analysis covers complexity hotspots, module coupling, critical call chains, and code quality signals to guide refactoring and architecture decisions.
+This report provides a comprehensive architectural analysis of the **pycode_kg** repository using PyCodeKG's knowledge graph. The analysis covers complexity hotspots, module coupling, critical call chains, and code quality signals to guide refactoring and architecture decisions.
 
 | Overall Quality | Grade | Score |
 |----------------|-------|-------|
@@ -51,21 +51,21 @@ Most-called functions are potential bottlenecks or core functionality. These fun
 
 | # | Function | Module | Callers | Risk Level |
 |---|----------|--------|---------|-----------|
-| 1 | `FunctionMetrics()` | src/code_kg/codekg_thorough_analysis.py | **4** | 🟡 MEDIUM |
-| 2 | `_qualname()` | src/code_kg/visitor.py | **3** | 🟡 MEDIUM |
-| 3 | `node_id()` | src/code_kg/utils.py | **3** | 🟡 MEDIUM |
-| 4 | `_seed_params()` | src/code_kg/visitor.py | **2** | 🟢 LOW |
-| 5 | `expr_to_name()` | src/code_kg/codekg.py | **2** | 🟢 LOW |
-| 6 | `_enclosing_def()` | src/code_kg/codekg.py | **1** | 🟢 LOW |
-| 7 | `ModuleMetrics()` | src/code_kg/codekg_thorough_analysis.py | **1** | 🟢 LOW |
-| 8 | `_compute_depth()` | src/code_kg/codekg_thorough_analysis.py | **1** | 🟢 LOW |
-| 9 | `CallChain()` | src/code_kg/codekg_thorough_analysis.py | **1** | 🟢 LOW |
-| 10 | `_compile_results()` | src/code_kg/codekg_thorough_analysis.py | **1** | 🟢 LOW |
-| 11 | `ModuleLayer()` | src/code_kg/architecture.py | **1** | 🟢 LOW |
-| 12 | `_summary()` | src/code_kg/cli/cmd_build_full.py | **1** | 🟢 LOW |
-| 13 | `Node()` | src/code_kg/codekg.py | **1** | 🟢 LOW |
-| 14 | `_resolve_dst()` | src/code_kg/codekg_thorough_analysis.py | **1** | 🟢 LOW |
-| 15 | `_owner_id()` | src/code_kg/codekg.py | **1** | 🟢 LOW |
+| 1 | `FunctionMetrics()` | src/pycode_kg/pycodekg_thorough_analysis.py | **4** | 🟡 MEDIUM |
+| 2 | `_qualname()` | src/pycode_kg/visitor.py | **3** | 🟡 MEDIUM |
+| 3 | `node_id()` | src/pycode_kg/utils.py | **3** | 🟡 MEDIUM |
+| 4 | `_seed_params()` | src/pycode_kg/visitor.py | **2** | 🟢 LOW |
+| 5 | `expr_to_name()` | src/pycode_kg/pycodekg.py | **2** | 🟢 LOW |
+| 6 | `_enclosing_def()` | src/pycode_kg/pycodekg.py | **1** | 🟢 LOW |
+| 7 | `ModuleMetrics()` | src/pycode_kg/pycodekg_thorough_analysis.py | **1** | 🟢 LOW |
+| 8 | `_compute_depth()` | src/pycode_kg/pycodekg_thorough_analysis.py | **1** | 🟢 LOW |
+| 9 | `CallChain()` | src/pycode_kg/pycodekg_thorough_analysis.py | **1** | 🟢 LOW |
+| 10 | `_compile_results()` | src/pycode_kg/pycodekg_thorough_analysis.py | **1** | 🟢 LOW |
+| 11 | `ModuleLayer()` | src/pycode_kg/architecture.py | **1** | 🟢 LOW |
+| 12 | `_summary()` | src/pycode_kg/cli/cmd_build_full.py | **1** | 🟢 LOW |
+| 13 | `Node()` | src/pycode_kg/pycodekg.py | **1** | 🟢 LOW |
+| 14 | `_resolve_dst()` | src/pycode_kg/pycodekg_thorough_analysis.py | **1** | 🟢 LOW |
+| 15 | `_owner_id()` | src/pycode_kg/pycodekg.py | **1** | 🟢 LOW |
 
 
 **Insight:** Functions with high fan-in are either core APIs or bottlenecks. Review these for:
@@ -89,16 +89,16 @@ Top modules by dependency coupling and cohesion (showing up to 10 with activity)
 
 | Module | Functions | Classes | Incoming | Outgoing | Cohesion |
 |--------|-----------|---------|----------|----------|----------|
-| `src/code_kg/kg.py` | 10 | 5 | 5 | 3 | 0.33 |
-| `src/code_kg/viz3d.py` | 9 | 3 | 0 | 0 | 0.00 |
-| `src/code_kg/codekg_thorough_analysis.py` | 5 | 4 | 3 | 0 | 0.00 |
-| `src/code_kg/store.py` | 2 | 2 | 8 | 2 | 0.18 |
-| `src/code_kg/snapshots.py` | 0 | 5 | 4 | 0 | 0.00 |
-| `src/code_kg/index.py` | 5 | 4 | 5 | 0 | 0.00 |
-| `src/code_kg/visitor.py` | 1 | 1 | 1 | 1 | 0.33 |
-| `src/code_kg/architecture.py` | 0 | 4 | 1 | 1 | 0.33 |
-| `src/code_kg/layout3d.py` | 3 | 5 | 0 | 0 | 0.00 |
-| `src/code_kg/mcp_server.py` | 16 | 0 | 0 | 3 | 0.75 |
+| `src/pycode_kg/kg.py` | 10 | 5 | 5 | 3 | 0.33 |
+| `src/pycode_kg/viz3d.py` | 9 | 3 | 0 | 0 | 0.00 |
+| `src/pycode_kg/pycodekg_thorough_analysis.py` | 5 | 4 | 3 | 0 | 0.00 |
+| `src/pycode_kg/store.py` | 2 | 2 | 8 | 2 | 0.18 |
+| `src/pycode_kg/snapshots.py` | 0 | 5 | 4 | 0 | 0.00 |
+| `src/pycode_kg/index.py` | 5 | 4 | 5 | 0 | 0.00 |
+| `src/pycode_kg/visitor.py` | 1 | 1 | 1 | 1 | 0.33 |
+| `src/pycode_kg/architecture.py` | 0 | 4 | 1 | 1 | 0.33 |
+| `src/pycode_kg/layout3d.py` | 3 | 5 | 0 | 0 | 0.00 |
+| `src/pycode_kg/mcp_server.py` | 16 | 0 | 0 | 3 | 0.75 |
 
 ---
 
@@ -144,16 +144,16 @@ Identified public APIs (module-level functions with high usage).
 
 | Function | Module | Fan-In | Type |
 |----------|--------|--------|------|
-| `CodeKG()` | src/code_kg/kg.py | 8 | class |
-| `GraphStore()` | src/code_kg/store.py | 8 | class |
-| `SnapshotManager()` | src/code_kg/snapshots.py | 6 | class |
-| `build()` | src/code_kg/cli/cmd_build_full.py | 4 | function |
-| `SentenceTransformerEmbedder()` | src/code_kg/index.py | 4 | class |
-| `FunctionMetrics()` | src/code_kg/codekg_thorough_analysis.py | 4 | class |
-| `pack()` | src/code_kg/cli/cmd_query.py | 3 | function |
-| `CodeGraph()` | src/code_kg/graph.py | 3 | class |
-| `SemanticIndex()` | src/code_kg/index.py | 3 | class |
-| `SnapshotDelta()` | src/code_kg/snapshots.py | 3 | class |
+| `PyCodeKG()` | src/pycode_kg/kg.py | 8 | class |
+| `GraphStore()` | src/pycode_kg/store.py | 8 | class |
+| `SnapshotManager()` | src/pycode_kg/snapshots.py | 6 | class |
+| `build()` | src/pycode_kg/cli/cmd_build_full.py | 4 | function |
+| `SentenceTransformerEmbedder()` | src/pycode_kg/index.py | 4 | class |
+| `FunctionMetrics()` | src/pycode_kg/pycodekg_thorough_analysis.py | 4 | class |
+| `pack()` | src/pycode_kg/cli/cmd_query.py | 3 | function |
+| `CodeGraph()` | src/pycode_kg/graph.py | 3 | class |
+| `SemanticIndex()` | src/pycode_kg/index.py | 3 | class |
+| `SnapshotDelta()` | src/pycode_kg/snapshots.py | 3 | class |
 ---
 
 ## 📝 Docstring Coverage
@@ -198,7 +198,7 @@ value only when a docstring is present.
 3. **Add tests for critical call chains** — the identified call chains represent high-risk execution paths that benefit most from regression coverage
 
 ### Long-term Architecture
-1. **Version and stabilize the public API** — document breaking-change policies for `CodeKG`, `GraphStore`, `SnapshotManager`
+1. **Version and stabilize the public API** — document breaking-change policies for `PyCodeKG`, `GraphStore`, `SnapshotManager`
 2. **Enforce layer boundaries** — add linting or CI checks to prevent unexpected cross-module dependencies as the codebase grows
 3. **Monitor hot paths** — instrument the high fan-in functions identified here to catch performance regressions early
 
@@ -210,15 +210,15 @@ value only when a docstring is present.
 
 | Class | Module | Depth | Parents | Children |
 |-------|--------|-------|---------|----------|
-| `SentenceTransformerEmbedder` | src/code_kg/index.py | 1 | 1 | 0 |
-| `AlliumLayout` | src/code_kg/layout3d.py | 1 | 1 | 0 |
-| `LayerCakeLayout` | src/code_kg/layout3d.py | 1 | 1 | 0 |
-| `Embedder` | src/code_kg/index.py | 0 | 0 | 1 |
-| `Layout3D` | src/code_kg/layout3d.py | 0 | 1 | 2 |
-| `CodeKGVisitor` | src/code_kg/visitor.py | 0 | 1 | 0 |
-| `DocstringPopup` | src/code_kg/viz3d.py | 0 | 1 | 0 |
-| `KGVisualizer` | src/code_kg/viz3d.py | 0 | 1 | 0 |
-| `MainWindow` | src/code_kg/viz3d.py | 0 | 1 | 0 |
+| `SentenceTransformerEmbedder` | src/pycode_kg/index.py | 1 | 1 | 0 |
+| `AlliumLayout` | src/pycode_kg/layout3d.py | 1 | 1 | 0 |
+| `LayerCakeLayout` | src/pycode_kg/layout3d.py | 1 | 1 | 0 |
+| `Embedder` | src/pycode_kg/index.py | 0 | 0 | 1 |
+| `Layout3D` | src/pycode_kg/layout3d.py | 0 | 1 | 2 |
+| `PyCodeKGVisitor` | src/pycode_kg/visitor.py | 0 | 1 | 0 |
+| `DocstringPopup` | src/pycode_kg/viz3d.py | 0 | 1 | 0 |
+| `KGVisualizer` | src/pycode_kg/viz3d.py | 0 | 1 | 0 |
+| `MainWindow` | src/pycode_kg/viz3d.py | 0 | 1 | 0 |
 
 
 ---
@@ -252,4 +252,4 @@ Functions with zero callers (potential dead code):
 
 ---
 
-*Report generated by CodeKG Thorough Analysis Tool — analysis completed in 4.9s*
+*Report generated by PyCodeKG Thorough Analysis Tool — analysis completed in 4.9s*

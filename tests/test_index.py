@@ -14,7 +14,7 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pytest
 
-from code_kg.index import (
+from pycode_kg.index import (
     Embedder,
     SeedHit,
     SemanticIndex,
@@ -91,7 +91,7 @@ def mock_sentence_transformers():
 
 def test_ste_init(mock_sentence_transformers):
     mock_st, mock_model = mock_sentence_transformers
-    from code_kg.index import SentenceTransformerEmbedder
+    from pycode_kg.index import SentenceTransformerEmbedder
 
     emb = SentenceTransformerEmbedder("test-model")
     assert emb.model_name == "test-model"
@@ -102,7 +102,7 @@ def test_ste_init(mock_sentence_transformers):
 def test_ste_embed_texts(mock_sentence_transformers):
     mock_st, mock_model = mock_sentence_transformers
     mock_model.encode.return_value = [np.array([0.1, 0.2, 0.3], dtype="float32")]
-    from code_kg.index import SentenceTransformerEmbedder
+    from pycode_kg.index import SentenceTransformerEmbedder
 
     emb = SentenceTransformerEmbedder()
     result = emb.embed_texts(["hello"])
@@ -113,7 +113,7 @@ def test_ste_embed_texts(mock_sentence_transformers):
 def test_ste_embed_query(mock_sentence_transformers):
     mock_st, mock_model = mock_sentence_transformers
     mock_model.encode.return_value = np.array([[0.5, 0.6]], dtype="float32")
-    from code_kg.index import SentenceTransformerEmbedder
+    from pycode_kg.index import SentenceTransformerEmbedder
 
     emb = SentenceTransformerEmbedder()
     result = emb.embed_query("hello")
@@ -121,7 +121,7 @@ def test_ste_embed_query(mock_sentence_transformers):
 
 
 def test_ste_repr(mock_sentence_transformers):
-    from code_kg.index import SentenceTransformerEmbedder
+    from pycode_kg.index import SentenceTransformerEmbedder
 
     emb = SentenceTransformerEmbedder("my-model")
     r = repr(emb)
@@ -250,11 +250,11 @@ def test_semanticindex_repr(tmp_path):
     idx = SemanticIndex(tmp_path, embedder=emb)
     r = repr(idx)
     assert "SemanticIndex" in r
-    assert "codekg_nodes" in r
+    assert "pycodekg_nodes" in r
 
 
 def test_semanticindex_read_nodes_empty_store(tmp_path):
-    from code_kg.store import GraphStore
+    from pycode_kg.store import GraphStore
 
     store = GraphStore(tmp_path / "test.sqlite")
     idx = SemanticIndex(tmp_path / "ldb", embedder=FakeEmbedder())
@@ -270,8 +270,8 @@ def test_semanticindex_read_nodes_empty_store(tmp_path):
 
 def _make_populated_store(tmp_path: Path):
     """Build a small real graph in a GraphStore."""
-    from code_kg.graph import CodeGraph
-    from code_kg.store import GraphStore
+    from pycode_kg.graph import CodeGraph
+    from pycode_kg.store import GraphStore
 
     repo = tmp_path / "repo"
     repo.mkdir()
@@ -289,7 +289,7 @@ def _make_populated_store(tmp_path: Path):
     )
     graph = CodeGraph(repo)
     nodes, edges = graph.extract(force=True).result()
-    store = GraphStore(tmp_path / "codekg.sqlite")
+    store = GraphStore(tmp_path / "pycodekg.sqlite")
     store.write(nodes, edges, wipe=True)
     return store
 
@@ -307,7 +307,7 @@ def test_semanticindex_build_returns_stats(tmp_path):
 
     assert stats["indexed_rows"] > 0
     assert stats["dim"] == 4
-    assert stats["table"] == "codekg_nodes"
+    assert stats["table"] == "pycodekg_nodes"
     assert "lancedb_dir" in stats
     assert "kinds" in stats
     store.close()
@@ -324,7 +324,7 @@ def test_semanticindex_build_wipe_rebuilds(tmp_path):
 
 
 def test_semanticindex_build_empty_store_returns_zero(tmp_path):
-    from code_kg.store import GraphStore
+    from pycode_kg.store import GraphStore
 
     store = GraphStore(tmp_path / "empty.sqlite")
     idx = SemanticIndex(tmp_path / "ldb", embedder=FakeEmbedder())

@@ -5,13 +5,13 @@ This file provides guidance to Claude Code when working in this repository.
 ## Agent Identity
 
 
-Always use the CodeKG MCP tools before reading files. You have direct, source-grounded access to this codebase — use it.
+Always use the PyCodeKG MCP tools before reading files. You have direct, source-grounded access to this codebase — use it.
 
 ---
 
 ## Project Overview
 
-**Name:** code_kg
+**Name:** pycode_kg
 **Description:** A tool that indexes Python codebases into a knowledge graph and exposes it via MCP for AI agents
 **Stack:** Python/Poetry
 **Status:** Installed and active ✅
@@ -28,9 +28,9 @@ Always use the CodeKG MCP tools before reading files. You have direct, source-gr
 
 ---
 
-## CodeKG Toolkit
+## PyCodeKG Toolkit
 
-You have direct access to CodeKG's full power through **two interfaces**:
+You have direct access to PyCodeKG's full power through **two interfaces**:
 
 ### MCP Tools (Query the Live Index)
 Always use these first — they're faster and source-grounded:
@@ -47,57 +47,57 @@ Always use these first — they're faster and source-grounded:
 ### CLI Commands (Build & Explore Locally)
 Build or interact with the knowledge graph from the command line.
 
-Each command is available as a `codekg <subcommand>` **or** a dedicated `codekg-<name>` script — both forms are equivalent:
+Each command is available as a `pycodekg <subcommand>` **or** a dedicated `pycodekg-<name>` script — both forms are equivalent:
 
 | Subcommand / Script alias | Purpose |
 |---------------------------|---------|
-| `build-sqlite` / `codekg-build-sqlite` | Extract AST-based knowledge graph → SQLite |
-| `build-lancedb` / `codekg-build-lancedb` | Build semantic vector index for NL queries |
-| `build` / `codekg-build` | SQLite + LanceDB in one step |
-| `query` / `codekg-query` | Run hybrid query over the graph |
-| `pack` / `codekg-pack` | Generate source-grounded snippet packs |
-| `viz` / `codekg-viz` | Launch Streamlit interactive visualizer |
-| `viz3d` / `codekg-viz3d` | Launch 3D PyVista/PyQt5 visualizer |
-| `analyze` / `codekg-analyze` | Run thorough codebase analysis |
-| `mcp` / `codekg-mcp` | Start MCP server for Claude/Cursor/Continue |
-| `install-hooks` / `codekg-install-hooks` | Install pre-commit git hook for automatic snapshots |
+| `build-sqlite` / `pycodekg-build-sqlite` | Extract AST-based knowledge graph → SQLite |
+| `build-lancedb` / `pycodekg-build-lancedb` | Build semantic vector index for NL queries |
+| `build` / `pycodekg-build` | SQLite + LanceDB in one step |
+| `query` / `pycodekg-query` | Run hybrid query over the graph |
+| `pack` / `pycodekg-pack` | Generate source-grounded snippet packs |
+| `viz` / `pycodekg-viz` | Launch Streamlit interactive visualizer |
+| `viz3d` / `pycodekg-viz3d` | Launch 3D PyVista/PyQt5 visualizer |
+| `analyze` / `pycodekg-analyze` | Run thorough codebase analysis |
+| `mcp` / `pycodekg-mcp` | Start MCP server for Claude/Cursor/Continue |
+| `install-hooks` / `pycodekg-install-hooks` | Install pre-commit git hook for automatic snapshots |
 
 ### Quick Examples
 
 ```bash
 # Build the knowledge graph (one-time setup)
-codekg build-sqlite --repo /path/to/repo
-codekg build-lancedb
+pycodekg build-sqlite --repo /path/to/repo
+pycodekg build-lancedb
 
 # Or with individual script aliases (useful in Poetry projects / Makefiles)
-codekg-build-sqlite --repo /path/to/repo
-codekg-build-lancedb
+pycodekg-build-sqlite --repo /path/to/repo
+pycodekg-build-lancedb
 
 # Build with only specific directories (CLI flags)
-codekg build --repo . --include-dir src --include-dir lib
+pycodekg build --repo . --include-dir src --include-dir lib
 
 # Query the graph
-codekg query "authentication flow"
+pycodekg query "authentication flow"
 
 # Generate snippet pack for LLM analysis
-codekg pack "database layer"
+pycodekg pack "database layer"
 
 # Run thorough architectural analysis
-codekg analyze .
+pycodekg analyze .
 
 # Launch Streamlit visualizer
-codekg viz --port 8501
+pycodekg viz --port 8501
 
 # Launch 3D PyVista visualizer
-codekg viz3d --layout allium
+pycodekg viz3d --layout allium
 
 # Start MCP server (for IDE integrations)
-codekg mcp --repo .
+pycodekg mcp --repo .
 ```
 
-**Directory Includes:** Configure via `[tool.codekg].include` in `pyproject.toml` or use `--include-dir` CLI flags (can be repeated). When unset, all directories are indexed. See README for details.
+**Directory Includes:** Configure via `[tool.pycodekg].include` in `pyproject.toml` or use `--include-dir` CLI flags (can be repeated). When unset, all directories are indexed. See README for details.
 
-For detailed options: `codekg <command> --help`
+For detailed options: `pycodekg <command> --help`
 
 ---
 
@@ -124,7 +124,7 @@ This project uses [Claude Copilot](https://github.com/Everyone-Needs-A-Copilot/c
 | **Agents** | 11 specialists via `/protocol` | Expert guidance routed by task type |
 | **Knowledge** | `knowledge_search`, `knowledge_get` | Search company/product documentation |
 | **Skills** | `skill_search`, `skill_get` | Load expertise on demand |
-| **CodeKG** | `graph_stats`, `query_codebase`, `pack_snippets`, `get_node` | Source-grounded codebase exploration via MCP |
+| **PyCodeKG** | `graph_stats`, `query_codebase`, `pack_snippets`, `get_node` | Source-grounded codebase exploration via MCP |
 
 ### Agents
 
@@ -147,7 +147,7 @@ This project uses [Claude Copilot](https://github.com/Everyone-Needs-A-Copilot/c
 
 | Component | Status |
 |-----------|--------|
-| Memory | Workspace: `code_kg` |
+| Memory | Workspace: `pycode_kg` |
 | Knowledge | Not configured |
 | Skills | Local: `.claude/skills/` |
 
@@ -171,5 +171,5 @@ All plans, roadmaps, and task breakdowns MUST omit time estimates. Use phases, p
 - Prefer `:param:` style docstrings
 
 ### MCP Instruction Sync (Required)
-- Any change to MCP tool signatures, parameters, defaults, or behavior in `src/code_kg/mcp_server.py` must include a matching update to the `mcp = FastMCP(..., instructions=(...))` tool descriptions in the same commit.
+- Any change to MCP tool signatures, parameters, defaults, or behavior in `src/pycode_kg/mcp_server.py` must include a matching update to the `mcp = FastMCP(..., instructions=(...))` tool descriptions in the same commit.
 - Keep the module docstring "Tools" list and the `FastMCP` instructions block aligned with the runtime tool API.

@@ -1,14 +1,14 @@
 {
   "servers": {
-    "codekg": {
+    "pycodekg": {
       "type": "stdio",
-      "command": "/Users/egs/repos/code_kg/.venv/bin/codekg",
+      "command": "/Users/egs/repos/pycode_kg/.venv/bin/pycodekg",
       "args": [
         "mcp",
         "--repo",
-        "/Users/egs/repos/code_kg",
+        "/Users/egs/repos/pycode_kg",
         "--db",
-        "/Users/egs/repos/code_kg/.codekg/graph.sqlite"
+        "/Users/egs/repos/pycode_kg/.pycodekg/graph.sqlite"
       ]
     }
   }

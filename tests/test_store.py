@@ -9,8 +9,8 @@ from __future__ import annotations
 import textwrap
 from pathlib import Path
 
-from code_kg.codekg import extract_repo
-from code_kg.store import GraphStore, ProvMeta
+from pycode_kg.pycodekg import extract_repo
+from pycode_kg.store import GraphStore, ProvMeta
 
 
 def _make_store(tmp_path: Path, files: dict) -> GraphStore:
@@ -23,7 +23,7 @@ def _make_store(tmp_path: Path, files: dict) -> GraphStore:
         p.write_text(textwrap.dedent(src))
 
     nodes, edges = extract_repo(repo)
-    db = tmp_path / "codekg.sqlite"
+    db = tmp_path / "pycodekg.sqlite"
     store = GraphStore(db)
     store.write(nodes, edges, wipe=True)
     return store
@@ -98,7 +98,7 @@ def test_store_upsert_idempotent(tmp_path):
     (repo / "mod.py").write_text("def foo(): pass\n")
     nodes, edges = extract_repo(repo)
 
-    db = tmp_path / "codekg.sqlite"
+    db = tmp_path / "pycodekg.sqlite"
     store = GraphStore(db)
     store.write(nodes, edges)
     count1 = store.stats()["total_nodes"]

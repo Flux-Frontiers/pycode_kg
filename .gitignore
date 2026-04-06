@@ -211,16 +211,16 @@ cython_debug/
 *.fdb_latexmk
 *.synctex.gz
 
-# CodeKG generated artifacts — databases are transient/reproducible, snapshots are tracked
-# MUST include .codekg/snapshots!
+# PyCodeKG generated artifacts — databases are transient/reproducible, snapshots are tracked
+# MUST include .pycodekg/snapshots!
 # This is the correct pattern
-.codekg/lancedb/
-.codekg/lancedb-*
-.codekg/graph.sqlite
-.codekg/graph.sqlite*
-.codekg/models
+.pycodekg/lancedb/
+.pycodekg/lancedb-*
+.pycodekg/graph.sqlite
+.pycodekg/graph.sqlite*
+.pycodekg/models
 
-# DocKG generated artifacts — same pattern as CodeKG; snapshots will be tracked once added
+# DocKG generated artifacts — same pattern as PyCodeKG; snapshots will be tracked once added
 .dockg/lancedb/
 .dockg/lancedb-*
 .dockg/graph.sqlite
@@ -228,7 +228,7 @@ cython_debug/
 .dockg/models
 
 # DiaryKG
-# DocKG generated artifacts — same pattern as CodeKG; snapshots will be tracked once added
+# DocKG generated artifacts — same pattern as PyCodeKG; snapshots will be tracked once added
 .diarykg/lancedb/
 .diarykg/lancedb-*
 .diarykg/graph.sqlite
@@ -245,7 +245,7 @@ commit.txt
 # Large asset files (> 1MB)
 assets/*-1024x1024.png
 assets/*-xl-*.png
-assets/code_kg_arch_*.png
+assets/pycode_kg_arch_*.png
 commit.txt
 
 bundles/

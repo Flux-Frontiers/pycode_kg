@@ -1,15 +1,15 @@
-# CodeRank for CodeKG
+# CodeRank for PyCodeKG
 
 ## Overview
 
-This bundle adds a structurally grounded ranking layer to CodeKG:
+This bundle adds a structurally grounded ranking layer to PyCodeKG:
 
 - **Global CodeRank**: weighted PageRank over the repository graph
 - **Hybrid query ranking**: semantic relevance + global centrality + seed proximity
 - **Personalized CodeRank**: personalized PageRank over a query-induced subgraph
 - **Explainability hooks**: per-node score components and simple `why` strings
 
-The design matches CodeKG's existing architecture: structure remains authoritative, and semantic signals accelerate retrieval rather than override it.
+The design matches PyCodeKG's existing architecture: structure remains authoritative, and semantic signals accelerate retrieval rather than override it.
 
 ## Recommended defaults
 
@@ -68,7 +68,7 @@ This often outperforms the simple hybrid baseline for interactive search.
 
 ## Why PageRank here is appropriate
 
-CodeKG already captures relations such as `CALLS`, `IMPORTS`, and `INHERITS` in a directed graph. Those edges naturally encode dependency and authority flow:
+PyCodeKG already captures relations such as `CALLS`, `IMPORTS`, and `INHERITS` in a directed graph. Those edges naturally encode dependency and authority flow:
 
 - caller \(\rightarrow\) callee
 - importer \(\rightarrow\) imported module
@@ -78,7 +78,7 @@ A node that receives edges from many important upstream nodes should rank highly
 
 ## What this bundle contains
 
-- `src/codekg/ranking/coderank.py`
+- `src/pycodekg/ranking/coderank.py`
   - graph builder from SQLite
   - global CodeRank
   - personalized CodeRank
@@ -86,14 +86,14 @@ A node that receives edges from many important upstream nodes should rank highly
   - proximity scoring
   - hybrid score combination
   - SQLite persistence helper
-- `src/codekg/ranking/cli_rank.py`
+- `src/pycodekg/ranking/cli_rank.py`
   - minimal CLI for top-ranked nodes
 - `tests/test_coderank.py`
   - small integration-style smoke test
 
 ## Suggested usage pattern
 
-1. Build the CodeKG SQLite graph as usual.
+1. Build the PyCodeKG SQLite graph as usual.
 2. Compute global CodeRank once after graph build.
 3. Persist `coderank_global` into `node_metrics`.
 4. At query time:
@@ -146,10 +146,10 @@ Large utility clusters can inflate each other. If this becomes visible in practi
 ## Recommended CLI surface
 
 ```bash
-codekg rank --sqlite .codekg/graph.sqlite --top 50 --metric coderank
-codekg rank --sqlite .codekg/graph.sqlite --persist-metric coderank_global
-codekg search "database connection" --rank hybrid
-codekg search "database connection" --rank ppr
+pycodekg rank --sqlite .pycodekg/graph.sqlite --top 50 --metric coderank
+pycodekg rank --sqlite .pycodekg/graph.sqlite --persist-metric coderank_global
+pycodekg search "database connection" --rank hybrid
+pycodekg search "database connection" --rank ppr
 ```
 
 ## Explainability output
@@ -173,4 +173,4 @@ Example `why` strings:
 - high centrality within the ranked subgraph
 - one hop from a semantic seed
 
-That preserves CodeKG's deterministic and auditable character.
+That preserves PyCodeKG's deterministic and auditable character.

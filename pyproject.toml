@@ -1,6 +1,6 @@
-# CodeKG - Knowledge Graph Builder for Python Codebases
+# PyCodeKG - Knowledge Graph Builder for Python Codebases
 #
-# CodeKG is a tool that builds searchable knowledge graphs from Python repositories.
+# PyCodeKG is a tool that builds searchable knowledge graphs from Python repositories.
 # It analyzes Python code to extract semantic relationships between modules, classes,
 # functions, and methods, creating a comprehensive graph representation that can be
 # queried using natural language.
@@ -32,14 +32,14 @@ requires = ["poetry-core>=2.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
-name = "code-kg"
+name = "pycode-kg"
 version = "0.11.0"
 description = "A tool to build a searchable knowledge graph from Python repositories"
 authors = ["Eric G. Suchanek, PhD <suchanek@mac.com>"]
 license = "Elastic-2.0"
 readme = "README.md"
-homepage = "https://github.com/Flux-Frontiers/code_kg"
-repository = "https://github.com/Flux-Frontiers/code_kg"
+homepage = "https://github.com/Flux-Frontiers/pycode_kg"
+repository = "https://github.com/Flux-Frontiers/pycode_kg"
 keywords = ["knowledge-graph", "code-analysis", "ast", "lancedb", "sqlite", "semantic-search"]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -47,7 +47,7 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
-packages = [{ include = "code_kg", from = "src" }]
+packages = [{ include = "pycode_kg", from = "src" }]
 
 [tool.poetry.dependencies]
 python = ">=3.12,<3.14"
@@ -109,22 +109,22 @@ pdoc = ">=14.0.0"
 
 
 [tool.poetry.scripts]
-codekg              = "code_kg.cli.main:cli"
-codekg-mcp          = "code_kg.mcp_server:main"
-codekg-build-sqlite = "code_kg.cli.cmd_build:build_sqlite"
-codekg-build-lancedb = "code_kg.cli.cmd_build:build_lancedb"
-codekg-build        = "code_kg.cli.cmd_build_full:build"
-codekg-update       = "code_kg.cli.cmd_build_full:update"
-codekg-query        = "code_kg.cli.cmd_query:query"
-codekg-pack         = "code_kg.cli.cmd_query:pack"
-codekg-viz              = "code_kg.cli.cmd_viz:viz"
-codekg-viz3d            = "code_kg.cli.cmd_viz:viz3d"
-codekg-viz-timeline     = "code_kg.cli.cmd_viz:viz_timeline"
-codekg-analyze          = "code_kg.cli.cmd_analyze:analyze"
-codekg-architecture     = "code_kg.cli.cmd_architecture:architecture"
-codekg-download-model   = "code_kg.cli.cmd_model:download_model"
-codekg-install-hooks    = "code_kg.cli.cmd_hooks:install_hooks"
-codekg-centrality       = "code_kg.cli.cmd_centrality:cmd_centrality"
+pycodekg              = "pycode_kg.cli.main:cli"
+pycodekg-mcp          = "pycode_kg.mcp_server:main"
+pycodekg-build-sqlite = "pycode_kg.cli.cmd_build:build_sqlite"
+pycodekg-build-lancedb = "pycode_kg.cli.cmd_build:build_lancedb"
+pycodekg-build        = "pycode_kg.cli.cmd_build_full:build"
+pycodekg-update       = "pycode_kg.cli.cmd_build_full:update"
+pycodekg-query        = "pycode_kg.cli.cmd_query:query"
+pycodekg-pack         = "pycode_kg.cli.cmd_query:pack"
+pycodekg-viz              = "pycode_kg.cli.cmd_viz:viz"
+pycodekg-viz3d            = "pycode_kg.cli.cmd_viz:viz3d"
+pycodekg-viz-timeline     = "pycode_kg.cli.cmd_viz:viz_timeline"
+pycodekg-analyze          = "pycode_kg.cli.cmd_analyze:analyze"
+pycodekg-architecture     = "pycode_kg.cli.cmd_architecture:architecture"
+pycodekg-download-model   = "pycode_kg.cli.cmd_model:download_model"
+pycodekg-install-hooks    = "pycode_kg.cli.cmd_hooks:install_hooks"
+pycodekg-centrality       = "pycode_kg.cli.cmd_centrality:cmd_centrality"
 
 [tool.ruff]
 line-length = 100
@@ -155,7 +155,7 @@ enable = [
     "import-outside-toplevel", # C0415
 ]
 
-[tool.codekg]
+[tool.pycodekg]
 # Directories to include in the knowledge graph build and analysis.
 # When unset, all directories are indexed.
 include = ["src"]
@@ -165,13 +165,13 @@ include = ["src"]
 
 [tool.dockg]
 # Exclude directories from the knowledge graph by default.
-exclude = [".dockg", ".codekg", "src", ".git", ".venv", "venv", "__pycache__",
+exclude = [".dockg", ".pycodekg", "src", ".git", ".venv", "venv", "__pycache__",
 ".mypy_cache", ".pytest_cache", "bundles", "dist"]
 
 [tool.poe.tasks.docs]
 help = "Generate project documentation and user guide PDFs"
 sequence = [
-  { shell = "cd src && pdoc --o ../docs --logo ./logo.png code_kg" },
+  { shell = "cd src && pdoc --o ../docs --logo ./logo.png pycode_kg" },
 ]
 
 [tool.poe.tasks.wiki]

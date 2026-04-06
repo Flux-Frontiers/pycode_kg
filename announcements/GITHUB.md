@@ -1,14 +1,14 @@
-# 🎉 CodeKG v0.5.2 — Public Release
+# 🎉 PyCodeKG v0.5.2 — Public Release
 
-We're thrilled to announce **CodeKG** is now publicly available.
+We're thrilled to announce **PyCodeKG** is now publicly available.
 
-CodeKG is a **deterministic knowledge graph for Python codebases** that brings structural precision and semantic intelligence together. It powers source-grounded code search, precise agent reasoning, and interactive codebase exploration.
+PyCodeKG is a **deterministic knowledge graph for Python codebases** that brings structural precision and semantic intelligence together. It powers source-grounded code search, precise agent reasoning, and interactive codebase exploration.
 
 ---
 
-## What is CodeKG?
+## What is PyCodeKG?
 
-CodeKG constructs an auditable knowledge graph from Python source code using **static analysis**:
+PyCodeKG constructs an auditable knowledge graph from Python source code using **static analysis**:
 
 1. **Parse** your codebase with three AST passes (structure, call graph, data-flow)
 2. **Store** the graph in SQLite (nodes + edges with provenance)
@@ -49,12 +49,12 @@ CodeKG constructs an auditable knowledge graph from Python source code using **s
 Run this from inside your Python repository:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Flux-Frontiers/code_kg/main/scripts/install-skill.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Flux-Frontiers/pycode_kg/main/scripts/install-skill.sh | bash
 ```
 
 The installer:
-1. Installs the `code-kg` package
-2. Builds the SQLite knowledge graph (`.codekg/graph.sqlite`)
+1. Installs the `pycode-kg` package
+2. Builds the SQLite knowledge graph (`.pycodekg/graph.sqlite`)
 3. Builds the LanceDB semantic index
 4. Configures MCP for your IDE (Claude Code, GitHub Copilot, Cline, Continue)
 5. Sets up CLI commands and skill files
@@ -64,20 +64,20 @@ After setup, reload VS Code (`Cmd+Shift+P` → `Developer: Reload Window`) to ac
 ### Manual Installation
 
 ```bash
-pip install 'code-kg @ git+https://github.com/Flux-Frontiers/code_kg.git'
+pip install 'pycode-kg @ git+https://github.com/Flux-Frontiers/pycode_kg.git'
 # or in Poetry:
-poetry add 'code-kg @ git+https://github.com/Flux-Frontiers/code_kg.git'
+poetry add 'pycode-kg @ git+https://github.com/Flux-Frontiers/pycode_kg.git'
 ```
 
 Build the graph:
 
 ```bash
 # Full pipeline in one step
-codekg build --repo /path/to/repo
+pycodekg build --repo /path/to/repo
 
 # Or step by step
-codekg-build-sqlite --repo /path/to/repo
-codekg-build-lancedb --repo /path/to/repo
+pycodekg-build-sqlite --repo /path/to/repo
+pycodekg-build-lancedb --repo /path/to/repo
 ```
 
 ---
@@ -87,37 +87,37 @@ codekg-build-lancedb --repo /path/to/repo
 ### Query the Graph
 
 ```bash
-codekg query "database connection setup"
+pycodekg query "database connection setup"
 # with options:
-codekg query "database connection setup" --k 8 --hop 1
+pycodekg query "database connection setup" --k 8 --hop 1
 ```
 
 ### Generate Code Context for LLMs
 
 ```bash
-codekg pack "configuration loading" --out context_pack.md
+pycodekg pack "configuration loading" --out context_pack.md
 ```
 
 ### Explore Interactively
 
 ```bash
 # Streamlit web app
-codekg viz
+pycodekg viz
 
 # 3D graph visualizer
-codekg viz3d --layout allium
+pycodekg viz3d --layout allium
 ```
 
 ### Analyze Codebase Architecture
 
 ```bash
-codekg analyze .
+pycodekg analyze .
 ```
 
 ### Start MCP Server
 
 ```bash
-codekg mcp --repo .
+pycodekg mcp --repo .
 ```
 
 Connect your IDE and use these tools:
@@ -131,7 +131,7 @@ Connect your IDE and use these tools:
 
 ## Architecture
 
-<img src="docs/code_kg_arch_square.png" alt="CodeKG Architecture" width="600"/>
+<img src="docs/pycode_kg_arch_square.png" alt="PyCodeKG Architecture" width="600"/>
 
 **Build pipeline:**
 
@@ -184,7 +184,7 @@ JSON / Markdown / Interactive UI / MCP
 
 ## Comparisons
 
-| Feature | CodeKG | GraphRAG | Amplify |
+| Feature | PyCodeKG | GraphRAG | Amplify |
 |---------|--------|----------|---------|
 | **Foundation** | Deterministic AST | Probabilistic inference | Embeddings only |
 | **Structure** | Graph with provenance | Implicit, learned | None |
@@ -207,7 +207,7 @@ JSON / Markdown / Interactive UI / MCP
 
 ## Repository
 
-- **GitHub:** [github.com/Flux-Frontiers/code_kg](https://github.com/Flux-Frontiers/code_kg)
+- **GitHub:** [github.com/Flux-Frontiers/pycode_kg](https://github.com/Flux-Frontiers/pycode_kg)
 - **License:** [Elastic License 2.0](LICENSE) — Free to use, modify, distribute; no hosted service reselling
 - **Author:** Eric G. Suchanek, PhD (Flux-Frontiers, Liberty TWP, OH)
 
@@ -221,7 +221,7 @@ Contributions welcome! Open issues for bugs, feature requests, or questions. See
 
 ## Thanks
 
-CodeKG builds on excellent open-source projects:
+PyCodeKG builds on excellent open-source projects:
 - **Python AST** — Standard library static analysis
 - **SQLite** — Reliable, portable structured storage
 - **LanceDB** — Fast vector indexing

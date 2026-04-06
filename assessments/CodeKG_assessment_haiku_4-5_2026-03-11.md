@@ -1,15 +1,15 @@
-# CodeKG MCP Server Assessment
+# PyCodeKG MCP Server Assessment
 
 **Model:** Claude Haiku 4.5 (`claude-haiku-4-5-20251001`)
 **Date:** 2026-03-11
-**Repository:** https://github.com/Flux-Frontiers/code_kg.git
+**Repository:** https://github.com/Flux-Frontiers/pycode_kg.git
 **Platform:** M3 Max MacBook Pro, 36GB RAM, 1TB SSD
 
 ---
 
 ## Executive Summary
 
-CodeKG is an **exceptional tool** for AI-driven codebase exploration. It transforms Python repositories into a hybrid semantic + structural knowledge graph, exposing every module, class, function, and method as queryable nodes with precise relationships (CALLS, CONTAINS, IMPORTS, INHERITS). As an agent, I found CodeKG **dramatically more effective** than traditional grep/file-reading workflows.
+PyCodeKG is an **exceptional tool** for AI-driven codebase exploration. It transforms Python repositories into a hybrid semantic + structural knowledge graph, exposing every module, class, function, and method as queryable nodes with precise relationships (CALLS, CONTAINS, IMPORTS, INHERITS). As an agent, I found PyCodeKG **dramatically more effective** than traditional grep/file-reading workflows.
 
 The MCP tools deliver consistent, source-grounded results with structured output. Query performance is instant, and the architecture demonstrates thoughtful design: semantic seeding combined with graph expansion, provenance-aware edge metadata, and temporal snapshots for tracking evolution. The codebase itself is exemplary — 97.2% docstring coverage, zero orphaned code, and well-structured 4-layer architecture (graph extraction → SQLite store → LanceDB index → query layer).
 
@@ -40,7 +40,7 @@ The 9-phase analysis yielded:
 - **Orphaned Code:** None detected
 - **High Fan-Out:** `viz3d.py:KGVisualizer.__init__()` with 95 callees (orchestrator pattern, correctly identified)
 - **Module Coupling:** `kg.py` is the central hub; `mcp_server.py` is well-isolated
-- **Key Public APIs:** CodeKG, GraphStore, SnapshotManager (8, 8, 7 callers respectively)
+- **Key Public APIs:** PyCodeKG, GraphStore, SnapshotManager (8, 8, 7 callers respectively)
 
 **Assessment:** Comprehensive and accurate. The analysis correctly identified the layered architecture and called out the 3D visualizer as an orchestrator without flagging it as problematic code (good judgment). The heat-map of docstring coverage provided immediate confidence in code quality.
 
@@ -53,7 +53,7 @@ Tested three search profiles:
 ### 1. Precise Query: "graph database storage indexing"
 
 **`query_codebase()` Result:**
-- Top seed: `cls:src/code_kg/store.py:GraphStore` (relevance: 0.606)
+- Top seed: `cls:src/pycode_kg/store.py:GraphStore` (relevance: 0.606)
 - Returned 25 nodes, expanded from 8 semantic seeds via 1-hop graph traversal
 - Edges included CALLS, CONTAINS, IMPORTS (with evidence and line numbers)
 
@@ -67,23 +67,23 @@ Tested three search profiles:
 ### 2. Broad Query: "error handling strategy exception management"
 
 **`query_codebase()` Result:**
-- Top result: `mod:src/code_kg/mcp_server.py` (relevance: 0.569)
+- Top result: `mod:src/pycode_kg/mcp_server.py` (relevance: 0.569)
 - Module docstring explicitly mentions "error handling strategy: startup reports misconfiguration warnings clearly"
 
 **`pack_snippets()` Result:**
 - Extracted docstring showing error strategy documented in module header
-- Relevant methods: `CodeKG.query()`, `CodeKG.pack()`, `CodeKG.__exit__()`
+- Relevant methods: `PyCodeKG.query()`, `PyCodeKG.pack()`, `PyCodeKG.__exit__()`
 
 **Assessment:** ⭐⭐⭐⭐☆ **Good relevance for architectural concerns.** The tool correctly identified error handling is discussed in `mcp_server.py` module docstring and context managers. However, the results were somewhat distributed; a more targeted architectural analysis would benefit from explicit error-flow tracing.
 
 ### 3. Exploratory Query: "CLI entry points commands arguments"
 
 **`query_codebase()` Result:**
-- Top result: `mod:src/code_kg/cli/__init__.py` (relevance: 0.629)
+- Top result: `mod:src/pycode_kg/cli/__init__.py` (relevance: 0.629)
 - Immediate discovery of Click root group and all subcommand registrations
 
 **`pack_snippets()` Result:**
-- `fn:src/code_kg/cli/main.py:cli` with `@click.group()` decorator
+- `fn:src/pycode_kg/cli/main.py:cli` with `@click.group()` decorator
 - List of registered subcommands (build, query, pack, mcp, viz, etc.)
 
 **Assessment:** ⭐⭐⭐⭐⭐ **Perfect for exploration.** Even without prior knowledge of the CLI structure, the search instantly revealed entry points and registered commands. The docstring wording directly exposed CLI command names.
@@ -97,19 +97,19 @@ Tested three search profiles:
 **Outgoing CONTAINS edges:** 19 methods returned
 **Incoming CALLS edges:** 8 callers identified (CLI commands, Streamlit app, visualizer)
 
-Example: `GraphStore.expand()` method is contained by the class and called by `CodeKG.query()` and `CodeKG.pack()`.
+Example: `GraphStore.expand()` method is contained by the class and called by `PyCodeKG.query()` and `PyCodeKG.pack()`.
 
 **Assessment:** ⭐⭐⭐⭐⭐ The neighborhood inspection was complete and accurate. Seeing immediate callers without a separate call eliminated a round-trip query.
 
 ### `explain()` on Two Nodes
 
-#### 1. `fn:src/code_kg/mcp_server.py:query_codebase`
+#### 1. `fn:src/pycode_kg/mcp_server.py:query_codebase`
 
 Output classified it as: "🔵 **MCP Tool / Framework entry point**: Zero internal callers by design."
 
 The explain() tool correctly understood that this function has no internal callers because it's invoked by the MCP protocol dispatcher. This is **exactly the kind of semantic understanding** that prevents false positives in orphan detection.
 
-#### 2. `m:src/code_kg/store.py:GraphStore.expand`
+#### 2. `m:src/pycode_kg/store.py:GraphStore.expand`
 
 Output classified it as: "🟡 **Core orchestrator**: Called 2 time(s), calls 9 others. Low caller count likely reflects a top-level entry point."
 
@@ -117,7 +117,7 @@ Accurate role assessment based on call graph metrics.
 
 **Assessment:** ⭐⭐⭐⭐⭐ The `explain()` tool provides conceptual orientation that raw node data cannot. Natural-language summaries of docstrings, caller/callee counts, and role classification are immediately valuable.
 
-### `callers()` on `CodeKG.query()`
+### `callers()` on `PyCodeKG.query()`
 
 Result: **6 callers identified across 3 modules** (analysis, app, CLI):
 - Analysis layer: `_analyze_fan_in()`, `_analyze_fan_out()`, `_analyze_dependencies()`
@@ -161,7 +161,7 @@ Retrieved 5 snapshots spanning 2026-03-11 from 12:23 to 02:10:
 | **Relevance** | 5/5 | Semantic search returns intended results. Hybrid ranking (70% semantic + 30% lexical) is effective. Even exploratory queries surface correct modules. |
 | **Completeness** | 5/5 | 5,503 nodes covering all modules, classes, functions, methods. No orphaned code. Graph is comprehensive and includes import resolution via `sym:` stubs. |
 | **Efficiency** | 5/5 | All queries return instantly (~100ms). No perceptible latency even with graph expansion. Structured JSON output integrates seamlessly into workflows. |
-| **Insight Generation** | 5/5 | Discovered architectural insights I wouldn't find with grep: CodeKG's 4-layer design, central role of GraphStore, CLI command registration, temporal evolution tracking. |
+| **Insight Generation** | 5/5 | Discovered architectural insights I wouldn't find with grep: PyCodeKG's 4-layer design, central role of GraphStore, CLI command registration, temporal evolution tracking. |
 | **Usability** | 5/5 | Tools are intuitive and well-documented. Parameters are sensible (k=8, hop=1 defaults work well). Output formats match use cases (JSON for data, Markdown for reading). |
 | **Architectural Value** | 5/5 | `analyze_repo()` surface genuinely valuable metrics: docstring coverage, fan-in/out, coupling, orphan detection. The 9-phase pipeline is sophisticated and correct. |
 | **Uniqueness** | 5/5 | Hybrid semantic+structural search is not available in standard tools. Graph expansion with provenance metadata is novel. Temporal snapshots are unique. |
@@ -172,7 +172,7 @@ Retrieved 5 snapshots spanning 2026-03-11 from 12:23 to 02:10:
 
 ## Comparison to Default Workflow
 
-### Without CodeKG
+### Without PyCodeKG
 ```
 $ grep -r "expand" --include="*.py" | head -20
 $ grep -r "GraphStore" --include="*.py"
@@ -188,9 +188,9 @@ $ python -m ast
 
 **Time to answer "What does GraphStore.expand() do?":** ~5 minutes
 
-### With CodeKG
+### With PyCodeKG
 ```python
-explain("m:src/code_kg/store.py:GraphStore.expand")
+explain("m:src/pycode_kg/store.py:GraphStore.expand")
 # Returns: Docstring, callers (2), callees (2), role assessment
 # Then: pack_snippets("graph expansion", k=8, hop=1)
 # Returns: Source code with line numbers, deduplicated snippets
@@ -222,7 +222,7 @@ explain("m:src/code_kg/store.py:GraphStore.expand")
 
 6. **Comprehensive Toolset:** 11 tools (graph_stats, query_codebase, pack_snippets, get_node, list_nodes, callers, explain, analyze_repo, snapshot_list, snapshot_show, snapshot_diff) cover the full exploration workflow.
 
-7. **Exceptional Code Quality:** The CodeKG codebase itself demonstrates what it measures: 97.2% docstring coverage, zero orphaned code, clear separation of concerns (4 layers).
+7. **Exceptional Code Quality:** The PyCodeKG codebase itself demonstrates what it measures: 97.2% docstring coverage, zero orphaned code, clear separation of concerns (4 layers).
 
 8. **Graph Traversal Flexibility:** Configurable hop counts and relation types allow agents to trade off precision (hop=0, semantic only) vs. coverage (hop=2, all relations).
 
@@ -268,17 +268,17 @@ explain("m:src/code_kg/store.py:GraphStore.expand")
 
 ## Overall Verdict
 
-**Would I recommend CodeKG? Absolutely.** ✅
+**Would I recommend PyCodeKG? Absolutely.** ✅
 
 ### Best Use Cases
-1. **AI Agent Codebase Exploration:** CodeKG was designed for agents and it shows. Structured output, stable node IDs, and provenance metadata enable reliable automation.
+1. **AI Agent Codebase Exploration:** PyCodeKG was designed for agents and it shows. Structured output, stable node IDs, and provenance metadata enable reliable automation.
 2. **Architecture Understanding:** Quickly grasp module relationships, dependency coupling, and high-level structure.
 3. **Impact Analysis:** "What calls this function?" and "How would removing this class affect the codebase?" are answered instantly.
 4. **Code Review Support:** Understand the full context of a change before reviewing.
 5. **Maintenance & Refactoring:** Identify orphaned code, high-complexity orchestrators, and tight coupling.
 
 ### Not Ideal For
-- **Real-time linting:** CodeKG requires pre-built indices; it's not designed for live analysis during development.
+- **Real-time linting:** PyCodeKG requires pre-built indices; it's not designed for live analysis during development.
 - **Binary files or non-Python languages:** Current implementation targets Python AST.
 - **Extremely large codebases (>100MB source):** Performance not tested at that scale, though architecture suggests it would scale.
 
@@ -286,7 +286,7 @@ explain("m:src/code_kg/store.py:GraphStore.expand")
 
 **Overall Recommendation: 5/5 ⭐⭐⭐⭐⭐**
 
-CodeKG is the gold standard for AI-driven Python codebase exploration. It combines rigorous knowledge graph structure with thoughtful UX (structured output, configurable parameters, provenance metadata). The codebase quality is exemplary — it measures what it practices. I would use CodeKG as my primary tool for any Python codebase exploration task, and I recommend it to any AI agent or developer working with Python projects.
+PyCodeKG is the gold standard for AI-driven Python codebase exploration. It combines rigorous knowledge graph structure with thoughtful UX (structured output, configurable parameters, provenance metadata). The codebase quality is exemplary — it measures what it practices. I would use PyCodeKG as my primary tool for any Python codebase exploration task, and I recommend it to any AI agent or developer working with Python projects.
 
 ---
 
@@ -300,8 +300,8 @@ All queries executed in <500ms on 5,503-node graph (M3 Mac, 36GB RAM):
 | `graph_stats()` | API | ~50ms |
 | `query_codebase("graph database storage")` | API | ~100ms |
 | `pack_snippets("graph database storage")` | API | ~120ms |
-| `explain("fn:src/code_kg/mcp_server.py:query_codebase")` | API | ~80ms |
-| `callers("m:src/code_kg/kg.py:CodeKG.query")` | API | ~90ms |
+| `explain("fn:src/pycode_kg/mcp_server.py:query_codebase")` | API | ~80ms |
+| `callers("m:src/pycode_kg/kg.py:PyCodeKG.query")` | API | ~90ms |
 | `analyze_repo()` | API | ~200ms |
 | `snapshot_list()` | API | ~50ms |
 

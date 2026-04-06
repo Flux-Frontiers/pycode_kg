@@ -1,9 +1,9 @@
-# CodeKG Architecture (Condensed)
+# PyCodeKG Architecture (Condensed)
 
-**CodeKG v0.5** — Deterministic knowledge graph for Python codebases via static analysis, SQLite persistence, and semantic search acceleration.
+**PyCodeKG v0.5** — Deterministic knowledge graph for Python codebases via static analysis, SQLite persistence, and semantic search acceleration.
 
 <p align="center">
-  <img src="../assets/code_kg_arch_square-web.jpg" alt="CodeKG Architecture" width="480"/>
+  <img src="../assets/pycode_kg_arch_square-web.jpg" alt="PyCodeKG Architecture" width="480"/>
 </p>
 
 ---
@@ -22,18 +22,18 @@
 ## Layered Architecture
 
 ```
-CodeKG (orchestrator — kg.py)
+PyCodeKG (orchestrator — kg.py)
   ├─ CodeGraph     (pure AST extraction, no I/O — graph.py)
   ├─ GraphStore    (SQLite: nodes/edges, BFS traversal — store.py)
   ├─ SemanticIndex (LanceDB: embeddings, disposable — index.py)
-  └─ Primitives    (locked v0 contract — codekg.py)
-       ├─ CodeKGVisitor  (Pass 3 data-flow — visitor.py)
+  └─ Primitives    (locked v0 contract — pycodekg.py)
+       ├─ PyCodeKGVisitor  (Pass 3 data-flow — visitor.py)
        └─ load_exclude_dirs()  (pyproject.toml config — config.py)
 ```
 
 ---
 
-## Layer 1: Primitives (`codekg.py`)
+## Layer 1: Primitives (`pycodekg.py`)
 
 - **Node**: frozen dataclass — id, kind, name, qualname, module_path, lineno, end_lineno, docstring
 - **Edge**: frozen dataclass — src, rel, dst, evidence
@@ -56,13 +56,13 @@ CodeKG (orchestrator — kg.py)
 | `DEPENDS_ON` | 3 | Future control-flow placeholder |
 | `RESOLVES_TO` | post | `sym:` stub → first-party definition |
 
-### Pass 3: CodeKGVisitor (`visitor.py`)
+### Pass 3: PyCodeKGVisitor (`visitor.py`)
 
 `ast.NodeVisitor` subclass for data-flow extraction. Processes each `.py` file and emits READS, WRITES, ATTR_ACCESS edges with `{lineno, file}` evidence.
 
 ### Config: `config.py`
 
-`load_exclude_dirs(repo_root)` reads `[tool.codekg].exclude` from `pyproject.toml`. Returns `set[str]` of directory names to skip. Returns empty set on any error.
+`load_exclude_dirs(repo_root)` reads `[tool.pycodekg].exclude` from `pyproject.toml`. Returns `set[str]` of directory names to skip. Returns empty set on any error.
 
 ---
 
@@ -118,12 +118,12 @@ hits = idx.search("database setup", k=8)  # → List[SeedHit]
 
 ---
 
-## Orchestrator: CodeKG (`kg.py`)
+## Orchestrator: PyCodeKG (`kg.py`)
 
 Owns all four layers with lazy initialization. Supports context manager.
 
 ```python
-kg = CodeKG(repo_root, db_path, lancedb_dir, model, table)
+kg = PyCodeKG(repo_root, db_path, lancedb_dir, model, table)
 kg.build(wipe=True)           # full pipeline
 kg.build_graph(wipe=True)     # AST → SQLite only
 kg.build_index(wipe=True)     # SQLite → LanceDB only
@@ -147,7 +147,7 @@ kg.node(node_id)              # fetch node dict
 1. Walk `.py` files (skip .venv, __pycache__, .git, configured exclude dirs)
 2. **Pass 1**: modules, classes, functions, methods, imports, inheritance
 3. **Pass 2**: call graph (honest; unresolved → `sym:` stubs)
-4. **Pass 3**: data-flow edges via `CodeKGVisitor` (READS, WRITES, ATTR_ACCESS)
+4. **Pass 3**: data-flow edges via `PyCodeKGVisitor` (READS, WRITES, ATTR_ACCESS)
 5. Generate stable node IDs: `mod:`, `cls:`, `fn:`, `m:`, `sym:`
 6. Emit edges with evidence (lineno, expr, file)
 7. Persist to SQLite (upsert, idempotent)
@@ -178,23 +178,23 @@ Kind priority: function=0, method=1, class=2, module=3, symbol=4
 
 ## Interfaces
 
-### Streamlit Web App (`codekg viz`)
+### Streamlit Web App (`pycodekg viz`)
 
 Three tabs: **Graph Browser** (pyvis interactive, filter by kind/module), **Hybrid Query** (NL → ranked results), **Snippet Pack** (source-grounded snippets with MD/JSON download). Sidebar: Build Graph, Build Index, Build All.
 
-### 3D Visualizer (`codekg viz3d`)
+### 3D Visualizer (`pycodekg viz3d`)
 
 PyVista/PyQt5 scene with `KGVisualizer` (data model), `MainWindow` (Qt window), `DocstringPopup` (markdown popup). Layouts: `allium`, `cake`. Right-click to pick/highlight/inspect nodes. Requires `viz3d` extras (`extras = ["viz3d"]` for consumers; `--with viz3d` for local dev).
 
-### Thorough Analyzer (`codekg analyze`)
+### Thorough Analyzer (`pycodekg analyze`)
 
-`CodeKGAnalyzer` runs 7 analysis phases: complexity hotspots, entry points, dead code, docstring coverage, cohesion, coupling, critical paths. Emits Markdown report + JSON snapshot.
+`PyCodeKGAnalyzer` runs 7 analysis phases: complexity hotspots, entry points, dead code, docstring coverage, cohesion, coupling, critical paths. Emits Markdown report + JSON snapshot.
 
-Classes: `CodeKGAnalyzer`, `FunctionMetrics`, `ModuleMetrics`, `CallChain`
+Classes: `PyCodeKGAnalyzer`, `FunctionMetrics`, `ModuleMetrics`, `CallChain`
 
-### MCP Server (`codekg-mcp`)
+### MCP Server (`pycodekg-mcp`)
 
-Thin wrapper around `CodeKG`. Stateful (one instance per process), read-only.
+Thin wrapper around `PyCodeKG`. Stateful (one instance per process), read-only.
 
 | Tool | Returns |
 |---|---|
@@ -204,31 +204,31 @@ Thin wrapper around `CodeKG`. Stateful (one instance per process), read-only.
 | `get_node(node_id)` | JSON |
 | `graph_stats()` | JSON |
 
-Start: `codekg-mcp --repo /path [--db ...] [--lancedb ...] [--transport stdio|sse]`
+Start: `pycodekg-mcp --repo /path [--db ...] [--lancedb ...] [--transport stdio|sse]`
 
 ### CLI Entry Points
 
 | Command | Alias | Description |
 |---|---|---|
-| `codekg build-sqlite` | `codekg-build-sqlite` | AST → SQLite |
-| `codekg build-lancedb` | `codekg-build-lancedb` | SQLite → LanceDB |
-| `codekg build` | `codekg-build` | Full pipeline (always wipes) |
-| `codekg update` | `codekg-update` | Incremental upsert (no wipe) |
-| `codekg query` | `codekg-query` | Hybrid query |
-| `codekg pack` | `codekg-pack` | Snippet pack |
-| `codekg viz` | `codekg-viz` | Streamlit 2D visualizer |
-| `codekg viz3d` | `codekg-viz3d` | PyVista 3D visualizer |
-| `codekg analyze` | `codekg-analyze` | Architectural analysis |
-| `codekg mcp` | `codekg-mcp` | MCP server |
+| `pycodekg build-sqlite` | `pycodekg-build-sqlite` | AST → SQLite |
+| `pycodekg build-lancedb` | `pycodekg-build-lancedb` | SQLite → LanceDB |
+| `pycodekg build` | `pycodekg-build` | Full pipeline (always wipes) |
+| `pycodekg update` | `pycodekg-update` | Incremental upsert (no wipe) |
+| `pycodekg query` | `pycodekg-query` | Hybrid query |
+| `pycodekg pack` | `pycodekg-pack` | Snippet pack |
+| `pycodekg viz` | `pycodekg-viz` | Streamlit 2D visualizer |
+| `pycodekg viz3d` | `pycodekg-viz3d` | PyVista 3D visualizer |
+| `pycodekg analyze` | `pycodekg-analyze` | Architectural analysis |
+| `pycodekg mcp` | `pycodekg-mcp` | MCP server |
 
 ### Directory Exclusion
 
 Via `pyproject.toml`:
 ```toml
-[tool.codekg]
+[tool.pycodekg]
 exclude = ["old", "vendor", "generated"]
 ```
-Or CLI: `codekg build --repo . --exclude-dir old --exclude-dir vendor`
+Or CLI: `pycodekg build --repo . --exclude-dir old --exclude-dir vendor`
 Both sources are merged at build time.
 
 ---
@@ -236,17 +236,17 @@ Both sources are merged at build time.
 ## Source Layout
 
 ```
-src/code_kg/
-  ├── codekg.py                    # Locked v0 primitives
-  ├── visitor.py                   # CodeKGVisitor (Pass 3 data-flow)
+src/pycode_kg/
+  ├── pycodekg.py                    # Locked v0 primitives
+  ├── visitor.py                   # PyCodeKGVisitor (Pass 3 data-flow)
   ├── config.py                    # load_exclude_dirs()
   ├── graph.py                     # CodeGraph
   ├── store.py                     # GraphStore
   ├── index.py                     # SemanticIndex
-  ├── kg.py                        # CodeKG orchestrator + result types
+  ├── kg.py                        # PyCodeKG orchestrator + result types
   ├── layout3d.py                  # 3D layout algorithms
   ├── viz3d.py                     # 3D PyVista/PyQt5 visualizer
-  ├── codekg_thorough_analysis.py  # CodeKGAnalyzer
+  ├── pycodekg_thorough_analysis.py  # PyCodeKGAnalyzer
   ├── app.py                       # Streamlit web app
   ├── mcp_server.py                # MCP server
   ├── utils.py                     # Shared utilities
@@ -264,8 +264,8 @@ tests/
   ├── test_primitives.py    # Node, Edge, extract_repo
   ├── test_graph.py         # CodeGraph
   ├── test_store.py         # GraphStore
-  ├── test_kg.py            # CodeKG, result types
-  ├── test_visitor.py       # CodeKGVisitor
+  ├── test_kg.py            # PyCodeKG, result types
+  ├── test_visitor.py       # PyCodeKGVisitor
   ├── test_exclusions.py    # Directory exclusion
   └── test_index.py         # SemanticIndex
 ```
@@ -283,20 +283,20 @@ filtered files
                           Pass 2: CALLS (sym: stubs)
                           Pass 3: READS/WRITES/ATTR_ACCESS
   ↓ GraphStore.write()
-.codekg/graph.sqlite      authoritative, canonical
+.pycodekg/graph.sqlite      authoritative, canonical
   ↓ resolve_symbols()
 RESOLVES_TO edges         sym: → fn:/cls:/m: defs
   ↓ SemanticIndex.build()
-.codekg/lancedb           derived, disposable
-  ↓ CodeKG.query() / .pack()
+.pycodekg/lancedb           derived, disposable
+  ↓ PyCodeKG.query() / .pack()
 semantic seeds + structural BFS
   ↓ rank + dedupe
 QueryResult / SnippetPack
   ↓
-  ├→ Streamlit (codekg viz)
-  ├→ 3D visualizer (codekg viz3d)
-  ├→ Analyzer (codekg analyze)
-  └→ MCP server (codekg-mcp)
+  ├→ Streamlit (pycodekg viz)
+  ├→ 3D visualizer (pycodekg viz3d)
+  ├→ Analyzer (pycodekg analyze)
+  └→ MCP server (pycodekg-mcp)
 ```
 
 ---
@@ -315,7 +315,7 @@ QueryResult / SnippetPack
 - `ast`, `sqlite3` (stdlib)
 
 ### Optional: viz3d
-- Consumers: `pip install 'code-kg[viz3d] @ git+https://github.com/Flux-Frontiers/code_kg.git'`
+- Consumers: `pip install 'pycode-kg[viz3d] @ git+https://github.com/Flux-Frontiers/pycode_kg.git'`
 - Local dev: `poetry install --with viz3d`
 - `pyvista ≥ 0.44.0`, `pyvistaqt ≥ 0.11.0`, `PyQt5 ≥ 5.15.0`, `param ≥ 2.0.0`, `markdown ≥ 3.6`, `trame-vtk ≥ 2.0.0`
 

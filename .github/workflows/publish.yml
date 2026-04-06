@@ -45,6 +45,6 @@ jobs:
             gh release upload "$TAG" dist/* --clobber
           else
             gh release create "$TAG" dist/* \
-              --title "CodeKG $TAG" \
+              --title "PyCodeKG $TAG" \
               --notes-file release-notes.md
           fi

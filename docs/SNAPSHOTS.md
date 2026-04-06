@@ -1,4 +1,4 @@
-# CodeKG Temporal Snapshots
+# PyCodeKG Temporal Snapshots
 
 **Enterprise-Grade Metrics Tracking Across Commits**
 
@@ -16,7 +16,7 @@ Snapshots are point-in-time captures of your codebase's metrics, tagged with:
 - **Timestamp** — ISO 8601 UTC for auditability
 - **Full metrics** — nodes, edges, coverage, complexity, hotspots
 
-Snapshots in `.codekg/snapshots/` are **tracked in git** — the pre-commit hook stages each snapshot file automatically so it ships with the commit that produced it.
+Snapshots in `.pycodekg/snapshots/` are **tracked in git** — the pre-commit hook stages each snapshot file automatically so it ships with the commit that produced it.
 
 Each snapshot includes **automatic delta computation** against the previous snapshot and a baseline snapshot, showing trends over time.
 
@@ -26,14 +26,14 @@ Each snapshot includes **automatic delta computation** against the previous snap
 
 ### Capture a Snapshot
 ```bash
-codekg snapshot save 0.5.1
+pycodekg snapshot save 0.5.1
 ```
 
-Automatically detects your current git commit and branch. Creates `.codekg/snapshots/{tree_hash}.json` with full metrics. Use `--tree-hash $(git write-tree)` in pre-commit context to key by staged tree.
+Automatically detects your current git commit and branch. Creates `.pycodekg/snapshots/{tree_hash}.json` with full metrics. Use `--tree-hash $(git write-tree)` in pre-commit context to key by staged tree.
 
 ### List All Snapshots
 ```bash
-codekg snapshot list
+pycodekg snapshot list
 ```
 
 Shows all snapshots in reverse chronological order:
@@ -46,7 +46,7 @@ Commit     Branch       Version    Nodes  Edges  Coverage
 
 ### Show Snapshot Details
 ```bash
-codekg snapshot show 3487ed5
+pycodekg snapshot show 3487ed5
 ```
 
 Displays full metrics, hotspots, and deltas:
@@ -71,7 +71,7 @@ Delta vs. Previous:
 
 ### Compare Two Snapshots
 ```bash
-codekg snapshot diff 660e4f0 3487ed5
+pycodekg snapshot diff 660e4f0 3487ed5
 ```
 
 Side-by-side comparison showing what changed:
@@ -91,7 +91,7 @@ critical_issues          1             0             -1
 
 ### Storage Structure
 ```
-.codekg/
+.pycodekg/
 ├── graph.sqlite          # Knowledge graph database
 ├── lancedb/              # Semantic embeddings
 └── snapshots/
@@ -166,13 +166,13 @@ Track metrics at each version release:
 
 ```bash
 # After tagging v0.5.1
-codekg snapshot save 0.5.1
+pycodekg snapshot save 0.5.1
 
 # After tagging v0.5.2
-codekg snapshot save 0.5.2
+pycodekg snapshot save 0.5.2
 
 # Compare releases
-codekg snapshot diff <v0.5.1-key> <v0.5.2-key>
+pycodekg snapshot diff <v0.5.1-key> <v0.5.2-key>
 ```
 
 ### Feature Branch Tracking
@@ -180,15 +180,15 @@ Monitor complexity as features are added:
 
 ```bash
 # On feature/add-caching
-codekg build --repo .
-codekg snapshot save 0.5.2-dev1
+pycodekg build --repo .
+pycodekg snapshot save 0.5.2-dev1
 
 # After optimization work
-codekg build --repo .
-codekg snapshot save 0.5.2-dev2
+pycodekg build --repo .
+pycodekg snapshot save 0.5.2-dev2
 
 # See improvement
-codekg snapshot diff <dev1-key> <dev2-key>
+pycodekg snapshot diff <dev1-key> <dev2-key>
 ```
 
 ### Regression Detection
@@ -196,11 +196,11 @@ Identify when metrics degrade:
 
 ```bash
 # Weekly health check
-codekg build --repo .
-codekg snapshot save 0.5.1-week5
+pycodekg build --repo .
+pycodekg snapshot save 0.5.1-week5
 
 # Compare to last week
-codekg snapshot diff <prev-week-key> <current-week-key>
+pycodekg snapshot diff <prev-week-key> <current-week-key>
 
 # Alert if critical_issues increased or coverage dropped
 ```
@@ -210,20 +210,20 @@ codekg snapshot diff <prev-week-key> <current-week-key>
 Install the pre-commit hook once and snapshots are captured automatically before every commit — keyed by the staged tree hash and committed atomically with the changeset:
 
 ```bash
-codekg install-hooks
+pycodekg install-hooks
 ```
 
 Before each `git commit`, the hook:
 1. Reads the version from `pyproject.toml`
 2. Calls `git write-tree` to get the stable tree hash of the staged changeset
-3. Saves `.codekg/snapshots/{tree_hash}.json` with full metrics
-4. Stages the snapshot file (`git add .codekg/snapshots/`) so it ships inside the commit
+3. Saves `.pycodekg/snapshots/{tree_hash}.json` with full metrics
+4. Stages the snapshot file (`git add .pycodekg/snapshots/`) so it ships inside the commit
 
-The hook never blocks commits — if the graph isn't built yet, it prints a warning and exits cleanly. Skip it for a single commit with `CODEKG_SKIP_SNAPSHOT=1 git commit ...`.
+The hook never blocks commits — if the graph isn't built yet, it prints a warning and exits cleanly. Skip it for a single commit with `PYCODEKG_SKIP_SNAPSHOT=1 git commit ...`.
 
 To overwrite an existing hook:
 ```bash
-codekg install-hooks --force
+pycodekg install-hooks --force
 ```
 
 ### CI/CD Integration
@@ -234,15 +234,15 @@ Automate snapshot capture in your pipeline:
 # In GitHub Actions or CI workflow
 
 # Build graph
-codekg build --repo .
+pycodekg build --repo .
 
 # Capture snapshot
 VERSION=$(git describe --tags --always)
-codekg snapshot save $VERSION
+pycodekg snapshot save $VERSION
 
 # Compare to previous
 PREV_TAG=$(git describe --tags --abbrev=0 HEAD~1)
-codekg snapshot diff $PREV_TAG $VERSION > metrics_comparison.txt
+pycodekg snapshot diff $PREV_TAG $VERSION > metrics_comparison.txt
 ```
 
 ---
@@ -252,10 +252,10 @@ codekg snapshot diff $PREV_TAG $VERSION > metrics_comparison.txt
 ### Python Integration
 
 ```python
-from code_kg.snapshots import SnapshotManager
+from pycode_kg.snapshots import SnapshotManager
 
 # Initialize manager
-mgr = SnapshotManager(".codekg/snapshots")
+mgr = SnapshotManager(".pycodekg/snapshots")
 
 # Capture snapshot (pre-commit mode: pass tree_hash from `git write-tree`)
 snapshot = mgr.capture(
@@ -287,9 +287,9 @@ snapshots = mgr.list_snapshots(limit=10)
 All snapshot commands support `--json` for machine consumption:
 
 ```bash
-codekg snapshot list --json > snapshots.json
-codekg snapshot show 3487ed5 > snapshot_detail.json
-codekg snapshot diff a b --json > comparison.json
+pycodekg snapshot list --json > snapshots.json
+pycodekg snapshot show 3487ed5 > snapshot_detail.json
+pycodekg snapshot diff a b --json > comparison.json
 ```
 
 ---
@@ -354,9 +354,9 @@ Monitor trends to detect:
 ## Best Practices
 
 1. **Install the git hook**
-   - Run `codekg install-hooks` once per repo
+   - Run `pycodekg install-hooks` once per repo
    - Snapshots are captured before every commit, keyed by tree hash, and staged atomically
-   - `.codekg/snapshots/` is tracked in git — snapshots ship with the commit that produced them
+   - `.pycodekg/snapshots/` is tracked in git — snapshots ship with the commit that produced them
 
 2. **Capture at milestones**
    - Tag releases with versions
@@ -391,10 +391,10 @@ Monitor trends to detect:
 A: At version releases (mandatory), weekly for long projects, after major changes (optional). More frequent = better granularity, but storage is minimal.
 
 **Q: Are snapshots committed to git?**
-A: Yes — `.codekg/snapshots/` is tracked in git (unignored). The pre-commit hook stages the snapshot file automatically, so it ships inside the commit that produced it. No manual `git add` needed.
+A: Yes — `.pycodekg/snapshots/` is tracked in git (unignored). The pre-commit hook stages the snapshot file automatically, so it ships inside the commit that produced it. No manual `git add` needed.
 
 **Q: What if I miss a snapshot?**
-A: You can manually create one anytime with `codekg snapshot save`. Delta comparison still works as long as timestamps are preserved.
+A: You can manually create one anytime with `pycodekg snapshot save`. Delta comparison still works as long as timestamps are preserved.
 
 **Q: How do I integrate with dashboards?**
 A: Use `--json` output and feed to Grafana, Datadog, or custom tools. The structure is designed for programmatic ingestion.
@@ -407,5 +407,5 @@ A: Snapshots are write-once by design. Create new ones instead. If you need to r
 ## See Also
 
 - [Architecture Analysis](ARCHITECTURE.md) — Generate architectural descriptions
-- [CHEATSHEET.md](CHEATSHEET.md) — CodeKG query reference
+- [CHEATSHEET.md](CHEATSHEET.md) — PyCodeKG query reference
 - [README.md](../README.md) — Project overview

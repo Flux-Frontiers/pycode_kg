@@ -148,9 +148,9 @@ Common issues and solutions.
    ```
 
 7. **Check if KG library is installed:**
-   For CodeKGs:
+   For PyCodeKGs:
    ```bash
-   python -c "import code_kg; print('CodeKG installed')"
+   python -c "import pycode_kg; print('PyCodeKG installed')"
    ```
    For DocKGs:
    ```bash
@@ -314,16 +314,16 @@ Common issues and solutions.
 
 1. **Check if KG library is installed:**
    ```bash
-   python -c "import code_kg"  # for CodeKGs
+   python -c "import pycode_kg"  # for PyCodeKGs
    python -c "import doc_kg"   # for DocKGs
    ```
-   If import fails, install: `pip install code-kg` or `pip install doc-kg`
+   If import fails, install: `pip install pycode-kg` or `pip install doc-kg`
 
 2. **Check if databases exist:**
-   For CodeKGs:
+   For PyCodeKGs:
    ```bash
-   ls ~/.codekg/graph.sqlite
-   ls ~/.codekg/lancedb
+   ls ~/.pycodekg/graph.sqlite
+   ls ~/.pycodekg/lancedb
    ```
 
 3. **Rebuild the KG:**
@@ -453,14 +453,14 @@ Common issues and solutions.
 2. **Check if process is alive:**
    ```bash
    # In another terminal:
-   ps aux | grep codekg
+   ps aux | grep pycodekg
    # Should show active process
    ```
 
 3. **If truly stuck (no activity for 30 min):**
    ```bash
    # Kill process
-   pkill -f "codekg build"
+   pkill -f "pycodekg build"
 
    # Retry with smaller scope
    kgrag init ~/repos/myproject --layer code  # skip doc layer if huge
@@ -469,7 +469,7 @@ Common issues and solutions.
 4. **Reduce vector embedding load:**
    Set batch size:
    ```bash
-   CODEKG_BATCH_SIZE=50 kgrag init ~/repos/myproject
+   PYCODEKG_BATCH_SIZE=50 kgrag init ~/repos/myproject
    ```
 
 ---
@@ -560,7 +560,7 @@ Common issues and solutions.
 4. **Ensure consistent environment variables:**
    ```bash
    export KGRAG_REGISTRY=$HOME/.kgrag/registry.sqlite
-   export CODEKG_MODEL_DIR=$HOME/.models/codekg
+   export PYCODEKG_MODEL_DIR=$HOME/.models/pycodekg
    # Add to ~/.bashrc or ~/.zshrc
    ```
 

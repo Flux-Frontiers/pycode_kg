@@ -16,8 +16,8 @@ Every `_PRE_COMMIT_HOOK` script followed this broken order:
 ```
 1. pre-commit run   ← quality checks (can fail → exit 1)
 2. git write-tree   ← tree hash captured too late
-3. codekg build
-4. codekg snapshot save   ← NEVER REACHED if step 1 fails
+3. pycodekg build
+4. pycodekg snapshot save   ← NEVER REACHED if step 1 fails
 ```
 
 The fix reorders the hook so snapshots always happen first:
@@ -34,19 +34,19 @@ The fix reorders the hook so snapshots always happen first:
 
 ## Changes Made
 
-### `code_kg` — `src/code_kg/cli/cmd_hooks.py`
+### `pycode_kg` — `src/pycode_kg/cli/cmd_hooks.py`
 
 - Moved `pre-commit run` to the **end** of `_PRE_COMMIT_HOOK`
 - `git write-tree` now runs **first**, before any tool can modify files
-- Skip env var: `CODEKG_SKIP_SNAPSHOT=1 git commit ...`
-- Reinstalled live: `codekg install-hooks --repo . --force`
+- Skip env var: `PYCODEKG_SKIP_SNAPSHOT=1 git commit ...`
+- Reinstalled live: `pycodekg install-hooks --repo . --force`
 
 ---
 
 ### `doc_kg` — `src/doc_kg/cli/cmd_hooks.py`
 
 - Same ordering fix applied
-- Renamed skip env var from `CODEKG_SKIP_SNAPSHOT` → **`DOCKG_SKIP_SNAPSHOT`**
+- Renamed skip env var from `PYCODEKG_SKIP_SNAPSHOT` → **`DOCKG_SKIP_SNAPSHOT`**
 - Reinstall: `dockg install-hooks --repo . --force`
 
 ---
@@ -76,7 +76,7 @@ The fix reorders the hook so snapshots always happen first:
 - Created orchestrating hook that snapshots **all** registered KGs in the
   workspace before running quality checks
 - Order of operations per KG (each conditional on `.{kg}` dir existing):
-  1. CodeKG — rebuild + snapshot → stage `.codekg/snapshots/`
+  1. PyCodeKG — rebuild + snapshot → stage `.pycodekg/snapshots/`
   2. DocKG  — rebuild + snapshot → stage `.dockg/snapshots/`
   3. FTreeKG — rebuild + snapshot → stage `.filetreekg/snapshots/`
   4. DiaryKG — snapshot only → stage `.diarykg/snapshots/`
@@ -91,7 +91,7 @@ The fix reorders the hook so snapshots always happen first:
 
 | Tool      | Skip variable              |
 |-----------|---------------------------|
-| codekg    | `CODEKG_SKIP_SNAPSHOT=1`  |
+| pycodekg    | `PYCODEKG_SKIP_SNAPSHOT=1`  |
 | dockg     | `DOCKG_SKIP_SNAPSHOT=1`   |
 | ftreekg   | `FTREEKG_SKIP_SNAPSHOT=1` |
 | diarykg   | `DIARYKG_SKIP_SNAPSHOT=1` |
@@ -106,8 +106,8 @@ Usage: `DOCKG_SKIP_SNAPSHOT=1 git commit -m "wip: skip snapshot"`
 After `poetry install` in each repo, run:
 
 ```bash
-# code_kg (already reinstalled)
-codekg install-hooks --repo . --force
+# pycode_kg (already reinstalled)
+pycodekg install-hooks --repo . --force
 
 # doc_kg
 cd ~/repos/doc_kg && dockg install-hooks --repo . --force

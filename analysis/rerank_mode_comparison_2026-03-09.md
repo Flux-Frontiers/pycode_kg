@@ -2,7 +2,7 @@
 
 **Date:** 2026-03-09
 **Index:** all-MiniLM-L6-v2, 5301 nodes / 5222 edges
-**Scope:** `query_codebase` with `paths="src/code_kg"` across three representative queries
+**Scope:** `query_codebase` with `paths="src/pycode_kg"` across three representative queries
 
 ---
 
@@ -63,9 +63,9 @@ Blends vector similarity with lexical overlap: query tokens matched against node
 
 ### Query 2: `"missing_lineno_policy cap_or_skip fallback"` (hop=0, k=6)
 
-All three modes returned identical node sets and identical ordering. All scores were `semantic=0.0, lexical=0.0`. Results included `_compute_span`, `_read_lines`, `LayoutNode.line_count`, `LayoutNode`, `_set_node_source_meta`, `CodeKG.__exit__` — none of which are the actual implementation site of `missing_lineno_policy`.
+All three modes returned identical node sets and identical ordering. All scores were `semantic=0.0, lexical=0.0`. Results included `_compute_span`, `_read_lines`, `LayoutNode.line_count`, `LayoutNode`, `_set_node_source_meta`, `PyCodeKG.__exit__` — none of which are the actual implementation site of `missing_lineno_policy`.
 
-**Root cause:** `missing_lineno_policy` and `cap_or_skip` are parameter values stored only inside `CodeKG.pack_snippets` — not as standalone node names or docstrings. MiniLM cannot find them by embedding similarity, and the lexical scorer cannot find them because those strings do not appear in any node's `name`, `qualname`, or `module_path`.
+**Root cause:** `missing_lineno_policy` and `cap_or_skip` are parameter values stored only inside `PyCodeKG.pack_snippets` — not as standalone node names or docstrings. MiniLM cannot find them by embedding similarity, and the lexical scorer cannot find them because those strings do not appear in any node's `name`, `qualname`, or `module_path`.
 
 **Finding:** All three modes fail equally on queries for internal parameter names that aren't surfaced in node metadata. The correct fix is either:
 1. Use `hop=1` so `pack_snippets` (which does appear as a seed) expands to include its call graph
@@ -80,21 +80,21 @@ All three modes returned identical node sets and identical ordering. All scores 
 | Rank | legacy | semantic | hybrid |
 |------|--------|----------|--------|
 | 1 | `graph` module (sem=0.242) | `graph` module (sem=0.242) | `CodeGraph` class (hyb=0.257) |
-| 2 | `CodeGraph` class (sem=0.225) | `CodeGraph` class (sem=0.225) | `CodeKG` class (hyb=0.244) |
+| 2 | `CodeGraph` class (sem=0.225) | `CodeGraph` class (sem=0.225) | `PyCodeKG` class (hyb=0.244) |
 | 3 | `CodeGraph.__repr__` (sem=0.215) | `CodeGraph.edges` (sem=0.225, hop=1) | `graph` module (hyb=0.202) |
-| 4 | `CodeKG.graph` (sem=0.206) | `CodeGraph.__repr__` (sem=0.215) | `CodeGraph.__init__` (hyb=0.201, lex=0.333) |
-| 5 | `CodeGraph.nodes` (sem=0.191) | `CodeKG.graph` (sem=0.206) | `CodeGraph.edges` (hyb=0.191) |
-| 6 | `CodeGraph.__init__` (sem=0.144) | `CodeKG.build_graph` (sem=0.206, hop=1) | `CodeGraph.__repr__` (hyb=0.184) |
-| 7 | `ArchitectureAnalyzer._build_architecture_graph` | `CodeKG` class (sem=0.206, hop=1) | `CodeKG.graph` (hyb=0.177) |
-| 8 | `CodeGraph.result` | `CodeGraph.nodes` (sem=0.191) | `CodeKG.build_graph` (hyb=0.177) |
+| 4 | `PyCodeKG.graph` (sem=0.206) | `CodeGraph.__repr__` (sem=0.215) | `CodeGraph.__init__` (hyb=0.201, lex=0.333) |
+| 5 | `CodeGraph.nodes` (sem=0.191) | `PyCodeKG.graph` (sem=0.206) | `CodeGraph.edges` (hyb=0.191) |
+| 6 | `CodeGraph.__init__` (sem=0.144) | `PyCodeKG.build_graph` (sem=0.206, hop=1) | `CodeGraph.__repr__` (hyb=0.184) |
+| 7 | `ArchitectureAnalyzer._build_architecture_graph` | `PyCodeKG` class (sem=0.206, hop=1) | `PyCodeKG.graph` (hyb=0.177) |
+| 8 | `CodeGraph.result` | `CodeGraph.nodes` (sem=0.191) | `PyCodeKG.build_graph` (hyb=0.177) |
 
 **Key observations:**
 - **legacy and semantic both rank `CodeGraph.__repr__` at position 3-4.** This is the developer repr string method — near-useless for "how does the graph get built." It ranks high only because it's a direct semantic seed.
-- **hybrid demotes `CodeGraph.__repr__` to rank 6.** Its lexical overlap with the query ("graph" only, no "build"/"source"/"code") is weak. Hybrid redistributes budget to `CodeKG` class (+lexical from "code"+"kg"), `CodeGraph.__init__` (contains "graph"+"source" in docstring), and `build_graph` (literal "build"+"graph" in name).
-- **`CodeKG` class** rises from rank 7 (semantic/legacy) to rank 2 (hybrid). Its docstring contains "builds", "source", "graph", "code" — strong lexical match.
+- **hybrid demotes `CodeGraph.__repr__` to rank 6.** Its lexical overlap with the query ("graph" only, no "build"/"source"/"code") is weak. Hybrid redistributes budget to `PyCodeKG` class (+lexical from "code"+"kg"), `CodeGraph.__init__` (contains "graph"+"source" in docstring), and `build_graph` (literal "build"+"graph" in name).
+- **`PyCodeKG` class** rises from rank 7 (semantic/legacy) to rank 2 (hybrid). Its docstring contains "builds", "source", "graph", "code" — strong lexical match.
 - **`CodeGraph.__init__`** rises from rank 6 to rank 4 in hybrid — it's the constructor that sets up the graph extraction, directly answering "how does it get built."
 
-**Winner: hybrid** — provides a noticeably more useful ranked list. Promotes `CodeGraph.__init__`, `CodeKG`, and `build_graph` while demoting the noise node `__repr__`.
+**Winner: hybrid** — provides a noticeably more useful ranked list. Promotes `CodeGraph.__init__`, `PyCodeKG`, and `build_graph` while demoting the noise node `__repr__`.
 
 ---
 

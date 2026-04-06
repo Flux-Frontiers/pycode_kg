@@ -1,17 +1,17 @@
 ---
 name: kgrag
-description: "Expert knowledge for KGRAG — the unified cross-KG registry and federated query layer for CodeKG, DocKG, and MetaKG. Use this skill when: (1) Setting up or configuring KGRAG in projects, (2) Querying across multiple knowledge graphs simultaneously, (3) Extracting code/doc snippets for LLM context, (4) Integrating with Claude Code or Claude Desktop, (5) Running architectural analyses, (6) Managing the KG registry, or (7) Troubleshooting KG-related issues."
+description: "Expert knowledge for KGRAG — the unified cross-KG registry and federated query layer for PyCodeKG, DocKG, and MetaKG. Use this skill when: (1) Setting up or configuring KGRAG in projects, (2) Querying across multiple knowledge graphs simultaneously, (3) Extracting code/doc snippets for LLM context, (4) Integrating with Claude Code or Claude Desktop, (5) Running architectural analyses, (6) Managing the KG registry, or (7) Troubleshooting KG-related issues."
 ---
 
 # KGRAG Skill
 
-KGRAG is the **unified abstraction over CodeKG, DocKG, and MetaKG**. It provides a single registry and federated query interface to search across multiple knowledge graphs simultaneously.
+KGRAG is the **unified abstraction over PyCodeKG, DocKG, and MetaKG**. It provides a single registry and federated query interface to search across multiple knowledge graphs simultaneously.
 
 ## What is KGRAG?
 
 KGRAG (Knowledge Graph Registry and Query) orchestrates multiple KG backends:
 
-- **CodeKG** — Semantic + structural analysis of Python code
+- **PyCodeKG** — Semantic + structural analysis of Python code
 - **DocKG** — Semantic + structural analysis of markdown documentation
 - **MetaKG** — Domain-specific knowledge graphs
 - **KGRAG** — The unifying registry, CLI, and federated query layer
@@ -28,7 +28,7 @@ The KGRAG registry (`~/.kgrag/registry.sqlite` by default) is the source of trut
 
 ### KG Layers
 A **KG layer** is a single knowledge graph for a repository:
-- **Code layer** (CodeKG) — Python codebase semantic indexing
+- **Code layer** (PyCodeKG) — Python codebase semantic indexing
 - **Doc layer** (DocKG) — Markdown documentation semantic indexing
 - Multiple layers can coexist in the registry
 
@@ -132,7 +132,7 @@ See [workflows.md](references/workflows.md) for detailed multi-step workflows:
 | Variable | Purpose | Default |
 |----------|---------|---------|
 | `KGRAG_REGISTRY` | Path to registry SQLite file | `~/.kgrag/registry.sqlite` |
-| `CODEKG_MODEL_DIR` | Cache embedding model (CodeKG) | `.codekg/models` |
+| `PYCODEKG_MODEL_DIR` | Cache embedding model (PyCodeKG) | `.pycodekg/models` |
 | `DOCKG_MODEL_DIR` | Cache embedding model (DocKG) | `.dockg/models` |
 
 Set these once in your shell profile for permanent configuration.
@@ -168,7 +168,7 @@ See [troubleshooting.md](references/troubleshooting.md) for detailed solutions.
 
 > **One registry. Many KGs. Infinite queries.**
 
-KGRAG unifies CodeKG, DocKG, and MetaKG under a single contract:
+KGRAG unifies PyCodeKG, DocKG, and MetaKG under a single contract:
 - Apps register what they know (a KG instance)
 - Users query what they want (federated search)
 - Agents orchestrate across domains (MCP tools)
@@ -181,7 +181,7 @@ This enables:
 
 ## Learn More
 
-- **CodeKG skill** — Semantic + structural indexing of Python code
+- **PyCodeKG skill** — Semantic + structural indexing of Python code
 - **DocKG skill** — Semantic + structural indexing of markdown docs
 - **CLI reference** — See [cli-reference.md](references/cli-reference.md)
 - **Workflows** — See [workflows.md](references/workflows.md)

@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# analyze_repo.sh — Clone a GitHub repo, build CodeKG, run analysis, save to analysis/
+# analyze_repo.sh — Clone a GitHub repo, build PyCodeKG, run analysis, save to analysis/
 #
 # Usage:
 #   ./scripts/analyze_repo.sh owner/repo
 #   ./scripts/analyze_repo.sh https://github.com/owner/repo
 #   ./scripts/analyze_repo.sh owner/repo --include-dir src --include-dir lib
 #
-# Extra flags after the repo argument are forwarded to codekg-build-sqlite.
+# Extra flags after the repo argument are forwarded to pycodekg-build-sqlite.
 # If no --include-dir is given, the script auto-detects the Python package dir
 # (looks for a subdir matching the repo name, then src/, then falls back to all).
 #
@@ -28,7 +28,7 @@ die()     { echo -e "${RED}✗ $*${NC}" >&2; exit 1; }
 
 INPUT="$1"
 shift
-EXTRA_BUILD_ARGS=("$@")   # remaining args forwarded to codekg-build-sqlite
+EXTRA_BUILD_ARGS=("$@")   # remaining args forwarded to pycodekg-build-sqlite
 
 # Normalise: strip trailing .git, extract owner/repo from URL or bare slug
 INPUT="${INPUT%.git}"
@@ -47,7 +47,7 @@ CLONE_URL="https://github.com/${SLUG}.git"
 REPOS_DIR="$HOME/repos"
 CLONE_DIR="$REPOS_DIR/$REPO_NAME"
 
-# analysis/ is relative to the code_kg repo root (where this script lives)
+# analysis/ is relative to the pycode_kg repo root (where this script lives)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CODE_KG_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 ANALYSIS_DIR="$CODE_KG_ROOT/analysis"
@@ -63,9 +63,9 @@ info "Output file : $OUT_FILE"
 echo
 
 command -v git   >/dev/null || die "git not found"
-command -v codekg-build-sqlite >/dev/null || \
-command -v codekg >/dev/null || \
-    die "codekg not found — run this script from within the code-kg virtual environment"
+command -v pycodekg-build-sqlite >/dev/null || \
+command -v pycodekg >/dev/null || \
+    die "pycodekg not found — run this script from within the pycode-kg virtual environment"
 
 mkdir -p "$REPOS_DIR" "$ANALYSIS_DIR"
 
@@ -108,13 +108,13 @@ if ! $has_include_dir; then
 fi
 echo
 
-# ── build CodeKG ─────────────────────────────────────────────────────────────
+# ── build PyCodeKG ─────────────────────────────────────────────────────────────
 
-info "Building CodeKG SQLite index..."
-codekg-build-sqlite --repo "$CLONE_DIR" --wipe "${EXTRA_BUILD_ARGS[@]+"${EXTRA_BUILD_ARGS[@]}"}" 2>&1 | sed 's/^/  /'
+info "Building PyCodeKG SQLite index..."
+pycodekg-build-sqlite --repo "$CLONE_DIR" --wipe "${EXTRA_BUILD_ARGS[@]+"${EXTRA_BUILD_ARGS[@]}"}" 2>&1 | sed 's/^/  /'
 
-info "Building CodeKG LanceDB (semantic) index..."
-codekg-build-lancedb --repo "$CLONE_DIR" 2>&1 | sed 's/^/  /'
+info "Building PyCodeKG LanceDB (semantic) index..."
+pycodekg-build-lancedb --repo "$CLONE_DIR" 2>&1 | sed 's/^/  /'
 
 success "Knowledge graph built"
 echo
@@ -122,7 +122,7 @@ echo
 # ── analyse ──────────────────────────────────────────────────────────────────
 
 info "Running analysis → $OUT_FILE"
-codekg-analyze "$CLONE_DIR" --output "$OUT_FILE" 2>&1 | sed 's/^/  /'
+pycodekg-analyze "$CLONE_DIR" --output "$OUT_FILE" 2>&1 | sed 's/^/  /'
 
 if [[ -f "$OUT_FILE" ]]; then
     SIZE="$(wc -l < "$OUT_FILE" | tr -d ' ')"

@@ -14,7 +14,7 @@ from unittest.mock import patch
 
 import pytest
 
-from code_kg.snapshots import (
+from pycode_kg.snapshots import (
     Snapshot,
     SnapshotDelta,
     SnapshotManager,
@@ -223,11 +223,11 @@ def test_snapshot_manager_capture(snapshot_dir: Path, sample_metrics: SnapshotMe
     mgr = SnapshotManager(snapshot_dir)
 
     with patch(
-        "code_kg.snapshots.SnapshotManager._get_current_tree_hash",
+        "pycode_kg.snapshots.SnapshotManager._get_current_tree_hash",
         return_value="abc123tree",  # pragma: allowlist secret
     ):
         with patch(
-            "code_kg.snapshots.SnapshotManager._get_current_branch",
+            "pycode_kg.snapshots.SnapshotManager._get_current_branch",
             return_value="develop",
         ):
             snap = mgr.capture(
@@ -804,10 +804,10 @@ def test_capture_none_graph_stats_defaults_to_empty(snapshot_dir: Path) -> None:
     """capture(graph_stats_dict=None) uses empty dict without crashing."""
     mgr = SnapshotManager(snapshot_dir)
     with patch(
-        "code_kg.snapshots.SnapshotManager._get_current_tree_hash",
+        "pycode_kg.snapshots.SnapshotManager._get_current_tree_hash",
         return_value="treehashX",
     ):
-        with patch("code_kg.snapshots.SnapshotManager._get_current_branch", return_value="main"):
+        with patch("pycode_kg.snapshots.SnapshotManager._get_current_branch", return_value="main"):
             snap = mgr.capture(version="0.5.0", graph_stats_dict=None, coverage=0.9)
     assert snap.metrics.total_nodes == 0
     assert snap.tree_hash == "treehashX"
@@ -839,14 +839,14 @@ def test_capture_computes_vs_previous_when_prior_snapshot_exists(
 
     # Capture a new snapshot whose previous lookup will resolve to 'prevhash'
     with patch(
-        "code_kg.snapshots.SnapshotManager._get_current_tree_hash",
+        "pycode_kg.snapshots.SnapshotManager._get_current_tree_hash",
         return_value="nexthash",
     ):
         with patch(
-            "code_kg.snapshots.SnapshotManager._get_current_branch",
+            "pycode_kg.snapshots.SnapshotManager._get_current_branch",
             return_value="develop",
         ):
-            with patch("code_kg.snapshots.SnapshotManager.get_previous", return_value=existing):
+            with patch("pycode_kg.snapshots.SnapshotManager.get_previous", return_value=existing):
                 snap = mgr.capture(
                     version="0.5.1",
                     graph_stats_dict={
@@ -937,7 +937,7 @@ def test_load_snapshot_backfills_missing_vs_previous(snapshot_dir: Path) -> None
 # ---------------------------------------------------------------------------
 
 
-def _make_codekg_snapshot(tree_hash: str, timestamp: str, nodes: int = 10) -> Snapshot:
+def _make_pycodekg_snapshot(tree_hash: str, timestamp: str, nodes: int = 10) -> Snapshot:
     metrics = SnapshotMetrics(
         total_nodes=nodes,
         total_edges=nodes * 2,
@@ -986,9 +986,9 @@ def test_capture_does_not_auto_save(snapshot_dir: Path) -> None:
     """capture() returns a Snapshot but does NOT persist it to disk."""
     mgr = SnapshotManager(snapshot_dir)
     with patch(
-        "code_kg.snapshots.SnapshotManager._get_current_tree_hash", return_value="unsaved_hash"
+        "pycode_kg.snapshots.SnapshotManager._get_current_tree_hash", return_value="unsaved_hash"
     ):
-        with patch("code_kg.snapshots.SnapshotManager._get_current_branch", return_value="main"):
+        with patch("pycode_kg.snapshots.SnapshotManager._get_current_branch", return_value="main"):
             mgr.capture(version="0.1.0")
     assert mgr.load_snapshot("unsaved_hash") is None
     assert mgr.list_snapshots() == []
@@ -1045,8 +1045,8 @@ def test_diff_snapshots_coverage_delta(snapshot_dir: Path) -> None:
 def test_compute_delta_negative_regression(snapshot_dir: Path) -> None:
     """Delta is negative when the new snapshot has fewer nodes/edges."""
     mgr = SnapshotManager(snapshot_dir)
-    s_big = _make_codekg_snapshot("big", "2026-01-01T00:00:00+00:00", nodes=100)
-    s_small = _make_codekg_snapshot("small", "2026-02-01T00:00:00+00:00", nodes=60)
+    s_big = _make_pycodekg_snapshot("big", "2026-01-01T00:00:00+00:00", nodes=100)
+    s_small = _make_pycodekg_snapshot("small", "2026-02-01T00:00:00+00:00", nodes=60)
     mgr.save_snapshot(s_big)
     mgr.save_snapshot(s_small)
 
