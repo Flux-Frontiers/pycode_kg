@@ -799,7 +799,7 @@ def list_nodes(module_path: str = "", kind: str = "") -> str:
                 }
             )
         return json.dumps(result, indent=2, ensure_ascii=False)
-    except Exception as e:
+    except Exception as e:  # pylint: disable=broad-except
         return json.dumps({"error": str(e)}, indent=2)
 
 
