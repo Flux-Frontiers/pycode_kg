@@ -235,6 +235,8 @@ cython_debug/
 .diarykg/graph.sqlite*
 .diarykg/models
 
+.agentkg/
+
 # Local MCP configuration (contains absolute paths)
 .mcp.json
 
