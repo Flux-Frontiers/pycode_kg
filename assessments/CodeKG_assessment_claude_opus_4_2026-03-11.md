@@ -1,10 +1,10 @@
 # PyCodeKG Agent Assessment — Claude Opus 4
 
-**Assessor:** Claude Opus 4 (Anthropic)  
-**Date:** 2026-03-11  
-**Repository Under Test:** PyCodeKG v0.8.0 (self-indexed)  
-**Platform:** 2024 M3 Max MacBook Pro, 36GB RAM, 1TB SSD  
-**MCP Server:** `pycodekg-pycode_kg`  
+**Assessor:** Claude Opus 4 (Anthropic)
+**Date:** 2026-03-11
+**Repository Under Test:** PyCodeKG v0.8.0 (self-indexed)
+**Platform:** 2024 M3 Max MacBook Pro, 36GB RAM, 1TB SSD
+**MCP Server:** `pycodekg-pycode_kg`
 
 ---
 
@@ -22,7 +22,7 @@ The main areas for improvement are: (1) `bridge_centrality()` returned an empty 
 
 ### `graph_stats()` — ⭐⭐⭐⭐⭐
 
-**Response time:** ~1 second  
+**Response time:** ~1 second
 **Output quality:** Excellent
 
 Returns a clean Markdown summary with total nodes (6,653), meaningful nodes (417, excluding sym: stubs), total edges (6,460), and breakdowns by kind and relation. The distinction between total and meaningful nodes is thoughtful — it immediately tells me the graph has 417 real code entities across 50 modules, 42 classes, 141 functions, and 184 methods. The edge distribution (2,369 CALLS, 2,164 ATTR_ACCESS, 1,214 RESOLVES_TO, 367 CONTAINS, 338 IMPORTS, 8 INHERITS) gives instant architectural intuition.
@@ -31,7 +31,7 @@ Returns a clean Markdown summary with total nodes (6,653), meaningful nodes (417
 
 ### `analyze_repo()` — ⭐⭐⭐⭐⭐
 
-**Response time:** ~5 seconds  
+**Response time:** ~5 seconds
 **Output quality:** Exceptional
 
 This is the crown jewel. A single call returns: baseline metrics, fan-in ranking (top 15 most-called functions), high fan-out orchestrators, module architecture with cohesion scores, call chains, public API surface, docstring coverage (92.8% — impressive), SIR rankings, CodeRank global rankings, concern-based hybrid rankings across 5 architectural concerns, inheritance hierarchy, snapshot history, and orphaned code detection. The output is well-structured Markdown optimized for LLM consumption.
@@ -42,7 +42,7 @@ The concern-based hybrid ranking section is particularly valuable — it pre-ans
 
 ### `query_codebase(q, ...)` — ⭐⭐⭐⭐½
 
-**Response time:** ~3-5 seconds  
+**Response time:** ~3-5 seconds
 **Output quality:** Very good
 
 Tested with three query types:
@@ -59,7 +59,7 @@ The relevance scoring breakdown (semantic, lexical, docstring_signal, hop) is tr
 
 ### `pack_snippets(q, ...)` — ⭐⭐⭐⭐⭐
 
-**Response time:** ~3-5 seconds  
+**Response time:** ~3-5 seconds
 **Output quality:** Excellent
 
 This is the tool I'd use most in practice. It returns the same ranked results as `query_codebase()` but with **actual source code snippets** including line numbers, context lines, and relevance tags ([HIGH], [MEDIUM]). For "graph database storage", it returned the full `GraphStore` class definition with constructor, connection management, and key methods — exactly what I'd need to understand the storage layer without reading the entire file.
@@ -70,7 +70,7 @@ The snippet format is optimized for LLM consumption: Markdown code blocks with l
 
 ### `get_node(node_id, include_edges=True)` — ⭐⭐⭐⭐⭐
 
-**Response time:** ~2 seconds  
+**Response time:** ~2 seconds
 **Output quality:** Excellent
 
 Tested on `GraphStore` and `PyCodeKG` classes. Returns clean Markdown with module, location, full docstring, outgoing CONTAINS edges (listing all methods), and incoming CALLS (listing all callers with module and line number). For `GraphStore`, this immediately revealed 19 methods and 8 cross-module callers — a complete picture of the class's interface and usage.
@@ -81,7 +81,7 @@ The `include_edges=True` option is a smart design choice — it eliminates the n
 
 ### `explain(node_id)` — ⭐⭐⭐⭐½
 
-**Response time:** ~2 seconds  
+**Response time:** ~2 seconds
 **Output quality:** Very good
 
 Tested on `_get_kg` and `compute_coderank`. Returns a natural-language explanation including metadata, documentation, callers, and a role assessment ("🟡 Important function: Called 15 times (>8 = top 2% of this codebase). Part of the essential infrastructure."). The role classification is a nice touch — it contextualizes the node's importance without requiring the agent to compute it.
@@ -94,7 +94,7 @@ For `compute_coderank`, it correctly identified 6 callers across 4 different mod
 
 ### `callers(node_id)` — ⭐⭐⭐⭐⭐
 
-**Response time:** ~2 seconds  
+**Response time:** ~2 seconds
 **Output quality:** Excellent
 
 Tested on `_get_kg` — returned all 15 callers with full metadata including docstrings and call-site line numbers. The sym: stub resolution is working correctly — cross-module callers that reference `_get_kg` via imports are properly resolved.
@@ -105,7 +105,7 @@ The `call_site_lineno` field is particularly valuable — it tells me exactly wh
 
 ### `snapshot_list()` / `snapshot_show()` / `snapshot_diff()` — ⭐⭐⭐⭐
 
-**Response time:** ~1-2 seconds each  
+**Response time:** ~1-2 seconds each
 **Output quality:** Good
 
 The temporal analysis tools revealed 10+ snapshots spanning the development of v0.8.0. Key insights from `snapshot_diff`:
@@ -122,7 +122,7 @@ The `freshness` indicator comparing snapshot node counts to the current DB is a 
 
 ### `centrality(top, group_by)` — ⭐⭐⭐⭐½
 
-**Response time:** ~2 seconds  
+**Response time:** ~2 seconds
 **Output quality:** Very good
 
 Module-level SIR ranking correctly identified `store.py` (0.152) and `kg.py` (0.142) as the most structurally central modules, followed by `snapshots.py` (0.099) and `viz3d.py` (0.089). This aligns with my understanding from the other tools — the store and KG layers are the architectural spine.
@@ -133,7 +133,7 @@ The `group_by='module'` aggregation is particularly useful for architectural ove
 
 ### `bridge_centrality(top)` — ⭐⭐ (Issue Detected)
 
-**Response time:** ~1 second  
+**Response time:** ~1 second
 **Output quality:** Empty result
 
 Returned an empty table with no bridge modules identified. This appears to be a bug or edge case — a codebase with 50 modules and 338 IMPORTS edges should have identifiable bridge modules. The tool's concept (betweenness centrality for chokepoint detection) is sound, but the implementation may have an issue with the current graph topology or the module-level aggregation.
@@ -142,7 +142,7 @@ Returned an empty table with no bridge modules identified. This appears to be a 
 
 ### `rank_nodes(top)` — ⭐⭐⭐⭐
 
-**Response time:** ~2 seconds  
+**Response time:** ~2 seconds
 **Output quality:** Good
 
 Global CodeRank correctly identified `GraphStore.con` (#1), `PyCodeKG.store` (#2), and `CodeGraph.extract` (#3) as the most structurally important nodes. The scores are very small (0.00065 for #1) due to normalization across 6,653 nodes, which makes relative comparison harder than the SIR scores.
@@ -151,7 +151,7 @@ Global CodeRank correctly identified `GraphStore.con` (#1), `PyCodeKG.store` (#2
 
 ### `query_ranked(q, mode)` — ⭐⭐⭐⭐
 
-**Response time:** ~3 seconds  
+**Response time:** ~3 seconds
 **Output quality:** Good with caveats
 
 Tested with "semantic search query pipeline" — correctly returned `PyCodeKG.query` (#1), `SemanticIndex.search` (#2), `cmd_query.py:query` (#3), `mcp_server.py:query_codebase` (#4). The `why` explanations ("strong semantic match to the query", "direct semantic seed") are helpful.
@@ -162,7 +162,7 @@ Tested with "semantic search query pipeline" — correctly returned `PyCodeKG.qu
 
 ### `explain_rank(node_id, q)` — ⭐⭐⭐⭐
 
-**Response time:** ~2 seconds  
+**Response time:** ~2 seconds
 **Output quality:** Good
 
 For `GraphStore.con` with query "database connection management": showed global rank #8 of 6,653, 12 upstream callers, 4 downstream calls, semantic score 0.0 (surprisingly low — the node name doesn't match the query well semantically), and proximity 1.0 (direct seed). The structural breakdown is useful for understanding why a node ranks where it does.
@@ -171,7 +171,7 @@ For `GraphStore.con` with query "database connection management": showed global 
 
 ### `list_nodes(module_path, kind)` — ⭐⭐⭐⭐
 
-**Response time:** ~1 second  
+**Response time:** ~1 second
 **Output quality:** Good
 
 Returned all 21 methods in `store.py` with IDs, line numbers, and truncated docstrings. Useful for enumerating a module's contents without reading the file.
@@ -260,24 +260,24 @@ My default workflow for understanding a new Python codebase:
 
 ### Issues Found
 
-1. **`bridge_centrality()` returned empty results.**  
-   *Impact:* Medium — the tool concept is valuable but non-functional.  
+1. **`bridge_centrality()` returned empty results.**
+   *Impact:* Medium — the tool concept is valuable but non-functional.
    *Suggestion:* Investigate whether the module-level graph construction is correctly aggregating node-level edges. The codebase has 338 IMPORTS edges across 50 modules, so there should be identifiable bridges. Consider adding a diagnostic mode that shows the intermediate graph used for betweenness computation.
 
-2. **`query_ranked()` centrality_score was consistently 0.0.**  
-   *Impact:* Medium — reduces the multi-signal ranking to effectively semantic-only.  
+2. **`query_ranked()` centrality_score was consistently 0.0.**
+   *Impact:* Medium — reduces the multi-signal ranking to effectively semantic-only.
    *Suggestion:* Either auto-compute CodeRank scores on first `query_ranked()` call, or clearly document that `rank_nodes(persist_metric="coderank_global")` must be called first. The current silent degradation is confusing.
 
-3. **Inconsistent output formats across tools.**  
-   *Impact:* Low — some tools return JSON, others Markdown.  
+3. **Inconsistent output formats across tools.**
+   *Impact:* Low — some tools return JSON, others Markdown.
    *Suggestion:* Consider offering a `format` parameter (json/markdown) on all tools, or at least document the rationale for each tool's format choice. Currently: `query_codebase` → JSON, `pack_snippets` → Markdown, `graph_stats` → Markdown, `callers` → JSON, `centrality` → Markdown, `rank_nodes` → JSON.
 
-4. **No way to search for specific code patterns (regex).**  
-   *Impact:* Low — PyCodeKG is semantic, not syntactic.  
+4. **No way to search for specific code patterns (regex).**
+   *Impact:* Low — PyCodeKG is semantic, not syntactic.
    *Suggestion:* Consider adding a `grep_codebase(pattern)` tool that searches within the indexed source files. This would make PyCodeKG a complete replacement for file-level tools.
 
-5. **Module-level snippets in `pack_snippets()` show docstring rather than code.**  
-   *Impact:* Low — module nodes naturally don't have a single code span.  
+5. **Module-level snippets in `pack_snippets()` show docstring rather than code.**
+   *Impact:* Low — module nodes naturally don't have a single code span.
    *Suggestion:* For module nodes, consider showing the module's import section and top-level definitions instead of just the docstring.
 
 ### Enhancement Suggestions

@@ -71,6 +71,6 @@ pycodekg centrality --db .pycodekg/graph.sqlite --group-by module
 
 ## 5. Recommended PR sequence
 
-1. Docs + algorithm core  
-2. CLI registration  
+1. Docs + algorithm core
+2. CLI registration
 3. Optional persistence/MCP exposure

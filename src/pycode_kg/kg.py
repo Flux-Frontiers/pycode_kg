@@ -18,16 +18,16 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from pycode_kg.pycodekg import DEFAULT_MODEL
 from pycode_kg.graph import CodeGraph
 from pycode_kg.module.base import KGModule
-from pycode_kg.module.extractor import PyCodeKGExtractor, KGExtractor
+from pycode_kg.module.extractor import KGExtractor, PyCodeKGExtractor
 from pycode_kg.module.types import (
     BuildStats,
     QueryResult,
     Snippet,
     SnippetPack,
 )
+from pycode_kg.pycodekg import DEFAULT_MODEL
 from pycode_kg.store import GraphStore
 
 # ---------------------------------------------------------------------------

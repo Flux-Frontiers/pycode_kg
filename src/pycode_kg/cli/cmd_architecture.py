@@ -123,7 +123,9 @@ def architecture(
                     click.echo(f"Warning: Could not parse analysis file: {e}", err=True)
 
         if not analysis_loaded:
-            click.echo("Tip: Run 'pycodekg analyze --json' then 'pycodekg architecture --load-latest'")
+            click.echo(
+                "Tip: Run 'pycodekg analyze --json' then 'pycodekg architecture --load-latest'"
+            )
             click.echo("    for richer architectural insights.")
 
         # Generate outputs

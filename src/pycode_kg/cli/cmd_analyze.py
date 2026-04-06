@@ -14,8 +14,8 @@ import click
 
 from pycode_kg.cli.main import cli
 from pycode_kg.cli.options import exclude_option, include_option
-from pycode_kg.pycodekg_thorough_analysis import main as run_analysis
 from pycode_kg.config import load_exclude_dirs, load_include_dirs
+from pycode_kg.pycodekg_thorough_analysis import main as run_analysis
 
 
 @cli.command("analyze")

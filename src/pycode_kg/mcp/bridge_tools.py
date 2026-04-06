@@ -6,7 +6,9 @@ MCP tool hooks for bridge centrality in PyCodeKG.
 
 
 def top_bridges(kind="module", limit=20):
-    from pycode_kg.analysis.bridge import compute_bridge_centrality
+    from pycode_kg.analysis.bridge import (  # pylint: disable=import-outside-toplevel
+        compute_bridge_centrality,
+    )
 
     bridges = compute_bridge_centrality(kind=kind, top=limit)
     return bridges

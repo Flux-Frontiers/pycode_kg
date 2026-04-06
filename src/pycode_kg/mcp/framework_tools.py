@@ -6,7 +6,7 @@ MCP tool hooks for framework node detection in PyCodeKG.
 
 
 def detect_framework_nodes(limit=20):
-    from pycode_kg.analysis.framework_detector import (
+    from pycode_kg.analysis.framework_detector import (  # pylint: disable=import-outside-toplevel
         detect_framework_nodes as detect_fw,
     )
 

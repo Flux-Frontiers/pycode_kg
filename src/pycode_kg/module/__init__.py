@@ -36,7 +36,7 @@ implementation of :class:`KGModule` using :class:`PyCodeKGExtractor`.
 """
 
 from pycode_kg.module.base import KGModule
-from pycode_kg.module.extractor import PyCodeKGExtractor, EdgeSpec, KGExtractor, NodeSpec
+from pycode_kg.module.extractor import EdgeSpec, KGExtractor, NodeSpec, PyCodeKGExtractor
 from pycode_kg.module.types import (
     BuildStats,
     QueryResult,

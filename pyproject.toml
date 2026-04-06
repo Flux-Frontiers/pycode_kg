@@ -155,6 +155,11 @@ enable = [
     "import-outside-toplevel", # C0415
 ]
 
+[tool.pylint.imports]
+# The kg → pycodekg_thorough_analysis cycle is broken at runtime by a lazy
+# import inside PyCodeKG.analyze().  Pylint's static analysis can't see that.
+ignored-modules = ["pycode_kg.pycodekg_thorough_analysis"]
+
 [tool.pycodekg]
 # Directories to include in the knowledge graph build and analysis.
 # When unset, all directories are indexed.

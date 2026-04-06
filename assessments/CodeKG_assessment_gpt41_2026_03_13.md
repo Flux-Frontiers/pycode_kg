@@ -1,9 +1,9 @@
 # PyCodeKG Agent Assessment - GPT-4.1
 
-**Author:** GPT-4.1  
-**Date:** 2026-03-13  
-**Repository:** https://github.com/Flux-Frontiers/pycode_kg.git  
-**Testing Platform:** 2026 M3 Max, MacBook Pro, 36GB RAM, 1TB SSD  
+**Author:** GPT-4.1
+**Date:** 2026-03-13
+**Repository:** https://github.com/Flux-Frontiers/pycode_kg.git
+**Testing Platform:** 2026 M3 Max, MacBook Pro, 36GB RAM, 1TB SSD
 
 ---
 
@@ -20,39 +20,39 @@ However, there are areas for improvement, particularly around performance optimi
 ## Tool-by-Tool Evaluation
 
 ### graph_stats()
-**Rating: ⭐⭐⭐⭐⭐ (5/5)**  
+**Rating: ⭐⭐⭐⭐⭐ (5/5)**
 Provides clear, concise statistics about the knowledge graph including node/edge counts, distribution by kind, and relation types. The output is well-structured and immediately useful for understanding the scale and composition of the indexed codebase.
 
 ### analyze_repo()
-**Rating: ⭐⭐⭐⭐⭐ (5/5)**  
+**Rating: ⭐⭐⭐⭐⭐ (5/5)**
 Delivers comprehensive architectural analysis covering metrics, hotspots, module architecture, call chains, public APIs, docstring coverage, structural importance ranking, and code quality issues. The nine-phase analysis pipeline provides deep insights that would be difficult to obtain manually.
 
 ### query_codebase()
-**Rating: ⭐⭐⭐⭐⭐ (5/5)**  
+**Rating: ⭐⭐⭐⭐⭐ (5/5)**
 Successfully handles both precise and abstract queries with relevant results. The hybrid semantic + structural approach effectively combines vector similarity with lexical matching. The hop heuristic and rerank modes provide flexibility for different use cases.
 
 ### pack_snippets()
-**Rating: ⭐⭐⭐⭐⭐ (5/5)**  
+**Rating: ⭐⭐⭐⭐⭐ (5/5)**
 Extracts source-grounded code snippets with excellent context preservation. The Markdown output is well-formatted and ready for LLM ingestion. The deduplication and line number handling work effectively.
 
 ### get_node()
-**Rating: ⭐⭐⭐⭐⭐ (5/5)**  
+**Rating: ⭐⭐⭐⭐⭐ (5/5)**
 Provides detailed node information including documentation, location, and optional edge context. The include_edges parameter is particularly useful for understanding relationships without additional queries.
 
 ### explain()
-**Rating: ⭐⭐⭐⭐⭐ (5/5)**  
+**Rating: ⭐⭐⭐⭐⭐ (5/5)**
 Offers natural language explanations of nodes with metadata, docstring, callers, and role assessment. The concise summaries are perfect for quick understanding without reading full source code.
 
 ### callers()
-**Rating: ⭐⭐⭐⭐⭐ (5/5)**  
+**Rating: ⭐⭐⭐⭐⭐ (5/5)**
 Effectively traces function usage through the call graph, including cross-module resolution via sym: stubs. The import-aware filtering handles ambiguous same-name targets well.
 
 ### snapshot_list() / snapshot_show() / snapshot_diff()
-**Rating: ⭐⭐⭐⭐⭐ (5/5)**  
+**Rating: ⭐⭐⭐⭐⭐ (5/5)**
 Provides temporal analysis capabilities showing codebase evolution over time. The metrics, deltas, and freshness indicators offer valuable insights into code changes and stability.
 
 ### query_ranked()
-**Rating: ⭐⭐⭐⭐⭐ (5/5)**  
+**Rating: ⭐⭐⭐⭐⭐ (5/5)**
 Enhances semantic search with structural importance ranking using CodeRank. The explainability components (semantic, centrality, proximity scores) provide transparency into result ordering.
 
 ---
