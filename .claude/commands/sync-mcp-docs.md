@@ -1,13 +1,13 @@
 # Sync MCP Documentation
 
-You are updating all CodeKG MCP documentation and provider instructions to reflect the
-current state of `src/code_kg/mcp_server.py`. Execute the following steps in order.
+You are updating all PyCodeKG MCP documentation and provider instructions to reflect the
+current state of `src/pycode_kg/mcp_server.py`. Execute the following steps in order.
 
 ---
 
 ## Step 0: Establish the Source of Truth
 
-Read `src/code_kg/mcp_server.py` and extract the **authoritative tool list**:
+Read `src/pycode_kg/mcp_server.py` and extract the **authoritative tool list**:
 
 1. Find every `@mcp.tool()` decorated function — these are the live MCP tools.
 2. For each tool, record:
@@ -78,7 +78,7 @@ Do NOT homogenize formats — each file has its own style.
 - **"Available Tools" table** (in the MCP section) — Each tool needs a row with correct
   signature and description. Add missing tools; update changed signatures.
 
-### 2b. `.claude/skills/codekg/SKILL.md`
+### 2b. `.claude/skills/pycodekg/SKILL.md`
 
 - **Frontmatter `description:` field** — The `using the graph_stats / ... MCP tools` list
   must include all tools by name (slash-separated).
@@ -87,17 +87,17 @@ Do NOT homogenize formats — each file has its own style.
 - **"### Typical session workflow"** code block — Update numbered steps to reflect the
   recommended tool sequence including any new tools.
 
-### 2c. `.claude/skills/codekg/references/CHEATSHEET.md`
+### 2c. `.claude/skills/pycodekg/references/CHEATSHEET.md`
 
 This is the portable cheatsheet for use in other repos. It mirrors `docs/CHEATSHEET.md`
-but uses generic examples (not code_kg-specific node IDs where possible).
+but uses generic examples (not pycode_kg-specific node IDs where possible).
 
 - Apply the same changes as `docs/CHEATSHEET.md`:
   - Header table N and rows
   - Missing tool sections (use compact style)
   - Section numbering
 
-### 2d. `.claude/skills/codekg/clinerules.md`
+### 2d. `.claude/skills/pycodekg/clinerules.md`
 
 This is a template for `.clinerules` in repos using Cline. It contains an "Available tools"
 bulleted list inside a code fence. Update:
@@ -143,9 +143,9 @@ If inconsistencies are found, fix them before proceeding.
 1. Stage all modified documentation files:
    ```bash
    git add docs/MCP.md docs/CHEATSHEET.md README.md \
-           .claude/skills/codekg/SKILL.md \
-           .claude/skills/codekg/references/CHEATSHEET.md \
-           .claude/skills/codekg/clinerules.md \
+           .claude/skills/pycodekg/SKILL.md \
+           .claude/skills/pycodekg/references/CHEATSHEET.md \
+           .claude/skills/pycodekg/clinerules.md \
            .vscode/copilot-instructions.md
    ```
    Add `CLAUDE.md` if it was modified.
@@ -160,9 +160,9 @@ If inconsistencies are found, fix them before proceeding.
    - docs/MCP.md: ...
    - docs/CHEATSHEET.md: ...
    - README.md: ...
-   - .claude/skills/codekg/SKILL.md: ...
-   - .claude/skills/codekg/references/CHEATSHEET.md: ...
-   - .claude/skills/codekg/clinerules.md: ...
+   - .claude/skills/pycodekg/SKILL.md: ...
+   - .claude/skills/pycodekg/references/CHEATSHEET.md: ...
+   - .claude/skills/pycodekg/clinerules.md: ...
    - .vscode/copilot-instructions.md: ...
 
    Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>

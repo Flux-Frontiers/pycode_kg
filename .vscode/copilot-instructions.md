@@ -1,33 +1,33 @@
-# GitHub Copilot Instructions for CodeKG
+# GitHub Copilot Instructions for PyCodeKG
 
 ## Available VS Code Tasks
 
-The following CodeKG workflow tasks are available via the VS Code command palette (**Cmd+Shift+P** → search task name):
+The following PyCodeKG workflow tasks are available via the VS Code command palette (**Cmd+Shift+P** → search task name):
 
 ### Knowledge Graph Tasks
-- **CodeKG: Rebuild** — Full rebuild with `--wipe` (both SQLite + LanceDB). Use after significant code changes or renames.
-- **CodeKG: Build SQLite Graph** — Build/update the SQLite knowledge graph (incremental).
-- **CodeKG: Build LanceDB Index** — Build/update the semantic vector index (incremental).
+- **PyCodeKG: Rebuild** — Full rebuild with `--wipe` (both SQLite + LanceDB). Use after significant code changes or renames.
+- **PyCodeKG: Build SQLite Graph** — Build/update the SQLite knowledge graph (incremental).
+- **PyCodeKG: Build LanceDB Index** — Build/update the semantic vector index (incremental).
 
 ### Query & Analysis Tasks
-- **CodeKG: Query (Interactive)** — Run an interactive semantic query over the graph.
-- **CodeKG: Generate Architecture** — Generate Markdown architecture description (saves to `architecture.md`).
-- **CodeKG: Run Thorough Analysis** — Run full codebase analysis (complexity, hotspots, dependencies).
+- **PyCodeKG: Query (Interactive)** — Run an interactive semantic query over the graph.
+- **PyCodeKG: Generate Architecture** — Generate Markdown architecture description (saves to `architecture.md`).
+- **PyCodeKG: Run Thorough Analysis** — Run full codebase analysis (complexity, hotspots, dependencies).
 
 ### Snapshot Tasks
-- **CodeKG: List Snapshots** — Show all captured temporal snapshots in reverse chronological order.
-- **CodeKG: Save Snapshot** — Capture current metrics and save as a timestamped snapshot.
+- **PyCodeKG: List Snapshots** — Show all captured temporal snapshots in reverse chronological order.
+- **PyCodeKG: Save Snapshot** — Capture current metrics and save as a timestamped snapshot.
 
 ## Invoking Tasks in Copilot Chat
 
 In Copilot chat, you can reference or ask to run these tasks:
-- "Run the **CodeKG: Rebuild** task"
-- "Execute **CodeKG: Query (Interactive)** and search for database layer"
-- "Generate architecture with the **CodeKG: Generate Architecture** task"
+- "Run the **PyCodeKG: Rebuild** task"
+- "Execute **PyCodeKG: Query (Interactive)** and search for database layer"
+- "Generate architecture with the **PyCodeKG: Generate Architecture** task"
 
 ## MCP Integration
 
-The repo is also configured with CodeKG MCP server in `.vscode/mcp.json`. You have access to:
+The repo is also configured with PyCodeKG MCP server in `.vscode/mcp.json`. You have access to:
 - `graph_stats()` — Get codebase metrics (node/edge counts by type)
 - `query_codebase(q, k=8, hop=1, max_nodes=25, min_score=0.0, max_per_module=0)` — Semantic + structural query with precision/diversity controls
 - `pack_snippets(q, k=8, hop=1, max_nodes=15, min_score=0.0, max_per_module=0)` — Source-grounded code snippets with context and precision controls

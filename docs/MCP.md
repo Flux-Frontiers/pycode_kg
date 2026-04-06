@@ -1,6 +1,6 @@
-# CodeKG MCP Installation Guide
+# PyCodeKG MCP Installation Guide
 
-**Integrating CodeKG with Claude Code and Claude Desktop**
+**Integrating PyCodeKG with Claude Code and Claude Desktop**
 
 *Author: Eric G. Suchanek, PhD*
 
@@ -8,7 +8,7 @@
 
 ## Overview
 
-CodeKG ships a built-in MCP server (`codekg mcp`) that exposes the full hybrid query and snippet-pack pipeline as structured tools consumable by any MCP-compatible AI agent — Claude Code, Claude Desktop, Cursor, Continue, or any custom agent that speaks the Model Context Protocol.
+PyCodeKG ships a built-in MCP server (`pycodekg mcp`) that exposes the full hybrid query and snippet-pack pipeline as structured tools consumable by any MCP-compatible AI agent — Claude Code, Claude Desktop, Cursor, Continue, or any custom agent that speaks the Model Context Protocol.
 
 Once configured, the agent gains ten tools:
 
@@ -31,19 +31,19 @@ Once configured, the agent gains ten tools:
 ## Quick Start (TL;DR)
 
 ```bash
-# 1. Install code-kg (MCP server is included in the standard install)
-poetry add 'code-kg @ git+https://github.com/Flux-Frontiers/code_kg.git'
+# 1. Install pycode-kg (MCP server is included in the standard install)
+poetry add 'pycode-kg @ git+https://github.com/Flux-Frontiers/pycode_kg.git'
 
 # 2. Build the knowledge graph
-codekg build-sqlite  --repo . --db .codekg/graph.sqlite
-codekg build-lancedb --sqlite .codekg/graph.sqlite
+pycodekg build-sqlite  --repo . --db .pycodekg/graph.sqlite
+pycodekg build-lancedb --sqlite .pycodekg/graph.sqlite
 
 # 3. Add per-repo config for your agent (see Section 4–6)
 #    • Claude Code + Kilo Code  → .mcp.json
 #    • GitHub Copilot           → .vscode/mcp.json
 #    • Claude Desktop           → claude_desktop_config.json (global)
 
-# 4. Restart your agent — the codekg tools are now active
+# 4. Restart your agent — the pycodekg tools are now active
 ```
 
 Or use the automated setup command inside Claude Code / Kilo Code:
@@ -56,10 +56,10 @@ Or use the automated setup command inside Claude Code / Kilo Code:
 
 ## Bootstrap: New Machine Setup
 
-On a **brand-new machine** the Claude skill doesn't exist yet, so Claude won't know how to help you set up CodeKG. Install the skill first with a single command — no clone required:
+On a **brand-new machine** the Claude skill doesn't exist yet, so Claude won't know how to help you set up PyCodeKG. Install the skill first with a single command — no clone required:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Flux-Frontiers/code_kg/main/scripts/install-skill.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Flux-Frontiers/pycode_kg/main/scripts/install-skill.sh | bash
 ```
 
 Or, if you already have the repo cloned:
@@ -68,7 +68,7 @@ Or, if you already have the repo cloned:
 bash scripts/install-skill.sh
 ```
 
-This installs `~/.claude/skills/codekg/` so that any Claude Code session (with `skills-copilot` running) will automatically have expert CodeKG knowledge available. Then proceed with the normal installation steps below.
+This installs `~/.claude/skills/pycodekg/` so that any Claude Code session (with `skills-copilot` running) will automatically have expert PyCodeKG knowledge available. Then proceed with the normal installation steps below.
 
 ---
 
@@ -81,7 +81,7 @@ This installs `~/.claude/skills/codekg/` so that any Claude Code session (with `
 5. [Configuring GitHub Copilot](#5-configuring-github-copilot)
 6. [Configuring Claude Desktop](#6-configuring-claude-desktop)
 7. [Configuring Cline](#7-configuring-cline)
-8. [Installing the CodeKG Skill](#8-installing-the-codekg-skill)
+8. [Installing the PyCodeKG Skill](#8-installing-the-pycodekg-skill)
 9. [Automated Setup with `/setup-mcp`](#9-automated-setup-with-setup-mcp)
 10. [Claude Copilot Integration](#10-claude-copilot-integration)
 11. [Available Tools Reference](#11-available-tools-reference)
@@ -99,10 +99,10 @@ In the target project's directory:
 
 ```bash
 # Standard install (MCP server included — no extra needed)
-poetry add 'code-kg @ git+https://github.com/Flux-Frontiers/code_kg.git'
+poetry add 'pycode-kg @ git+https://github.com/Flux-Frontiers/pycode_kg.git'
 
 # With 3D visualizer (optional)
-poetry add 'code-kg[viz3d] @ git+https://github.com/Flux-Frontiers/code_kg.git'
+poetry add 'pycode-kg[viz3d] @ git+https://github.com/Flux-Frontiers/pycode_kg.git'
 ```
 
 This adds the following to your `pyproject.toml`:
@@ -110,10 +110,10 @@ This adds the following to your `pyproject.toml`:
 ```toml
 [tool.poetry.dependencies]
 # Standard
-code-kg = {git = "https://github.com/Flux-Frontiers/code_kg.git"}
+pycode-kg = {git = "https://github.com/Flux-Frontiers/pycode_kg.git"}
 
 # With 3D visualizer
-code-kg = {git = "https://github.com/Flux-Frontiers/code_kg.git", extras = ["viz3d"]}
+pycode-kg = {git = "https://github.com/Flux-Frontiers/pycode_kg.git", extras = ["viz3d"]}
 ```
 
 Then run:
@@ -125,14 +125,14 @@ poetry lock && poetry install
 ### 1b. Pin to a specific commit
 
 ```toml
-code-kg = { git = "https://github.com/Flux-Frontiers/code_kg.git", rev = "66d565f" }
+pycode-kg = { git = "https://github.com/Flux-Frontiers/pycode_kg.git", rev = "66d565f" }
 ```
 
 ### 1c. Verify the install
 
 ```bash
 # Confirm the entry point is available
-poetry run which codekg
+poetry run which pycodekg
 
 # Confirm the mcp package is importable
 poetry run python -c "import mcp; print('mcp OK')"
@@ -146,47 +146,47 @@ The MCP server is **read-only**. Two artifacts must be built before starting the
 
 | Artifact | Built by | Contains |
 |---|---|---|
-| `.codekg/graph.sqlite` | `codekg build-sqlite` | AST-extracted nodes and edges |
-| `.codekg/lancedb/` | `codekg build-lancedb` | Sentence-transformer vector embeddings |
+| `.pycodekg/graph.sqlite` | `pycodekg build-sqlite` | AST-extracted nodes and edges |
+| `.pycodekg/lancedb/` | `pycodekg build-lancedb` | Sentence-transformer vector embeddings |
 
 ### Step 1 — Static analysis: repo → SQLite
 
 ```bash
-codekg build-sqlite \
+pycodekg build-sqlite \
   --repo /absolute/path/to/repo \
-  --db   /absolute/path/to/repo/.codekg/graph.sqlite
+  --db   /absolute/path/to/repo/.pycodekg/graph.sqlite
 ```
 
 Add `--wipe` to rebuild from scratch (safe to re-run):
 
 ```bash
-codekg build-sqlite --repo . --db .codekg/graph.sqlite --wipe
+pycodekg build-sqlite --repo . --db .pycodekg/graph.sqlite --wipe
 ```
 
-**Output:** `OK: nodes=<N> edges=<M> db=.codekg/graph.sqlite`
+**Output:** `OK: nodes=<N> edges=<M> db=.pycodekg/graph.sqlite`
 
 ### Step 2 — Semantic indexing: SQLite → LanceDB
 
 > **Note:** The flag is `--sqlite`, not `--db`.
 
 ```bash
-codekg build-lancedb \
-  --sqlite /absolute/path/to/repo/.codekg/graph.sqlite
+pycodekg build-lancedb \
+  --sqlite /absolute/path/to/repo/.pycodekg/graph.sqlite
 ```
 
 Add `--wipe` to rebuild the vector index:
 
 ```bash
-codekg build-lancedb --sqlite .codekg/graph.sqlite --wipe
+pycodekg build-lancedb --sqlite .pycodekg/graph.sqlite --wipe
 ```
 
-**Output:** `OK: indexed_rows=<V> dim=768 table=codekg_nodes lancedb_dir=.codekg/lancedb kinds=module,class,function,method`
+**Output:** `OK: indexed_rows=<V> dim=768 table=pycodekg_nodes lancedb_dir=.pycodekg/lancedb kinds=module,class,function,method`
 
 Both steps are idempotent. Re-run them whenever the codebase changes significantly.
 
 ### CLI flags reference
 
-**`codekg build-sqlite`**
+**`pycodekg build-sqlite`**
 
 | Flag | Required | Default | Description |
 |---|---|---|---|
@@ -194,13 +194,13 @@ Both steps are idempotent. Re-run them whenever the codebase changes significant
 | `--db` | ✓ | — | SQLite output path |
 | `--wipe` | | false | Delete existing graph first |
 
-**`codekg build-lancedb`**
+**`pycodekg build-lancedb`**
 
 | Flag | Required | Default | Description |
 |---|---|---|---|
 | `--sqlite` | ✓ | — | Path to the SQLite graph |
-| `--lancedb` | | `.codekg/lancedb` | LanceDB output directory |
-| `--table` | | `codekg_nodes` | LanceDB table name |
+| `--lancedb` | | `.pycodekg/lancedb` | LanceDB output directory |
+| `--table` | | `pycodekg_nodes` | LanceDB table name |
 | `--model` | | `BAAI/bge-small-en-v1.5` | Sentence-transformer model |
 | `--wipe` | | false | Delete existing vectors first |
 | `--kinds` | | `module,class,function,method` | Node kinds to embed |
@@ -215,14 +215,14 @@ Before configuring any agent, verify the full pipeline works end-to-end:
 ```bash
 # Check graph stats
 poetry run python -c "
-from code_kg import CodeKG
+from pycode_kg import PyCodeKG
 import json
-kg = CodeKG(repo_root='.', db_path='.codekg/graph.sqlite', lancedb_dir='.codekg/lancedb')
+kg = PyCodeKG(repo_root='.', db_path='.pycodekg/graph.sqlite', lancedb_dir='.pycodekg/lancedb')
 print(json.dumps(kg.stats(), indent=2))
 "
 
 # Run a sample query
-codekg query "module structure"
+pycodekg query "module structure"
 ```
 
 Expected output from `kg.stats()`:
@@ -233,7 +233,7 @@ Expected output from `kg.stats()`:
   "total_edges": 1087,
   "node_counts": { "module": 18, "class": 34, "function": 201, "method": 143 },
   "edge_counts": { "CONTAINS": 378, "CALLS": 512, "IMPORTS": 147, "INHERITS": 50 },
-  "db_path": ".codekg/graph.sqlite"
+  "db_path": ".pycodekg/graph.sqlite"
 }
 ```
 
@@ -243,28 +243,28 @@ If this succeeds, the MCP server will work correctly.
 
 ## 4. Configuring Claude Code / Kilo Code
 
-Both **Claude Code** and **Kilo Code** read MCP servers from **`.mcp.json`** in the project root — this is the canonical per-project MCP config for `codekg`.
+Both **Claude Code** and **Kilo Code** read MCP servers from **`.mcp.json`** in the project root — this is the canonical per-project MCP config for `pycodekg`.
 
 > **CRITICAL: Absolute Paths Required**
 >
 > The `.mcp.json` configuration must use absolute paths for all commands and arguments. Relative paths will not work because MCP clients do not inherit your shell's working directory. This applies to:
-> - `command` — The path to the `codekg-mcp` binary
+> - `command` — The path to the `pycodekg-mcp` binary
 > - `--repo` — Full path to the repository root
 > - `--db`, `--lancedb` — Full paths to graph and index locations
 >
 > Once `.mcp.json` is created, it should be frozen and not hand-edited. Use `/setup-mcp` to update it.
 
-> **Per-repo only.** Do NOT add `codekg` to any global settings file (Kilo Code's `mcp_settings.json` or Claude Code's `~/.claude/settings.json`). Global files are shared across all windows — hardcoded paths will point every window to the same repo.
+> **Per-repo only.** Do NOT add `pycodekg` to any global settings file (Kilo Code's `mcp_settings.json` or Claude Code's `~/.claude/settings.json`). Global files are shared across all windows — hardcoded paths will point every window to the same repo.
 
-> **Note:** If your project uses Claude Copilot, the copilot servers (`copilot-memory`, `skills-copilot`, `task-copilot`) live in `.claude/claude_code_config.json` — separate from `codekg`. See [Section 10](#10-claude-copilot-integration) for the full layout.
+> **Note:** If your project uses Claude Copilot, the copilot servers (`copilot-memory`, `skills-copilot`, `task-copilot`) live in `.claude/claude_code_config.json` — separate from `pycodekg`. See [Section 10](#10-claude-copilot-integration) for the full layout.
 
 ### 4a. Create or update `.mcp.json`
 
 ```json
 {
   "mcpServers": {
-    "codekg": {
-      "command": "codekg-mcp",
+    "pycodekg": {
+      "command": "pycodekg-mcp",
       "args": ["--repo", "/absolute/path/to/repo"]
     }
   }
@@ -273,18 +273,18 @@ Both **Claude Code** and **Kilo Code** read MCP servers from **`.mcp.json`** in 
 
 > **Always use absolute paths.** MCP clients do not inherit your shell's working directory.
 >
-> `--db` and `--lancedb` are optional — they default to `.codekg/graph.sqlite` and `.codekg/lancedb` relative to `--repo`.
+> `--db` and `--lancedb` are optional — they default to `.pycodekg/graph.sqlite` and `.pycodekg/lancedb` relative to `--repo`.
 
 ### 4b. Merging with an existing `.mcp.json`
 
-If you already have other MCP servers in `.mcp.json`, add `codekg` to the existing `mcpServers` object — do not overwrite other entries:
+If you already have other MCP servers in `.mcp.json`, add `pycodekg` to the existing `mcpServers` object — do not overwrite other entries:
 
 ```json
 {
   "mcpServers": {
     "other-server": { "...": "existing entry" },
-    "codekg": {
-      "command": "codekg-mcp",
+    "pycodekg": {
+      "command": "pycodekg-mcp",
       "args": ["--repo", "/absolute/path/to/repo"]
     }
   }
@@ -293,7 +293,7 @@ If you already have other MCP servers in `.mcp.json`, add `codekg` to the existi
 
 ### 4c. Activate
 
-Restart Claude Code / reload the Kilo Code MCP panel. The `codekg` server will appear in the MCP tools list.
+Restart Claude Code / reload the Kilo Code MCP panel. The `pycodekg` server will appear in the MCP tools list.
 
 ---
 
@@ -312,13 +312,13 @@ GitHub Copilot in VS Code reads MCP servers from `.vscode/mcp.json` in the **wor
 ```json
 {
   "servers": {
-    "codekg": {
+    "pycodekg": {
       "type": "stdio",
-      "command": "codekg",
+      "command": "pycodekg",
       "args": [
         "mcp",
         "--repo", "/absolute/path/to/repo",
-        "--db",   "/absolute/path/to/repo/.codekg/graph.sqlite"
+        "--db",   "/absolute/path/to/repo/.pycodekg/graph.sqlite"
       ],
       "env": {
         "POETRY_VIRTUALENVS_IN_PROJECT": "false"
@@ -330,7 +330,7 @@ GitHub Copilot in VS Code reads MCP servers from `.vscode/mcp.json` in the **wor
 
 ### 5b. Activate
 
-After saving, VS Code will display a prompt to **Trust** the MCP server — click Trust to activate it. The `codekg` tools will then be available in GitHub Copilot Chat.
+After saving, VS Code will display a prompt to **Trust** the MCP server — click Trust to activate it. The `pycodekg` tools will then be available in GitHub Copilot Chat.
 
 ---
 
@@ -348,7 +348,7 @@ poetry env info --path
 # → /Users/you/Library/Caches/pypoetry/virtualenvs/my-project-abc123-py3.11
 ```
 
-The `codekg` binary is at `<venv_path>/bin/codekg`.
+The `pycodekg` binary is at `<venv_path>/bin/pycodekg`.
 
 ### 6b. Edit `claude_desktop_config.json`
 
@@ -358,17 +358,17 @@ The `codekg` binary is at `<venv_path>/bin/codekg`.
 | Linux | `~/.config/Claude/claude_desktop_config.json` |
 | Windows | `%APPDATA%\Claude\claude_desktop_config.json` |
 
-Add the `codekg` entry:
+Add the `pycodekg` entry:
 
 ```json
 {
   "mcpServers": {
-    "codekg": {
-      "command": "/Users/you/Library/Caches/pypoetry/virtualenvs/my-project-abc123-py3.11/bin/codekg",
+    "pycodekg": {
+      "command": "/Users/you/Library/Caches/pypoetry/virtualenvs/my-project-abc123-py3.11/bin/pycodekg",
       "args": [
         "mcp",
         "--repo", "/absolute/path/to/repo",
-        "--db",   "/absolute/path/to/repo/.codekg/graph.sqlite"
+        "--db",   "/absolute/path/to/repo/.pycodekg/graph.sqlite"
       ]
     }
   }
@@ -377,7 +377,7 @@ Add the `codekg` entry:
 
 ### 6c. Activate
 
-Restart Claude Desktop. The `codekg` server will appear in the tool panel.
+Restart Claude Desktop. The `pycodekg` server will appear in the tool panel.
 
 ---
 
@@ -401,12 +401,12 @@ Add a repo-specific named entry:
 ```json
 {
   "mcpServers": {
-    "codekg-myproject": {
-      "command": "/path/to/venv/bin/codekg",
+    "pycodekg-myproject": {
+      "command": "/path/to/venv/bin/pycodekg",
       "args": [
         "mcp",
         "--repo", "/absolute/path/to/myproject",
-        "--db",   "/absolute/path/to/myproject/.codekg/graph.sqlite"
+        "--db",   "/absolute/path/to/myproject/.pycodekg/graph.sqlite"
       ]
     }
   }
@@ -417,42 +417,42 @@ Use the absolute venv binary path (from `poetry env info --path`) — Cline does
 
 ---
 
-## 8. Installing the CodeKG Skill
+## 8. Installing the PyCodeKG Skill
 
-The CodeKG skill gives AI agents expert knowledge about CodeKG installation and usage. It must be installed to the correct directory for each agent type.
+The PyCodeKG skill gives AI agents expert knowledge about PyCodeKG installation and usage. It must be installed to the correct directory for each agent type.
 
 | Agent | Skill directory |
 |---|---|
-| **Claude Code** | `~/.claude/skills/codekg/` (served by `skills-copilot` MCP server) |
-| **Kilo Code** | `~/.kilocode/skills/codekg/` |
-| **Other agents** | `~/.agents/skills/codekg/` |
+| **Claude Code** | `~/.claude/skills/pycodekg/` (served by `skills-copilot` MCP server) |
+| **Kilo Code** | `~/.kilocode/skills/pycodekg/` |
+| **Other agents** | `~/.agents/skills/pycodekg/` |
 
 ### Install to all locations at once (recommended)
 
 ```bash
-# From the code_kg repo root
+# From the pycode_kg repo root
 bash scripts/install-skill.sh
 
 # Or without cloning (one-liner)
-curl -fsSL https://raw.githubusercontent.com/Flux-Frontiers/code_kg/main/scripts/install-skill.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Flux-Frontiers/pycode_kg/main/scripts/install-skill.sh | bash
 ```
 
 The script installs `SKILL.md` and `references/installation.md` to all three skill directories and generates the appropriate MCP config files in the current project directory:
-- `.mcp.json` (Claude Code + Kilo Code — contains the `codekg` entry)
+- `.mcp.json` (Claude Code + Kilo Code — contains the `pycodekg` entry)
 - `.vscode/mcp.json` (GitHub Copilot)
 
 ### Manual install
 
 ```bash
 # Claude Code
-mkdir -p ~/.claude/skills/codekg/references
-cp .claude/skills/codekg/SKILL.md ~/.claude/skills/codekg/SKILL.md
-cp .claude/skills/codekg/references/installation.md ~/.claude/skills/codekg/references/installation.md
+mkdir -p ~/.claude/skills/pycodekg/references
+cp .claude/skills/pycodekg/SKILL.md ~/.claude/skills/pycodekg/SKILL.md
+cp .claude/skills/pycodekg/references/installation.md ~/.claude/skills/pycodekg/references/installation.md
 
 # Kilo Code
-mkdir -p ~/.kilocode/skills/codekg/references
-cp .claude/skills/codekg/SKILL.md ~/.kilocode/skills/codekg/SKILL.md
-cp .claude/skills/codekg/references/installation.md ~/.kilocode/skills/codekg/references/installation.md
+mkdir -p ~/.kilocode/skills/pycodekg/references
+cp .claude/skills/pycodekg/SKILL.md ~/.kilocode/skills/pycodekg/SKILL.md
+cp .claude/skills/pycodekg/references/installation.md ~/.kilocode/skills/pycodekg/references/installation.md
 ```
 
 After installing for Kilo Code, reload VS Code (`Cmd+Shift+P` → **Developer: Reload Window**) to pick up the new skill.
@@ -478,7 +478,7 @@ The command runs six steps automatically:
 | Step | Action |
 |---|---|
 | 0 | Resolves the target repository path and verifies Python files exist |
-| 1 | Verifies `codekg mcp` is installed; installs `code-kg` if missing |
+| 1 | Verifies `pycodekg mcp` is installed; installs `pycode-kg` if missing |
 | 2 | Builds the SQLite knowledge graph (asks before wiping existing data) |
 | 3 | Builds the LanceDB vector index (asks before wiping existing data) |
 | 4 | Smoke-tests the full query pipeline |
@@ -489,13 +489,13 @@ The command runs six steps automatically:
 
 ```
 ✓ Repository indexed:    /path/to/repo
-✓ SQLite graph:          /path/to/repo/.codekg/graph.sqlite  (412 nodes, 1087 edges)
-✓ LanceDB index:         /path/to/repo/.codekg/lancedb  (378 vectors)
+✓ SQLite graph:          /path/to/repo/.pycodekg/graph.sqlite  (412 nodes, 1087 edges)
+✓ LanceDB index:         /path/to/repo/.pycodekg/lancedb  (378 vectors)
 ✓ Smoke test:            passed
 ✓ Claude Code config:    /path/to/repo/.mcp.json
 ✓ Claude Desktop config: ~/Library/Application Support/Claude/claude_desktop_config.json
 
-Restart Claude Code / Claude Desktop to activate the codekg MCP server.
+Restart Claude Code / Claude Desktop to activate the pycodekg MCP server.
 
 Available tools once active:
   • graph_stats()                      — codebase size and shape
@@ -518,22 +518,22 @@ Suggested first query after restart:
 
 ## 10. Claude Copilot Integration
 
-If your project uses [Claude Copilot](https://github.com/Everyone-Needs-A-Copilot/claude-copilot), CodeKG integrates naturally with the agent framework.
+If your project uses [Claude Copilot](https://github.com/Everyone-Needs-A-Copilot/claude-copilot), PyCodeKG integrates naturally with the agent framework.
 
 ### Setting up Claude Copilot in a new project
 
-Claude Copilot provides the agent infrastructure (Memory Copilot, Task Copilot, Skills, Agents). To set it up alongside CodeKG:
+Claude Copilot provides the agent infrastructure (Memory Copilot, Task Copilot, Skills, Agents). To set it up alongside PyCodeKG:
 
 ```
 /setup-project          # Initialize Claude Copilot
-/setup-mcp              # Then set up CodeKG MCP
+/setup-mcp              # Then set up PyCodeKG MCP
 ```
 
 ### Project structure with both installed
 
 ```
 your-project/
-├── .mcp.json                    ← MCP server config (codekg — read by Claude Code + Kilo Code)
+├── .mcp.json                    ← MCP server config (pycodekg — read by Claude Code + Kilo Code)
 ├── .claude/
 │   ├── claude_code_config.json  ← Claude Code MCP config (copilot servers only)
 │   ├── settings.local.json      ← Claude Code settings
@@ -543,20 +543,20 @@ your-project/
 │   │   ├── continue.md          ← /continue command
 │   │   └── setup-mcp.md         ← /setup-mcp command
 │   └── skills/                  ← Local skills (empty until populated)
-├── .codekg/                     ← Knowledge graph + index (gitignored)
+├── .pycodekg/                     ← Knowledge graph + index (gitignored)
 │   ├── graph.sqlite
 │   └── lancedb/
 ```
 
 ### Recommended `.mcp.json`
 
-Contains `codekg` — read by both Claude Code and Kilo Code:
+Contains `pycodekg` — read by both Claude Code and Kilo Code:
 
 ```json
 {
   "mcpServers": {
-    "codekg": {
-      "command": "codekg-mcp",
+    "pycodekg": {
+      "command": "pycodekg-mcp",
       "args": ["--repo", "/absolute/path/to/your-project"]
     }
   }
@@ -597,9 +597,9 @@ Contains the Claude Copilot servers (Claude Code-specific — Kilo Code does not
 }
 ```
 
-### Using CodeKG tools within the Agent-First Protocol
+### Using PyCodeKG tools within the Agent-First Protocol
 
-When working under `/protocol`, agents can call CodeKG tools directly. The recommended workflow:
+When working under `/protocol`, agents can call PyCodeKG tools directly. The recommended workflow:
 
 ```
 1. Start session:
@@ -642,7 +642,7 @@ Return node and edge counts broken down by kind and relation.
   "edge_counts": {
     "CONTAINS": 378, "CALLS": 512, "IMPORTS": 147, "INHERITS": 50
   },
-  "db_path": ".codekg/graph.sqlite"
+  "db_path": ".pycodekg/graph.sqlite"
 }
 ```
 
@@ -759,11 +759,11 @@ Find all callers of a specific node by inverting a relation — fan-in analysis.
 
 ```json
 {
-  "node_id": "fn:src/code_kg/store.py:GraphStore.expand",
+  "node_id": "fn:src/pycode_kg/store.py:GraphStore.expand",
   "rel": "CALLS",
   "caller_count": 7,
   "callers": [
-    { "id": "m:src/code_kg/kg.py:CodeKG.query", "kind": "method", ... },
+    { "id": "m:src/pycode_kg/kg.py:PyCodeKG.query", "kind": "method", ... },
     ...
   ]
 }
@@ -783,7 +783,7 @@ Return a natural-language Markdown explanation of a single code node.
 
 | Parameter | Type | Description |
 |---|---|---|
-| `node_id` | `str` | Stable node ID, e.g. `fn:src/code_kg/store.py:GraphStore.expand` |
+| `node_id` | `str` | Stable node ID, e.g. `fn:src/pycode_kg/store.py:GraphStore.expand` |
 
 **Returns:** Markdown report with: kind and qualified name, module path and line range, full docstring, list of callers (top 10), list of callees, and a role assessment (high-value / utility / orphaned) based on call count.
 
@@ -832,7 +832,7 @@ Show full details of a specific codebase metrics snapshot.
 
 **Returns:** JSON object with full `SnapshotMetrics`, top complexity hotspots, and deltas vs. previous and baseline.
 
-Legacy note: if an older snapshot file does not contain persisted deltas, CodeKG backfills `vs_previous` and `vs_baseline` from manifest chronology at load time.
+Legacy note: if an older snapshot file does not contain persisted deltas, PyCodeKG backfills `vs_previous` and `vs_baseline` from manifest chronology at load time.
 
 ---
 
@@ -915,8 +915,8 @@ Higher `hop` values expand the result set geometrically. Use `max_nodes` in `pac
 When the codebase changes, rebuild both artifacts (safe to re-run, idempotent):
 
 ```bash
-codekg build-sqlite  --repo . --db .codekg/graph.sqlite --wipe
-codekg build-lancedb --sqlite .codekg/graph.sqlite --wipe
+pycodekg build-sqlite  --repo . --db .pycodekg/graph.sqlite --wipe
+pycodekg build-lancedb --sqlite .pycodekg/graph.sqlite --wipe
 ```
 
 The `.mcp.json` entry does not need to change after rebuilds — it points to the same file paths.
@@ -926,10 +926,10 @@ The `.mcp.json` entry does not need to change after rebuilds — it points to th
 Add this to `.gitignore` to avoid committing large binary artifacts:
 
 ```gitignore
-.codekg/
+.pycodekg/
 ```
 
-This ignores the SQLite graph and LanceDB vector index — both are transient artifacts. Snapshots in `.codekg/snapshots/` are tracked in git and committed atomically by the pre-commit hook.
+This ignores the SQLite graph and LanceDB vector index — both are transient artifacts. Snapshots in `.pycodekg/snapshots/` are tracked in git and committed atomically by the pre-commit hook.
 
 ---
 
@@ -937,16 +937,16 @@ This ignores the SQLite graph and LanceDB vector index — both are transient ar
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| `ERROR: 'mcp' package not found` | Package not installed correctly | `poetry add 'code-kg @ git+https://github.com/Flux-Frontiers/code_kg.git'` |
-| `WARNING: SQLite database not found` | Graph not built yet | Run `codekg build-sqlite` then `codekg build-lancedb` |
-| `codekg build-lancedb: error: the following arguments are required: --sqlite` | Wrong flag name | Use `--sqlite`, not `--db`, for the lancedb builder |
-| Empty results from `query_codebase` | LanceDB index missing or stale | Run `codekg build-lancedb --wipe` |
+| `ERROR: 'mcp' package not found` | Package not installed correctly | `poetry add 'pycode-kg @ git+https://github.com/Flux-Frontiers/pycode_kg.git'` |
+| `WARNING: SQLite database not found` | Graph not built yet | Run `pycodekg build-sqlite` then `pycodekg build-lancedb` |
+| `pycodekg build-lancedb: error: the following arguments are required: --sqlite` | Wrong flag name | Use `--sqlite`, not `--db`, for the lancedb builder |
+| Empty results from `query_codebase` | LanceDB index missing or stale | Run `pycodekg build-lancedb --wipe` |
 | Node IDs in results don't resolve with `get_node` | Graph rebuilt since last query | Rebuild both SQLite and LanceDB |
-| `RuntimeError: CodeKG not initialised` | Server called without `main()` | Always start via `codekg mcp` CLI |
-| Snippets show wrong line numbers | Source files changed since build | Rebuild with `codekg build-sqlite --wipe` |
+| `RuntimeError: PyCodeKG not initialised` | Server called without `main()` | Always start via `pycodekg mcp` CLI |
+| Snippets show wrong line numbers | Source files changed since build | Rebuild with `pycodekg build-sqlite --wipe` |
 | MCP server not appearing in Claude Code | `.mcp.json` not in project root, or paths are relative | Verify `.mcp.json` uses absolute paths: `command`, `--repo`, `--db`, `--lancedb` must all be fully qualified. Restart Claude Code. |
 | MCP server not appearing in Claude Desktop | Wrong binary path or paths are relative | Use `poetry env info --path` to find venv; all paths in config must be absolute (venv binary, `--repo`, `--db`, `--lancedb`). |
-| `codekg` command not found | Package not installed or venv not active | `poetry install` or use absolute venv path from `poetry env info --path` |
+| `pycodekg` command not found | Package not installed or venv not active | `poetry install` or use absolute venv path from `poetry env info --path` |
 | MCP config not being applied | `.mcp.json` or `.vscode/mcp.json` edited by hand | Use `/setup-mcp` to regenerate configs automatically with correct absolute paths. Manual edits may introduce typos or relative paths. |
 
 ---
@@ -956,9 +956,9 @@ This ignores the SQLite graph and LanceDB vector index — both are transient ar
 | Concern | Answer |
 |---|---|
 | What does the MCP server expose? | 11 tools: `graph_stats`, `query_codebase`, `pack_snippets`, `get_node`, `list_nodes`, `callers`, `explain`, `analyze_repo`, `snapshot_list`, `snapshot_show`, `snapshot_diff` |
-| What must exist before starting? | `.codekg/graph.sqlite` + `.codekg/lancedb/` directory |
-| How do I build those? | `codekg build-sqlite` then `codekg build-lancedb --sqlite ...` |
-| Is the server stateful? | Yes — one `CodeKG` instance per server process |
+| What must exist before starting? | `.pycodekg/graph.sqlite` + `.pycodekg/lancedb/` directory |
+| How do I build those? | `pycodekg build-sqlite` then `pycodekg build-lancedb --sqlite ...` |
+| Is the server stateful? | Yes — one `PyCodeKG` instance per server process |
 | Can it modify the graph? | No — strictly read-only |
 | What transport should I use? | `stdio` for Claude Code / Claude Desktop; `sse` for HTTP clients |
 | Which tool should I call first? | `graph_stats()` for orientation |

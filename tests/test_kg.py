@@ -1,8 +1,8 @@
 """
 test_kg.py
 
-Tests for CodeKG orchestrator and result types:
-  BuildStats, QueryResult, SnippetPack, CodeKG
+Tests for PyCodeKG orchestrator and result types:
+  BuildStats, QueryResult, SnippetPack, PyCodeKG
 """
 
 from __future__ import annotations
@@ -14,16 +14,16 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from code_kg.graph import CodeGraph
-from code_kg.index import Embedder, SeedHit, SemanticIndex
-from code_kg.kg import (
+from pycode_kg.graph import CodeGraph
+from pycode_kg.index import Embedder, SeedHit, SemanticIndex
+from pycode_kg.kg import (
     BuildStats,
-    CodeKG,
+    PyCodeKG,
     QueryResult,
     Snippet,
     SnippetPack,
 )
-from code_kg.module.types import (
+from pycode_kg.module.types import (
     compute_span,
     make_snippet,
     normalize_query_text,
@@ -33,7 +33,7 @@ from code_kg.module.types import (
     semantic_score_from_distance,
     spans_overlap,
 )
-from code_kg.store import GraphStore
+from pycode_kg.store import GraphStore
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -48,13 +48,13 @@ def _write_repo(tmp_path: Path, files: dict) -> Path:
     return tmp_path
 
 
-def _make_kg(tmp_path: Path, files: dict) -> CodeKG:
-    """Build a CodeKG (graph only, no LanceDB) from a synthetic repo."""
+def _make_kg(tmp_path: Path, files: dict) -> PyCodeKG:
+    """Build a PyCodeKG (graph only, no LanceDB) from a synthetic repo."""
     repo = tmp_path / "repo"
     _write_repo(repo, files)
-    kg = CodeKG(
+    kg = PyCodeKG(
         repo_root=repo,
-        db_path=tmp_path / "codekg.sqlite",
+        db_path=tmp_path / "pycodekg.sqlite",
         lancedb_dir=tmp_path / "lancedb",
     )
     kg.build_graph(wipe=True)
@@ -71,7 +71,7 @@ def test_buildstats_to_dict(tmp_path):
     s = kg.store.stats()
     bs = BuildStats(
         repo_root=str(tmp_path),
-        db_path=str(tmp_path / "codekg.sqlite"),
+        db_path=str(tmp_path / "pycodekg.sqlite"),
         total_nodes=s["total_nodes"],
         total_edges=s["total_edges"],
         node_counts=s["node_counts"],
@@ -88,7 +88,7 @@ def test_buildstats_str(tmp_path):
     s = kg.store.stats()
     bs = BuildStats(
         repo_root=str(tmp_path),
-        db_path=str(tmp_path / "codekg.sqlite"),
+        db_path=str(tmp_path / "pycodekg.sqlite"),
         total_nodes=s["total_nodes"],
         total_edges=s["total_edges"],
         node_counts=s["node_counts"],
@@ -103,17 +103,17 @@ def test_buildstats_str(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# CodeKG — build_graph
+# PyCodeKG — build_graph
 # ---------------------------------------------------------------------------
 
 
-def test_codekg_build_graph_returns_buildstats(tmp_path):
+def test_pycodekg_build_graph_returns_buildstats(tmp_path):
     kg = _make_kg(tmp_path, {"mod.py": "def foo(): pass\n"})
     assert isinstance(kg.store.stats(), dict)
     kg.close()
 
 
-def test_codekg_build_graph_populates_store(tmp_path):
+def test_pycodekg_build_graph_populates_store(tmp_path):
     kg = _make_kg(
         tmp_path,
         {"mod.py": "class Foo:\n    def run(self): pass\ndef bar(): pass\n"},
@@ -127,7 +127,7 @@ def test_codekg_build_graph_populates_store(tmp_path):
     kg.close()
 
 
-def test_codekg_build_graph_wipe(tmp_path):
+def test_pycodekg_build_graph_wipe(tmp_path):
     kg = _make_kg(tmp_path, {"mod.py": "def foo(): pass\n"})
     count1 = kg.store.stats()["total_nodes"]
     kg.build_graph(wipe=True)
@@ -137,23 +137,23 @@ def test_codekg_build_graph_wipe(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# CodeKG — layer accessors
+# PyCodeKG — layer accessors
 # ---------------------------------------------------------------------------
 
 
-def test_codekg_graph_property(tmp_path):
+def test_pycodekg_graph_property(tmp_path):
     kg = _make_kg(tmp_path, {"mod.py": "x = 1\n"})
     assert isinstance(kg.graph, CodeGraph)
     kg.close()
 
 
-def test_codekg_store_property(tmp_path):
+def test_pycodekg_store_property(tmp_path):
     kg = _make_kg(tmp_path, {"mod.py": "x = 1\n"})
     assert isinstance(kg.store, GraphStore)
     kg.close()
 
 
-def test_codekg_node_method(tmp_path):
+def test_pycodekg_node_method(tmp_path):
     kg = _make_kg(tmp_path, {"mod.py": "def foo(): pass\n"})
     fns = kg.store.query_nodes(kinds=["function"])
     assert fns
@@ -163,25 +163,25 @@ def test_codekg_node_method(tmp_path):
     kg.close()
 
 
-def test_codekg_stats(tmp_path):
+def test_pycodekg_stats(tmp_path):
     kg = _make_kg(tmp_path, {"mod.py": "def foo(): pass\n"})
     s = kg.stats()
     assert "total_nodes" in s
     kg.close()
 
 
-def test_codekg_context_manager(tmp_path):
+def test_pycodekg_context_manager(tmp_path):
     repo = tmp_path / "repo"
     _write_repo(repo, {"mod.py": "x = 1\n"})
-    with CodeKG(repo, tmp_path / "codekg.sqlite", tmp_path / "lancedb") as kg:
+    with PyCodeKG(repo, tmp_path / "pycodekg.sqlite", tmp_path / "lancedb") as kg:
         kg.build_graph(wipe=True)
         assert kg.stats()["total_nodes"] > 0
 
 
-def test_codekg_repr(tmp_path):
-    kg = CodeKG(tmp_path, tmp_path / "db.sqlite", tmp_path / "ldb")
+def test_pycodekg_repr(tmp_path):
+    kg = PyCodeKG(tmp_path, tmp_path / "db.sqlite", tmp_path / "ldb")
     r = repr(kg)
-    assert "CodeKG" in r
+    assert "PyCodeKG" in r
     assert "repo_root" in r
 
 
@@ -556,14 +556,14 @@ class _FakeEmbedder(Embedder):
 
 
 # ---------------------------------------------------------------------------
-# CodeKG — embedder property
+# PyCodeKG — embedder property
 # ---------------------------------------------------------------------------
 
 
-def test_codekg_embedder_property_lazy_init(tmp_path):
+def test_pycodekg_embedder_property_lazy_init(tmp_path):
     fake_emb = _FakeEmbedder()
-    with patch("code_kg.module.base.SentenceTransformerEmbedder", return_value=fake_emb):
-        kg = CodeKG(tmp_path, tmp_path / "db.sqlite", tmp_path / "ldb")
+    with patch("pycode_kg.module.base.SentenceTransformerEmbedder", return_value=fake_emb):
+        kg = PyCodeKG(tmp_path, tmp_path / "db.sqlite", tmp_path / "ldb")
         emb = kg.embedder
         assert emb is fake_emb
         # Second access must return the cached instance (no second construction)
@@ -571,12 +571,12 @@ def test_codekg_embedder_property_lazy_init(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# CodeKG — index property
+# PyCodeKG — index property
 # ---------------------------------------------------------------------------
 
 
-def test_codekg_index_property_lazy_init(tmp_path):
-    kg = CodeKG(tmp_path, tmp_path / "db.sqlite", tmp_path / "ldb")
+def test_pycodekg_index_property_lazy_init(tmp_path):
+    kg = PyCodeKG(tmp_path, tmp_path / "db.sqlite", tmp_path / "ldb")
     kg._embedder = _FakeEmbedder()  # skip real embedder init
 
     idx = kg.index
@@ -586,11 +586,11 @@ def test_codekg_index_property_lazy_init(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# CodeKG — build_index (mock SemanticIndex.build to skip real LanceDB)
+# PyCodeKG — build_index (mock SemanticIndex.build to skip real LanceDB)
 # ---------------------------------------------------------------------------
 
 
-def test_codekg_build_index(tmp_path):
+def test_pycodekg_build_index(tmp_path):
     kg = _make_kg(tmp_path, {"mod.py": "def foo(): pass\n"})
 
     mock_idx = MagicMock()
@@ -603,7 +603,7 @@ def test_codekg_build_index(tmp_path):
     kg.close()
 
 
-def test_codekg_build_index_wipe_flag(tmp_path):
+def test_pycodekg_build_index_wipe_flag(tmp_path):
     kg = _make_kg(tmp_path, {"mod.py": "def foo(): pass\n"})
 
     mock_idx = MagicMock()
@@ -616,14 +616,14 @@ def test_codekg_build_index_wipe_flag(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# CodeKG — build (full pipeline, LanceDB mocked)
+# PyCodeKG — build (full pipeline, LanceDB mocked)
 # ---------------------------------------------------------------------------
 
 
-def test_codekg_build(tmp_path):
+def test_pycodekg_build(tmp_path):
     repo = tmp_path / "repo"
     _write_repo(repo, {"mod.py": "def foo(): pass\n"})
-    kg = CodeKG(repo, tmp_path / "codekg.sqlite", tmp_path / "ldb")
+    kg = PyCodeKG(repo, tmp_path / "pycodekg.sqlite", tmp_path / "ldb")
 
     mock_idx = MagicMock()
     mock_idx.build.return_value = {"indexed_rows": 3, "dim": 384}
@@ -636,11 +636,11 @@ def test_codekg_build(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# CodeKG — query (real store, mocked index.search)
+# PyCodeKG — query (real store, mocked index.search)
 # ---------------------------------------------------------------------------
 
 
-def test_codekg_query_returns_query_result(tmp_path):
+def test_pycodekg_query_returns_query_result(tmp_path):
     kg = _make_kg(tmp_path, {"mod.py": "def foo(): pass\n"})
     fns = kg.store.query_nodes(kinds=["function"])
     assert fns
@@ -668,7 +668,7 @@ def test_codekg_query_returns_query_result(tmp_path):
     kg.close()
 
 
-def test_codekg_query_include_symbols_flag(tmp_path):
+def test_pycodekg_query_include_symbols_flag(tmp_path):
     kg = _make_kg(tmp_path, {"mod.py": "def foo(): pass\n"})
     fns = kg.store.query_nodes(kinds=["function"])
     fn_id = fns[0]["id"]
@@ -693,7 +693,7 @@ def test_codekg_query_include_symbols_flag(tmp_path):
     kg.close()
 
 
-def test_codekg_query_min_score_filters_seeds(tmp_path):
+def test_pycodekg_query_min_score_filters_seeds(tmp_path):
     kg = _make_kg(tmp_path, {"mod.py": "def foo(): pass\n"})
     fns = kg.store.query_nodes(kinds=["function"])
     fn_id = fns[0]["id"]
@@ -738,11 +738,11 @@ def testnormalize_query_text_identifier_separators():
 
 
 # ---------------------------------------------------------------------------
-# CodeKG — pack (real store + files, mocked index.search)
+# PyCodeKG — pack (real store + files, mocked index.search)
 # ---------------------------------------------------------------------------
 
 
-def test_codekg_pack_returns_snippet_pack(tmp_path):
+def test_pycodekg_pack_returns_snippet_pack(tmp_path):
     kg = _make_kg(tmp_path, {"mod.py": "def foo():\n    pass\n"})
     fns = kg.store.query_nodes(kinds=["function"])
     assert fns
@@ -790,7 +790,7 @@ def test_nested_function_nodes_have_line_metadata(tmp_path):
     kg.close()
 
 
-def test_codekg_pack_max_nodes_limit(tmp_path):
+def test_pycodekg_pack_max_nodes_limit(tmp_path):
     src = "\n".join(f"def fn{i}(): pass" for i in range(10))
     kg = _make_kg(tmp_path, {"mod.py": src})
     fns = kg.store.query_nodes(kinds=["function"])
@@ -816,7 +816,7 @@ def test_codekg_pack_max_nodes_limit(tmp_path):
     kg.close()
 
 
-def test_codekg_pack_max_per_module_limit(tmp_path):
+def test_pycodekg_pack_max_per_module_limit(tmp_path):
     kg = _make_kg(
         tmp_path,
         {

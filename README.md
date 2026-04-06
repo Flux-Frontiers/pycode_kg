@@ -1,28 +1,28 @@
 
 [![Python](https://img.shields.io/badge/python-3.12%20%7C%203.13-blue.svg)](https://www.python.org/)
 [![License: Elastic-2.0](https://img.shields.io/badge/License-Elastic%202.0-blue.svg)](https://www.elastic.co/licensing/elastic-license)
-[![Version](https://img.shields.io/badge/version-0.11.0-blue.svg)](https://github.com/Flux-Frontiers/code_kg/releases)
-[![CI](https://github.com/Flux-Frontiers/code_kg/actions/workflows/ci.yml/badge.svg)](https://github.com/Flux-Frontiers/code_kg/actions/workflows/ci.yml)
+[![Version](https://img.shields.io/badge/version-0.11.0-blue.svg)](https://github.com/Flux-Frontiers/pycode_kg/releases)
+[![CI](https://github.com/Flux-Frontiers/pycode_kg/actions/workflows/ci.yml/badge.svg)](https://github.com/Flux-Frontiers/pycode_kg/actions/workflows/ci.yml)
 [![Poetry](https://img.shields.io/endpoint?url=https://python-poetry.org/badge/v0.json)](https://python-poetry.org/)
 
 <p align="center">
-  <img src="assets/logo-md-256x256.png" alt="CodeKG logo" width="256"/>
+  <img src="assets/logo-md-256x256.png" alt="PyCodeKG logo" width="256"/>
 </p>
 
-**CodeKG** — A Deterministic Knowledge Graph for Python Codebases
+**PyCodeKG** — A Deterministic Knowledge Graph for Python Codebases
 with Semantic Indexing and Source-Grounded Snippet Packing
 
 *Author: Eric G. Suchanek, PhD*
 
 *Flux-Frontiers, Liberty TWP, OH*
 
-[Technical Paper (PDF)](article/code_kg.pdf)
+[Technical Paper (PDF)](article/pycode_kg.pdf)
 
 ---
 
 ## Overview
 
-CodeKG constructs a **deterministic, explainable knowledge graph** from a Python codebase using static analysis. The graph captures structural relationships — definitions, calls, imports, and inheritance — directly from the Python AST, stores them in SQLite, and augments retrieval with vector embeddings via LanceDB.
+PyCodeKG constructs a **deterministic, explainable knowledge graph** from a Python codebase using static analysis. The graph captures structural relationships — definitions, calls, imports, and inheritance — directly from the Python AST, stores them in SQLite, and augments retrieval with vector embeddings via LanceDB.
 
 Structure is treated as **ground truth**; semantic search is strictly an acceleration layer. The result is a searchable, auditable representation of a codebase that supports precise navigation, contextual snippet extraction, and downstream reasoning without hallucination — making it an ideal retrieval engine for LLMs and a practical foundation for **Knowledge-Graph RAG (KRAG)**, in contrast to embedding-only approaches such as Amplify and probabilistic graph methods such as Microsoft GraphRAG.
 
@@ -43,33 +43,33 @@ Structure is treated as **ground truth**; semantic search is strictly an acceler
 
 ## Contribution Checklist
 
-When changing MCP tools in `src/code_kg/mcp_server.py` (signature, params, defaults, or behavior), update all three in the same commit:
+When changing MCP tools in `src/pycode_kg/mcp_server.py` (signature, params, defaults, or behavior), update all three in the same commit:
 
-- Module docstring `Tools` list at the top of `src/code_kg/mcp_server.py`
-- `mcp = FastMCP(..., instructions=(...))` tool descriptions in `src/code_kg/mcp_server.py`
+- Module docstring `Tools` list at the top of `src/pycode_kg/mcp_server.py`
+- `mcp = FastMCP(..., instructions=(...))` tool descriptions in `src/pycode_kg/mcp_server.py`
 - The runtime tool implementation and `:param:` docstrings
 
 ---
 
 ## Quick Start
 
-The fastest way to integrate CodeKG into any Python repository — run the one-line installer from within the repo you want to index:
+The fastest way to integrate PyCodeKG into any Python repository — run the one-line installer from within the repo you want to index:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Flux-Frontiers/code_kg/main/scripts/install-skill.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Flux-Frontiers/pycode_kg/main/scripts/install-skill.sh | bash
 ```
 
 The installer sets up the full **AI integration layer** end-to-end:
 
 1. Installs `SKILL.md` reference files for Claude Code, Kilo Code, and other agents
-2. Installs Claude Code slash commands (`/codekg`, `/setup-mcp`) to `~/.claude/commands/`
-3. Installs the `/codekg` slash command into the target repo's `.claude/commands/` for Cline
-4. Installs the `code-kg` package if not already present — prefers the latest GitHub release wheel, falls back to GitHub source
-5. Builds the SQLite knowledge graph (`.codekg/graph.sqlite`) and LanceDB semantic index
+2. Installs Claude Code slash commands (`/pycodekg`, `/setup-mcp`) to `~/.claude/commands/`
+3. Installs the `/pycodekg` slash command into the target repo's `.claude/commands/` for Cline
+4. Installs the `pycode-kg` package if not already present — prefers the latest GitHub release wheel, falls back to GitHub source
+5. Builds the SQLite knowledge graph (`.pycodekg/graph.sqlite`) and LanceDB semantic index
 6. Writes MCP configuration for each provider:
    - `.mcp.json` — Claude Code and Kilo Code (per-repo)
    - `.vscode/mcp.json` — GitHub Copilot (per-repo)
-   - `~/Library/Application Support/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json` — Cline (global, keyed as `codekg-<repo-name>`)
+   - `~/Library/Application Support/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json` — Cline (global, keyed as `pycodekg-<repo-name>`)
 
 By default all providers are configured. Pass `--providers` to target specific ones, or `--dry-run` to preview without making changes:
 
@@ -84,7 +84,7 @@ curl -fsSL .../install-skill.sh | bash -s -- --providers claude,copilot
 curl -fsSL .../install-skill.sh | bash -s -- --dry-run
 ```
 
-After the script completes, the `codekg` CLI commands are immediately available in your terminal. To activate the MCP servers in your AI coding agents, restart each one:
+After the script completes, the `pycodekg` CLI commands are immediately available in your terminal. To activate the MCP servers in your AI coding agents, restart each one:
 
 | Agent | How to restart |
 |-------|---------------|
@@ -102,38 +102,38 @@ After the script completes, the `codekg` CLI commands are immediately available 
 
 ```bash
 # Index a repository (SQLite + LanceDB in one step)
-codekg build --repo /path/to/your/repo
+pycodekg build --repo /path/to/your/repo
 
 # Natural-language query — returns ranked nodes
-codekg query "authentication flow"
+pycodekg query "authentication flow"
 
 # Source-grounded snippet pack — paste straight into an LLM prompt
-codekg pack "database connection setup" --format md --out context.md
+pycodekg pack "database connection setup" --format md --out context.md
 
 # Find all callers of a function by node ID
-codekg query "GraphStore.callers_of"   # find the node ID first
+pycodekg query "GraphStore.callers_of"   # find the node ID first
 # then:
-# codekg callers fn:store:GraphStore.callers_of
+# pycodekg callers fn:store:GraphStore.callers_of
 
 # Get a natural-language explanation of a code node by ID
-codekg explain "fn:src/code_kg/store.py:GraphStore.expand"
+pycodekg explain "fn:src/pycode_kg/store.py:GraphStore.expand"
 ```
 
 ### Analyze a codebase
 
 ```bash
 # Run the full architectural analysis (Phase 1–9, including docstring coverage)
-codekg analyze /path/to/your/repo
+pycodekg analyze /path/to/your/repo
 
 # Quiet mode for CI — no Rich table, exits 1 on issues
-codekg analyze /path/to/your/repo --quiet
+pycodekg analyze /path/to/your/repo --quiet
 ```
 
 ### Pre-download the embedding model (offline / CI)
 
 ```bash
-# Cache BAAI/bge-small-en-v1.5 into .codekg/models/ before first use
-codekg-download-model --repo .
+# Cache BAAI/bge-small-en-v1.5 into .pycodekg/models/ before first use
+pycodekg-download-model --repo .
 ```
 
 ### Use via MCP in Claude Code / Cline
@@ -156,9 +156,9 @@ snapshot_diff("<key_a>", "<key_b>")  # compare two snapshots by key
 ### Python API
 
 ```python
-from code_kg import CodeKG
+from pycode_kg import PyCodeKG
 
-kg = CodeKG(repo_root="/path/to/repo")
+kg = PyCodeKG(repo_root="/path/to/repo")
 stats = kg.build(wipe=True)
 
 result = kg.query("database connection setup", k=8, hop=1)
@@ -179,31 +179,31 @@ pack.save("context.md")
 
 ```bash
 # Core install (SQLite + LanceDB + MCP server)
-pip install 'code-kg @ git+https://github.com/Flux-Frontiers/code_kg.git'
+pip install 'pycode-kg @ git+https://github.com/Flux-Frontiers/pycode_kg.git'
 
 # With Streamlit web visualizer (adds Streamlit, pyvis, plotly)
-pip install 'code-kg[viz] @ git+https://github.com/Flux-Frontiers/code_kg.git'
+pip install 'pycode-kg[viz] @ git+https://github.com/Flux-Frontiers/pycode_kg.git'
 
 # With 3D visualizer extras (adds PyVista, PyQt5, etc. — heavy dependencies)
-pip install 'code-kg[viz3d] @ git+https://github.com/Flux-Frontiers/code_kg.git'
+pip install 'pycode-kg[viz3d] @ git+https://github.com/Flux-Frontiers/pycode_kg.git'
 
 # With both visualizers
-pip install 'code-kg[viz,viz3d] @ git+https://github.com/Flux-Frontiers/code_kg.git'
+pip install 'pycode-kg[viz,viz3d] @ git+https://github.com/Flux-Frontiers/pycode_kg.git'
 ```
 
 ### Existing Poetry project
 
-Add `code-kg` as a dependency from GitHub:
+Add `pycode-kg` as a dependency from GitHub:
 
 ```bash
 # Core (MCP server + graph engine, no visualizer)
-poetry add 'code-kg @ git+https://github.com/Flux-Frontiers/code_kg.git'
+poetry add 'pycode-kg @ git+https://github.com/Flux-Frontiers/pycode_kg.git'
 
 # With Streamlit web visualizer (adds Streamlit, pyvis, plotly)
-poetry add 'code-kg[viz] @ git+https://github.com/Flux-Frontiers/code_kg.git'
+poetry add 'pycode-kg[viz] @ git+https://github.com/Flux-Frontiers/pycode_kg.git'
 
 # With optional viz3d extras (for 3D visualizer — does NOT auto-install in CI)
-poetry add 'code-kg[viz3d] @ git+https://github.com/Flux-Frontiers/code_kg.git'
+poetry add 'pycode-kg[viz3d] @ git+https://github.com/Flux-Frontiers/pycode_kg.git'
 ```
 
 Or declare it directly in your `pyproject.toml`:
@@ -211,116 +211,116 @@ Or declare it directly in your `pyproject.toml`:
 ```toml
 [tool.poetry.dependencies]
 # Core (no visualizer)
-code-kg = {git = "https://github.com/Flux-Frontiers/code_kg.git"}
+pycode-kg = {git = "https://github.com/Flux-Frontiers/pycode_kg.git"}
 
 # With Streamlit visualizer
-code-kg = {git = "https://github.com/Flux-Frontiers/code_kg.git", extras = ["viz"]}
+pycode-kg = {git = "https://github.com/Flux-Frontiers/pycode_kg.git", extras = ["viz"]}
 
 # With 3D visualizer
-code-kg = {git = "https://github.com/Flux-Frontiers/code_kg.git", extras = ["viz3d"]}
+pycode-kg = {git = "https://github.com/Flux-Frontiers/pycode_kg.git", extras = ["viz3d"]}
 ```
 
-> **Note for CodeKG developers:** When working on CodeKG itself, use `poetry install --with dev` to install the full dev environment (includes doc-kg, ftree-kg, agent-kg). Add `-E viz` or `-E viz3d` for the visualizer extras. The `extras` mechanism above is for *consumers* of the package; the `--with` / `-E` flags are for local development only.
+> **Note for PyCodeKG developers:** When working on PyCodeKG itself, use `poetry install --with dev` to install the full dev environment (includes doc-kg, ftree-kg, agent-kg). Add `-E viz` or `-E viz3d` for the visualizer extras. The `extras` mechanism above is for *consumers* of the package; the `--with` / `-E` flags are for local development only.
 
 All CLI entry points are available immediately — no changes to your own `pyproject.toml` required:
 
 ```bash
-# --db and --lancedb default to .codekg/ — flags are optional
-codekg build-sqlite  --repo .
-codekg build-lancedb --repo .
-codekg mcp           --repo .
+# --db and --lancedb default to .pycodekg/ — flags are optional
+pycodekg build-sqlite  --repo .
+pycodekg build-lancedb --repo .
+pycodekg mcp           --repo .
 ```
 
-Each subcommand also ships as a dedicated `codekg-<name>` script installed directly into the venv — no `poetry run` needed, useful for shell scripts, `Makefile` targets, and CI pipelines:
+Each subcommand also ships as a dedicated `pycodekg-<name>` script installed directly into the venv — no `poetry run` needed, useful for shell scripts, `Makefile` targets, and CI pipelines:
 
 ```bash
-codekg-build-sqlite  --repo .
-codekg-build-lancedb --repo .
-codekg-build         --repo .   # SQLite + LanceDB in one step
-codekg-query         "database connection setup"
-codekg-pack          "authentication flow"
-codekg-analyze       .
-codekg-architecture  .
-codekg-viz
-codekg-viz3d
-codekg-viz-timeline
-codekg-mcp           --repo .
-codekg-download-model --repo .
-codekg-install-hooks --repo .
+pycodekg-build-sqlite  --repo .
+pycodekg-build-lancedb --repo .
+pycodekg-build         --repo .   # SQLite + LanceDB in one step
+pycodekg-query         "database connection setup"
+pycodekg-pack          "authentication flow"
+pycodekg-analyze       .
+pycodekg-architecture  .
+pycodekg-viz
+pycodekg-viz3d
+pycodekg-viz-timeline
+pycodekg-mcp           --repo .
+pycodekg-download-model --repo .
+pycodekg-install-hooks --repo .
 ```
 
 ### For Downstream Projects
 
-If your project depends on CodeKG (e.g., `meta_kg`), **do not** redefine the CLI entrypoints in your own `pyproject.toml`. CodeKG's tools are already installed globally and ready to use.
+If your project depends on PyCodeKG (e.g., `meta_kg`), **do not** redefine the CLI entrypoints in your own `pyproject.toml`. PyCodeKG's tools are already installed globally and ready to use.
 
-**✅ Correct approach: Use CodeKG's commands directly**
+**✅ Correct approach: Use PyCodeKG's commands directly**
 
 ```bash
-poetry run codekg build-sqlite --repo /path/to/repo
-poetry run codekg build-lancedb --repo /path/to/repo
-poetry run codekg query "search term"
+poetry run pycodekg build-sqlite --repo /path/to/repo
+poetry run pycodekg build-lancedb --repo /path/to/repo
+poetry run pycodekg query "search term"
 ```
 
-**✅ Also correct: Forward to CodeKG's modules via CLI**
+**✅ Also correct: Forward to PyCodeKG's modules via CLI**
 
-If you must create aliases in your own `pyproject.toml`, point directly to CodeKG's CLI module functions:
+If you must create aliases in your own `pyproject.toml`, point directly to PyCodeKG's CLI module functions:
 
 ```toml
 [tool.poetry.scripts]
-my-build-sqlite  = "code_kg.cli.cmd_build:build_sqlite"  # ✅ Correct
-my-build-lancedb = "code_kg.cli.cmd_build:build_lancedb"  # ✅ Correct
-my-mcp           = "code_kg.mcp_server:main"              # ✅ Correct
+my-build-sqlite  = "pycode_kg.cli.cmd_build:build_sqlite"  # ✅ Correct
+my-build-lancedb = "pycode_kg.cli.cmd_build:build_lancedb"  # ✅ Correct
+my-mcp           = "pycode_kg.mcp_server:main"              # ✅ Correct
 ```
 
 **❌ Incorrect: Avoid legacy module names**
 
 ```toml
 [tool.poetry.scripts]
-my-build-sqlite = "code_kg.build_codekg_sqlite:main"  # ❌ Wrong (legacy)
+my-build-sqlite = "pycode_kg.build_pycodekg_sqlite:main"  # ❌ Wrong (legacy)
 ```
 
-The legacy module names (`build_codekg_sqlite`, `build_codekg_lancedb`) exist only for backward compatibility as re-export stubs. Always import from `code_kg.cli.cmd_build` instead.
+The legacy module names (`build_pycodekg_sqlite`, `build_pycodekg_lancedb`) exist only for backward compatibility as re-export stubs. Always import from `pycode_kg.cli.cmd_build` instead.
 
 ---
 
 ## CLI Usage
 
-Once installed, all commands are available via the unified `codekg` CLI:
+Once installed, all commands are available via the unified `pycodekg` CLI:
 
 ```bash
-codekg --help
+pycodekg --help
 ```
 
-Every subcommand also has a dedicated `codekg-<name>` script entry point. Both forms are fully equivalent:
+Every subcommand also has a dedicated `pycodekg-<name>` script entry point. Both forms are fully equivalent:
 
 ```bash
-codekg build-sqlite --repo .
+pycodekg build-sqlite --repo .
 # same as
-codekg-build-sqlite --repo .
+pycodekg-build-sqlite --repo .
 ```
 
 | Script alias | Equivalent subcommand |
 |---|---|
-| `codekg-build-sqlite` | `codekg build-sqlite` |
-| `codekg-build-lancedb` | `codekg build-lancedb` |
-| `codekg-build` | `codekg build` |
-| `codekg-query` | `codekg query` |
-| `codekg-pack` | `codekg pack` |
-| `codekg-analyze` | `codekg analyze` |
-| `codekg-architecture` | `codekg architecture` |
-| `codekg-viz` | `codekg viz` |
-| `codekg-viz3d` | `codekg viz3d` |
-| `codekg-viz-timeline` | `codekg viz-timeline` |
-| `codekg-mcp` | `codekg mcp` |
-| `codekg-download-model` | `codekg download-model` |
-| `codekg-install-hooks` | `codekg install-hooks` |
+| `pycodekg-build-sqlite` | `pycodekg build-sqlite` |
+| `pycodekg-build-lancedb` | `pycodekg build-lancedb` |
+| `pycodekg-build` | `pycodekg build` |
+| `pycodekg-query` | `pycodekg query` |
+| `pycodekg-pack` | `pycodekg pack` |
+| `pycodekg-analyze` | `pycodekg analyze` |
+| `pycodekg-architecture` | `pycodekg architecture` |
+| `pycodekg-viz` | `pycodekg viz` |
+| `pycodekg-viz3d` | `pycodekg viz3d` |
+| `pycodekg-viz-timeline` | `pycodekg viz-timeline` |
+| `pycodekg-mcp` | `pycodekg mcp` |
+| `pycodekg-download-model` | `pycodekg download-model` |
+| `pycodekg-install-hooks` | `pycodekg install-hooks` |
 
 ### Quick Start: Build Both Databases (Recommended)
 
 **The easiest way** — build both the SQLite graph and LanceDB semantic index in one step:
 
 ```bash
-codekg build --repo /path/to/repo [--wipe]
+pycodekg build --repo /path/to/repo [--wipe]
 ```
 
 This combines steps 1 and 2 below and is the recommended workflow for most users.
@@ -329,14 +329,14 @@ This combines steps 1 and 2 below and is the recommended workflow for most users
 
 ### Including Only Specific Directories
 
-By default, CodeKG indexes all Python files in your repository. You can restrict indexing to specific top-level directories using:
+By default, PyCodeKG indexes all Python files in your repository. You can restrict indexing to specific top-level directories using:
 
 **Option 1: Configuration in `pyproject.toml`** (persistent, recommended)
 
 Add to your project's `pyproject.toml`:
 
 ```toml
-[tool.codekg]
+[tool.pycodekg]
 include = ["src", "lib"]
 ```
 
@@ -344,17 +344,17 @@ include = ["src", "lib"]
 
 ```bash
 # Include only one directory
-codekg build --repo . --include-dir src
+pycodekg build --repo . --include-dir src
 
 # Include multiple directories (use flag multiple times)
-codekg build --repo . --include-dir src --include-dir lib
+pycodekg build --repo . --include-dir src --include-dir lib
 
 # Also works with build-sqlite and analyze
-codekg build-sqlite --repo . --include-dir src
-codekg analyze . --include-dir src
+pycodekg build-sqlite --repo . --include-dir src
+pycodekg analyze . --include-dir src
 ```
 
-When no `include` is configured, all directories are indexed (excluding the built-in skip list: `.git`, `.venv`, `__pycache__`, `.codekg`, etc.).
+When no `include` is configured, all directories are indexed (excluding the built-in skip list: `.git`, `.venv`, `__pycache__`, `.pycodekg`, etc.).
 
 **Use cases:**
 - `src/` — index only production source, skipping tests and scripts
@@ -370,20 +370,20 @@ For granular control or to rebuild only a specific component, use the individual
 ### 1. Build the SQLite knowledge graph
 
 ```bash
-codekg build-sqlite --repo /path/to/repo --db .codekg/graph.sqlite [--wipe]
+pycodekg build-sqlite --repo /path/to/repo --db .pycodekg/graph.sqlite [--wipe]
 ```
 
 ### 2. Build the LanceDB semantic index
 
 ```bash
-codekg build-lancedb --sqlite .codekg/graph.sqlite [--model BAAI/bge-small-en-v1.5] [--wipe]
+pycodekg build-lancedb --sqlite .pycodekg/graph.sqlite [--model BAAI/bge-small-en-v1.5] [--wipe]
 ```
 
 ### 3. Run a hybrid query
 
 ```bash
-codekg query \
-  --sqlite .codekg/graph.sqlite \
+pycodekg query \
+  --sqlite .pycodekg/graph.sqlite \
   --q "database connection setup" \
   --k 8 \
   --hop 1
@@ -392,9 +392,9 @@ codekg query \
 ### 4. Generate a snippet pack
 
 ```bash
-codekg pack \
+pycodekg pack \
   --repo-root /path/to/repo \
-  --sqlite .codekg/graph.sqlite \
+  --sqlite .pycodekg/graph.sqlite \
   --q "configuration loading" \
   --k 8 \
   --hop 1 \
@@ -418,31 +418,31 @@ codekg pack \
 ### 5. Launch the Streamlit visualizer
 
 ```bash
-codekg viz [--db .codekg/graph.sqlite] [--port 8500]
+pycodekg viz [--db .pycodekg/graph.sqlite] [--port 8500]
 ```
 
 ### 6. Start the MCP server
 
 ```bash
-codekg mcp --repo /path/to/repo
+pycodekg mcp --repo /path/to/repo
 ```
 
 ### 7. Run a thorough codebase analysis
 
 ```bash
-codekg analyze /path/to/repo
+pycodekg analyze /path/to/repo
 ```
 
 ---
 
 ## Streamlit Web Application
 
-CodeKG ships an interactive knowledge-graph explorer built with Streamlit and pyvis:
+PyCodeKG ships an interactive knowledge-graph explorer built with Streamlit and pyvis:
 
-> **Requires the `viz` extra:** `pip install 'code-kg[viz]'` or `poetry install -E viz`
+> **Requires the `viz` extra:** `pip install 'pycode-kg[viz]'` or `poetry install -E viz`
 
 ```bash
-codekg viz
+pycodekg viz
 ```
 
 The app provides three tabs:
@@ -459,12 +459,12 @@ The sidebar provides one-click **Build Graph**, **Build Index**, and **Build All
 
 ## 3D Knowledge Graph Visualizer
 
-CodeKG ships an interactive 3D graph explorer built with **PyVista** and **PyQt5** (actively being developed):
+PyCodeKG ships an interactive 3D graph explorer built with **PyVista** and **PyQt5** (actively being developed):
 
 > ⚠️ **Active Development:** The Allium layout is stable and recommended. The LayerCake layout is undergoing refinement for better hierarchical clarity and is subject to change.
 
 ```bash
-codekg viz3d [--db .codekg/graph.sqlite] [--layout allium|cake]
+pycodekg viz3d [--db .pycodekg/graph.sqlite] [--layout allium|cake]
 ```
 
 Explore the knowledge graph in stunning 3D with two layout strategies:
@@ -486,28 +486,28 @@ Explore the knowledge graph in stunning 3D with two layout strategies:
 
 ```bash
 # Interactive 3D graph with Allium layout (default)
-codekg viz3d
+pycodekg viz3d
 
 # Layer-cake view showing only calls and inheritance
-codekg viz3d --layout cake --rels CALLS INHERITS
+pycodekg viz3d --layout cake --rels CALLS INHERITS
 
 # Export to HTML (no window)
-codekg viz3d --export-html my_graph.html
+pycodekg viz3d --export-html my_graph.html
 ```
 
 ---
 
 ## MCP Server
 
-CodeKG ships a built-in **Model Context Protocol (MCP) server** that exposes the full query pipeline as structured tools for AI agents — Claude Code, Kilo Code, GitHub Copilot, Claude Desktop, Cursor, Continue, or any custom agent.
+PyCodeKG ships a built-in **Model Context Protocol (MCP) server** that exposes the full query pipeline as structured tools for AI agents — Claude Code, Kilo Code, GitHub Copilot, Claude Desktop, Cursor, Continue, or any custom agent.
 
 ### Prerequisites
 
 Build the knowledge graph first (the MCP server is read-only):
 
 ```bash
-codekg build-sqlite  --repo /path/to/repo
-codekg build-lancedb --repo /path/to/repo
+pycodekg build-sqlite  --repo /path/to/repo
+pycodekg build-lancedb --repo /path/to/repo
 ```
 
 ### Available Tools
@@ -543,31 +543,31 @@ Cline does not support per-repo MCP config. The installer writes a uniquely-keye
 
 **macOS:** `~/Library/Application Support/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json`
 
-Add an entry keyed as `codekg-<repo-name>`:
+Add an entry keyed as `pycodekg-<repo-name>`:
 
 ```json
 {
   "mcpServers": {
-    "codekg-my-repo": {
-      "command": "/absolute/path/to/venv/bin/codekg-mcp",
+    "pycodekg-my-repo": {
+      "command": "/absolute/path/to/venv/bin/pycodekg-mcp",
       "args": ["--repo", "/absolute/path/to/repo"]
     }
   }
 }
 ```
 
-> ⚠️ Do **not** add a `codekg` entry without a repo-specific suffix — global settings are shared across all VS Code windows.
+> ⚠️ Do **not** add a `pycodekg` entry without a repo-specific suffix — global settings are shared across all VS Code windows.
 
 ### Claude Desktop (manual)
 
-Add a `codekg` entry to `claude_desktop_config.json`
+Add a `pycodekg` entry to `claude_desktop_config.json`
 (macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`):
 
 ```json
 {
   "mcpServers": {
-    "codekg": {
-      "command": "/absolute/path/to/venv/bin/codekg-mcp",
+    "pycodekg": {
+      "command": "/absolute/path/to/venv/bin/pycodekg-mcp",
       "args": ["--repo", "/absolute/path/to/repo"]
     }
   }
@@ -583,15 +583,15 @@ Both Claude Code and Kilo Code read per-repo config from `.mcp.json`:
 ```json
 {
   "mcpServers": {
-    "codekg": {
-      "command": "codekg",
+    "pycodekg": {
+      "command": "pycodekg",
       "args": ["mcp", "--repo", "/absolute/path/to/repo"]
     }
   }
 }
 ```
 
-> ⚠️ Use per-repo `.mcp.json` only — do NOT add `codekg` to any global settings file.
+> ⚠️ Use per-repo `.mcp.json` only — do NOT add `pycodekg` to any global settings file.
 
 ### GitHub Copilot — `.vscode/mcp.json`
 
@@ -600,16 +600,16 @@ GitHub Copilot uses `.vscode/mcp.json` with a different schema:
 ```json
 {
   "servers": {
-    "codekg": {
+    "pycodekg": {
       "type": "stdio",
-      "command": "/absolute/path/to/.venv/bin/codekg-mcp",
+      "command": "/absolute/path/to/.venv/bin/pycodekg-mcp",
       "args": [
         "--repo",
         "/absolute/path/to/repo",
         "--db",
-        "/absolute/path/to/repo/.codekg/graph.sqlite",
+        "/absolute/path/to/repo/.pycodekg/graph.sqlite",
         "--lancedb",
-        "/absolute/path/to/repo/.codekg/lancedb"
+        "/absolute/path/to/repo/.pycodekg/lancedb"
       ]
     }
   }
@@ -622,8 +622,8 @@ GitHub Copilot uses `.vscode/mcp.json` with a different schema:
 
 | Artifact             | Description                                      |
 |----------------------|--------------------------------------------------|
-| `.codekg/graph.sqlite` | Canonical knowledge graph (nodes + edges)      |
-| `.codekg/lancedb/`    | Derived semantic vector index                  |
+| `.pycodekg/graph.sqlite` | Canonical knowledge graph (nodes + edges)      |
+| `.pycodekg/lancedb/`    | Derived semantic vector index                  |
 | Markdown        | Human-readable context packs with line numbers |
 | JSON            | Structured payload for agent/LLM ingestion     |
 
@@ -632,7 +632,7 @@ GitHub Copilot uses `.vscode/mcp.json` with a different schema:
 ## Project Structure
 
 ```
-code_kg/
+pycode_kg/
 ├── CHANGELOG.md
 ├── CLAUDE.md
 ├── LICENSE
@@ -644,11 +644,11 @@ code_kg/
 │   ├── Architecture-brief.md
 │   ├── Architecture-plain.md
 │   ├── CHEATSHEET.md
-│   ├── code_kg.pdf
-│   ├── code_kg_arch_9x16.png
-│   ├── code_kg_arch_banana.png
-│   ├── code_kg_arch_square.png
-│   ├── code_kg_workflow.md
+│   ├── pycode_kg.pdf
+│   ├── pycode_kg_arch_9x16.png
+│   ├── pycode_kg_arch_banana.png
+│   ├── pycode_kg_arch_square.png
+│   ├── pycode_kg_workflow.md
 │   ├── deployment.md
 │   ├── MCP.md
 │   └── logo.png
@@ -664,11 +664,11 @@ code_kg/
 ├── scripts/
 │   └── install-skill.sh
 ├── src/
-│   └── code_kg/
+│   └── pycode_kg/
 │       ├── __init__.py
 │       ├── __main__.py
 │       ├── app.py                      # Streamlit web interface
-│       ├── kg.py                       # Core CodeKG orchestrator
+│       ├── kg.py                       # Core PyCodeKG orchestrator
 │       ├── graph.py                    # AST extraction (3-pass)
 │       ├── store.py                    # SQLite persistence + graph traversal
 │       ├── index.py                    # LanceDB semantic indexing
@@ -686,8 +686,8 @@ code_kg/
 │       │   ├── cmd_analyze.py          # analyze
 │       │   ├── cmd_mcp.py              # mcp
 │       │   └── options.py              # Shared CLI options
-│       ├── build_codekg_lancedb.py    # Legacy re-export (deprecated)
-│       └── build_codekg_sqlite.py     # Legacy re-export (deprecated)
+│       ├── build_pycodekg_lancedb.py    # Legacy re-export (deprecated)
+│       └── build_pycodekg_sqlite.py     # Legacy re-export (deprecated)
 ├── tests/
 │   ├── test_graph.py
 │   ├── test_kg.py
@@ -700,11 +700,11 @@ code_kg/
 
 ## Development
 
-To work on CodeKG itself, clone the repository and install in editable mode with dev dependencies:
+To work on PyCodeKG itself, clone the repository and install in editable mode with dev dependencies:
 
 ```bash
-git clone https://github.com/Flux-Frontiers/code_kg.git
-cd code_kg
+git clone https://github.com/Flux-Frontiers/pycode_kg.git
+cd pycode_kg
 poetry install --with dev          # core + dev (includes doc-kg, ftree-kg, agent-kg)
 poetry install --with dev -E viz   # + Streamlit visualizer
 poetry install --with dev -E viz3d # + 3D visualizer (PyVista/PyQt5)
@@ -722,7 +722,7 @@ poetry run pytest
 ## Architecture
 
 <p align="center">
-  <img src="assets/codeKG_arch_square-web.jpg" alt="CodeKG architecture workflow" width="600"/>
+  <img src="assets/codeKG_arch_square-web.jpg" alt="PyCodeKG architecture workflow" width="600"/>
 </p>
 
 ### Design Principles
@@ -770,9 +770,9 @@ The repository is parsed using Python's `ast` module in **three sequential passe
 
 1. **Pass 1 — Structural extraction** — modules, classes, functions, methods; emit `CONTAINS`/`IMPORTS`/`INHERITS` edges
 2. **Pass 2 — Call graph** — call expressions resolved to targets; emit `CALLS` edges with source-line evidence
-3. **Pass 3 — Data-flow** — `CodeKGVisitor` walks each AST to emit `READS`, `WRITES`, `ATTR_ACCESS` edges at variable and attribute level; new `symbol` nodes merged non-destructively
+3. **Pass 3 — Data-flow** — `PyCodeKGVisitor` walks each AST to emit `READS`, `WRITES`, `ATTR_ACCESS` edges at variable and attribute level; new `symbol` nodes merged non-destructively
 
-**Output:** SQLite database (`.codekg/graph.sqlite`) with `nodes` and `edges` tables.
+**Output:** SQLite database (`.pycodekg/graph.sqlite`) with `nodes` and `edges` tables.
 
 4. **Post-build — Symbol resolution** — `resolve_symbols()` first attempts exact qualified-name resolution (including common `src/` alias variants), then falls back to name matching, and writes `RESOLVES_TO` edges with evidence metadata (`resolution_mode`, `confidence`, optional ambiguity count); idempotent and automatic.
 
@@ -780,7 +780,7 @@ The repository is parsed using Python's `ast` module in **three sequential passe
 
 #### Phase 2 — Semantic Indexing (SQLite → LanceDB)
 
-Subset of nodes (`module`, `class`, `function`, `method`) selected for vector indexing. Embedding text constructed from names and docstrings, embedded using `BAAI/bge-small-en-v1.5` (384-dim, overridable via `CODEKG_MODEL`), stored in **LanceDB**.
+Subset of nodes (`module`, `class`, `function`, `method`) selected for vector indexing. Embedding text constructed from names and docstrings, embedded using `BAAI/bge-small-en-v1.5` (384-dim, overridable via `PYCODEKG_MODEL`), stored in **LanceDB**.
 
 The vector index is **derived and disposable**; SQLite remains authoritative.
 
@@ -795,11 +795,11 @@ Queries execute in **two explicit phases**:
 
 Retrieved nodes ranked deterministically by: (1) hop distance from seed, (2) seed embedding distance, (3) node kind priority (`function`/`method` > `class` > `module` > `symbol`).
 
-Nodes deduplicated by file and source span; overlapping spans merged; per-file cap prevents large modules from dominating results. For retained nodes, CodeKG extracts **source-grounded definition and call-site snippets** using recorded `module_path`, `lineno`, and `end_lineno`, with bounded context windows.
+Nodes deduplicated by file and source span; overlapping spans merged; per-file cap prevents large modules from dominating results. For retained nodes, PyCodeKG extracts **source-grounded definition and call-site snippets** using recorded `module_path`, `lineno`, and `end_lineno`, with bounded context windows.
 
 ### Caller Lookup (Fan-In)
 
-CodeKG provides precise fan-in lookup via the `callers()` API and `callers` MCP tool. The two-phase lookup combines:
+PyCodeKG provides precise fan-in lookup via the `callers()` API and `callers` MCP tool. The two-phase lookup combines:
 
 1. **Direct reverse** — nodes with `CALLS → target` edges
 2. **Stub reverse** — nodes with `CALLS → sym:Foo` where `sym:Foo RESOLVES_TO target`
@@ -815,20 +815,20 @@ Repository
   ↓
 AST parsing — Pass 1: structure, Pass 2: calls, Pass 3: data-flow  (graph.py + visitor.py)
   ↓
-SQLite graph — nodes + edges  (store.py / codekg build-sqlite)
+SQLite graph — nodes + edges  (store.py / pycodekg build-sqlite)
   ↓
 Symbol resolution — RESOLVES_TO edges (sym: stubs → fn:/cls: defs)  (store.py)
   ↓
-Vector indexing — LanceDB  (index.py / codekg build-lancedb)
+Vector indexing — LanceDB  (index.py / pycodekg build-lancedb)
   ↓
-Hybrid query — semantic + graph  (kg.py / codekg query)
+Hybrid query — semantic + graph  (kg.py / pycodekg query)
   ↓
 Ranking + deduplication
   ↓
-Snippet pack — Markdown / JSON  (kg.py / codekg pack)
+Snippet pack — Markdown / JSON  (kg.py / pycodekg pack)
   ↓
-  ├──▶  Streamlit web app  (app.py / codekg viz)
-  └──▶  MCP server tools   (mcp_server.py / codekg mcp)
+  ├──▶  Streamlit web app  (app.py / pycodekg viz)
+  └──▶  MCP server tools   (mcp_server.py / pycodekg mcp)
 ```
 
 ---
@@ -837,14 +837,14 @@ Snippet pack — Markdown / JSON  (kg.py / codekg pack)
 
 ### Tools & Technologies
 
-- **[PaperBanana](https://paperbanana.dev/)** — Technical diagram generation from structured data. The architecture diagram at the top of the Architecture section was created by feeding CodeKG's own analysis output (generated via `codekg analyze`) to PaperBanana, demonstrating how well-structured, deterministic code analysis feeds downstream visualization tools and validating CodeKG's core design philosophy: clean, traceable data structures enable rich, accurate, and beautiful downstream consumption.
+- **[PaperBanana](https://paperbanana.dev/)** — Technical diagram generation from structured data. The architecture diagram at the top of the Architecture section was created by feeding PyCodeKG's own analysis output (generated via `pycodekg analyze`) to PaperBanana, demonstrating how well-structured, deterministic code analysis feeds downstream visualization tools and validating PyCodeKG's core design philosophy: clean, traceable data structures enable rich, accurate, and beautiful downstream consumption.
 
 ### Related Work
 
-- **[Microsoft GraphRAG](https://microsoft.com/research/)** — Probabilistic knowledge graph approaches for LLM retrieval (comparison: GraphRAG uses statistical inference; CodeKG prioritizes determinism and auditability).
-- **[Amplify](https://amplify.dev/)** — Embedding-only code search (comparison: CodeKG augments semantic retrieval with structural graph traversal).
-- **[LanceDB](https://lancedb.com/)** — Vector database used for semantic indexing in CodeKG.
-- **[Streamlit](https://streamlit.io/)** — Web application framework for the interactive CodeKG visualizer.
+- **[Microsoft GraphRAG](https://microsoft.com/research/)** — Probabilistic knowledge graph approaches for LLM retrieval (comparison: GraphRAG uses statistical inference; PyCodeKG prioritizes determinism and auditability).
+- **[Amplify](https://amplify.dev/)** — Embedding-only code search (comparison: PyCodeKG augments semantic retrieval with structural graph traversal).
+- **[LanceDB](https://lancedb.com/)** — Vector database used for semantic indexing in PyCodeKG.
+- **[Streamlit](https://streamlit.io/)** — Web application framework for the interactive PyCodeKG visualizer.
 
 ---
 

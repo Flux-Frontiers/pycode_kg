@@ -6,11 +6,11 @@
 
 ## Overview
 
-`code_kg.module` is an SDK base layer that lets you build a full-featured knowledge graph
+`pycode_kg.module` is an SDK base layer that lets you build a full-featured knowledge graph
 for **any domain** — TypeScript code, genomics data, legal text, infrastructure graphs — by
 implementing a single extraction class.  You get SQLite persistence, LanceDB vector indexing,
 hybrid semantic + structural query, snapshot management, and an MCP server, identical in
-capability to CodeKG, without reimplementing any infrastructure.
+capability to PyCodeKG, without reimplementing any infrastructure.
 
 ```
 Your domain:
@@ -30,7 +30,7 @@ Your domain:
 ## Quick Start
 
 ```python
-from code_kg.module import KGModule, KGExtractor, NodeSpec, EdgeSpec
+from pycode_kg.module import KGModule, KGExtractor, NodeSpec, EdgeSpec
 from pathlib import Path
 from typing import Iterator
 
@@ -89,7 +89,7 @@ pack   = kg.pack("search term", context=3)
 ### `KGExtractor` — domain extraction protocol
 
 ```python
-from code_kg.module import KGExtractor, NodeSpec, EdgeSpec
+from pycode_kg.module import KGExtractor, NodeSpec, EdgeSpec
 ```
 
 **Abstract methods (must implement):**
@@ -153,7 +153,7 @@ then all `EdgeSpec` objects, so cross-file references are resolved correctly.
 ### `KGModule` — infrastructure base class
 
 ```python
-from code_kg.module import KGModule
+from pycode_kg.module import KGModule
 ```
 
 **Constructor:**
@@ -198,14 +198,14 @@ KGModule(
 | Method | Description |
 |--------|-------------|
 | `_kind_priority()` | Return `dict[str, int]` to control node ordering in results. |
-| `_post_build_hook(nodes, edges)` | Called after the build pipeline; used by `CodeKG` for symbol resolution. |
+| `_post_build_hook(nodes, edges)` | Called after the build pipeline; used by `PyCodeKG` for symbol resolution. |
 
 ---
 
 ## Result Types
 
 ```python
-from code_kg.module import BuildStats, QueryResult, Snippet, SnippetPack
+from pycode_kg.module import BuildStats, QueryResult, Snippet, SnippetPack
 ```
 
 | Type | Fields |
@@ -217,17 +217,17 @@ from code_kg.module import BuildStats, QueryResult, Snippet, SnippetPack
 
 ---
 
-## Reference Implementation: `CodeKG`
+## Reference Implementation: `PyCodeKG`
 
-`CodeKG` (`src/code_kg/kg.py`) is a `KGModule` subclass and the reference
+`PyCodeKG` (`src/pycode_kg/kg.py`) is a `KGModule` subclass and the reference
 implementation for code-domain KG modules.  Read it to understand how the
 hooks work:
 
-- `make_extractor()` → returns `CodeKGExtractor` (Python AST)
+- `make_extractor()` → returns `PyCodeKGExtractor` (Python AST)
 - `kind()` → `"code"`
 - `_kind_priority()` → deprioritizes `symbol` stubs
 - `_post_build_hook()` → calls `resolve_symbols()` for cross-module call resolution
-- `analyze()` → delegates to `CodeKGThoroughAnalysis`
+- `analyze()` → delegates to `PyCodeKGThoroughAnalysis`
 
 ---
 

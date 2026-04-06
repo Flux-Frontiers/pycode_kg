@@ -1,7 +1,7 @@
 """
 test_exclusions.py
 
-Unit tests for directory include filtering in CodeKG.
+Unit tests for directory include filtering in PyCodeKG.
 Tests cover:
 - Config loading from pyproject.toml
 - iter_python_files() with include parameter
@@ -16,9 +16,9 @@ from pathlib import Path
 
 import pytest
 
-from code_kg.codekg import extract_repo, iter_python_files
-from code_kg.config import load_include_dirs
-from code_kg.graph import CodeGraph
+from pycode_kg.pycodekg import extract_repo, iter_python_files
+from pycode_kg.config import load_include_dirs
+from pycode_kg.graph import CodeGraph
 
 # ============================================================================
 # Fixtures
@@ -49,7 +49,7 @@ def repo_with_dirs(tmp_path: Path) -> Path:
 
 @pytest.fixture
 def repo_with_pyproject(tmp_path: Path) -> Path:
-    """Create a test repo with pyproject.toml containing [tool.codekg].include."""
+    """Create a test repo with pyproject.toml containing [tool.pycodekg].include."""
     # Write pyproject.toml
     (tmp_path / "pyproject.toml").write_text(
         textwrap.dedent("""
@@ -60,7 +60,7 @@ def repo_with_pyproject(tmp_path: Path) -> Path:
             name = "test-pkg"
             version = "0.1.0"
 
-            [tool.codekg]
+            [tool.pycodekg]
             include = ["src", "lib"]
         """)
     )
@@ -89,8 +89,8 @@ def test_load_include_dirs_no_pyproject(tmp_path: Path) -> None:
     assert result == set()
 
 
-def test_load_include_dirs_no_tool_codekg(tmp_path: Path) -> None:
-    """Should return empty set if [tool.codekg] section doesn't exist."""
+def test_load_include_dirs_no_tool_pycodekg(tmp_path: Path) -> None:
+    """Should return empty set if [tool.pycodekg] section doesn't exist."""
     (tmp_path / "pyproject.toml").write_text("[tool.poetry]\nname = 'test'\n")
     result = load_include_dirs(tmp_path)
     assert result == set()
@@ -98,27 +98,27 @@ def test_load_include_dirs_no_tool_codekg(tmp_path: Path) -> None:
 
 def test_load_include_dirs_no_include_key(tmp_path: Path) -> None:
     """Should return empty set if include key doesn't exist."""
-    (tmp_path / "pyproject.toml").write_text("[tool.codekg]\nfoo = 'bar'\n")
+    (tmp_path / "pyproject.toml").write_text("[tool.pycodekg]\nfoo = 'bar'\n")
     result = load_include_dirs(tmp_path)
     assert result == set()
 
 
 def test_load_include_dirs_single_include(tmp_path: Path) -> None:
     """Should load single include directory."""
-    (tmp_path / "pyproject.toml").write_text("[tool.codekg]\ninclude = ['src']\n")
+    (tmp_path / "pyproject.toml").write_text("[tool.pycodekg]\ninclude = ['src']\n")
     result = load_include_dirs(tmp_path)
     assert result == {"src"}
 
 
 def test_load_include_dirs_multiple_includes(repo_with_pyproject: Path) -> None:
-    """Should load multiple include directories from [tool.codekg].include."""
+    """Should load multiple include directories from [tool.pycodekg].include."""
     result = load_include_dirs(repo_with_pyproject)
     assert result == {"src", "lib"}
 
 
 def test_load_include_dirs_strips_trailing_slashes(tmp_path: Path) -> None:
     """Should strip trailing slashes from directory names."""
-    (tmp_path / "pyproject.toml").write_text("[tool.codekg]\ninclude = ['src/', 'lib/', 'app']\n")
+    (tmp_path / "pyproject.toml").write_text("[tool.pycodekg]\ninclude = ['src/', 'lib/', 'app']\n")
     result = load_include_dirs(tmp_path)
     assert result == {"src", "lib", "app"}
 
@@ -132,7 +132,7 @@ def test_load_include_dirs_invalid_toml(tmp_path: Path) -> None:
 
 def test_load_include_dirs_non_list_include(tmp_path: Path) -> None:
     """Should return empty set if include is not a list."""
-    (tmp_path / "pyproject.toml").write_text("[tool.codekg]\ninclude = 'src'\n")
+    (tmp_path / "pyproject.toml").write_text("[tool.pycodekg]\ninclude = 'src'\n")
     result = load_include_dirs(tmp_path)
     assert result == set()
 

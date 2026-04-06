@@ -1,4 +1,4 @@
-# CodeKG: Deterministic Knowledge Graph for Python Codebases
+# PyCodeKG: Deterministic Knowledge Graph for Python Codebases
 
 **Tagline:** A deterministic, auditable knowledge graph for Python codebases with semantic indexing and source-grounded snippet packing. Built with static analysis; used by Claude Code for precise code navigation and reasoning.
 
@@ -16,7 +16,7 @@ Most code search tools rely solely on embeddings or probabilistic inference. Thi
 
 ## The Solution
 
-CodeKG inverts the priority: **structure is authoritative; semantics accelerate retrieval.**
+PyCodeKG inverts the priority: **structure is authoritative; semantics accelerate retrieval.**
 
 ### What We Built
 
@@ -24,7 +24,7 @@ CodeKG inverts the priority: **structure is authoritative; semantics accelerate 
 - **Symbol resolution** — Post-build pass bridges cross-module call sites via import aliases (e.g., `from utils import helper; helper()` resolves through `sym:` stubs).
 - **Hybrid query model** — Semantic search seeds retrieval (LanceDB embeddings), structural graph expansion bounds and ranks results. Embeddings are an acceleration layer, never a decision layer.
 - **Source-grounded snippet packing** — Extract definition and call-site code with exact line numbers. No synthetic context; every snippet maps to a file and line range.
-- **MCP server** — Five tools (`query_codebase`, `pack_snippets`, `callers`, `get_node`, `graph_stats`) integrate CodeKG into Claude Code, GitHub Copilot, Cursor, Continue, and custom agents.
+- **MCP server** — Five tools (`query_codebase`, `pack_snippets`, `callers`, `get_node`, `graph_stats`) integrate PyCodeKG into Claude Code, GitHub Copilot, Cursor, Continue, and custom agents.
 
 ### The Payoff
 
@@ -60,11 +60,11 @@ CodeKG inverts the priority: **structure is authoritative; semantics accelerate 
 **One-line installer** (runs inside your repo):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Flux-Frontiers/code_kg/main/scripts/install-skill.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Flux-Frontiers/pycode_kg/main/scripts/install-skill.sh | bash
 ```
 
 This sets up:
-- SQLite knowledge graph (`.codekg/graph.sqlite`)
+- SQLite knowledge graph (`.pycodekg/graph.sqlite`)
 - LanceDB semantic index
 - MCP config for Claude Code, GitHub Copilot, Cline, or Claude Desktop
 - Skill files for integration
@@ -72,45 +72,45 @@ This sets up:
 **Build manually:**
 
 ```bash
-pip install 'code-kg @ git+https://github.com/Flux-Frontiers/code_kg.git'
+pip install 'pycode-kg @ git+https://github.com/Flux-Frontiers/pycode_kg.git'
 
 # Full pipeline in one step
-codekg build --repo /path/to/repo
+pycodekg build --repo /path/to/repo
 
 # Or step by step
-codekg build-sqlite --repo /path/to/repo
-codekg build-lancedb --repo /path/to/repo
+pycodekg build-sqlite --repo /path/to/repo
+pycodekg build-lancedb --repo /path/to/repo
 ```
 
 **Query:**
 
 ```bash
-codekg query "database connection setup"
+pycodekg query "database connection setup"
 ```
 
 **Pack source-grounded snippets for LLMs:**
 
 ```bash
-codekg pack "authentication flow" --out context.md
+pycodekg pack "authentication flow" --out context.md
 ```
 
 **Analyze codebase architecture:**
 
 ```bash
-codekg analyze .
+pycodekg analyze .
 ```
 
 **Visualize:**
 
 ```bash
-codekg viz          # Streamlit web app
-codekg viz3d        # 3D graph (PyVista)
+pycodekg viz          # Streamlit web app
+pycodekg viz3d        # 3D graph (PyVista)
 ```
 
 **Integrate with agents:**
 
 ```bash
-codekg mcp          # MCP server (Claude Code, Copilot, Cline, Continue)
+pycodekg mcp          # MCP server (Claude Code, Copilot, Cline, Continue)
 ```
 
 ---
@@ -127,7 +127,7 @@ codekg mcp          # MCP server (Claude Code, Copilot, Cline, Continue)
 
 ## Repository
 
-[github.com/Flux-Frontiers/code_kg](https://github.com/Flux-Frontiers/code_kg)
+[github.com/Flux-Frontiers/pycode_kg](https://github.com/Flux-Frontiers/pycode_kg)
 
 **License:** Elastic License 2.0 (free to use, modify, and distribute; no hosted service reselling).
 
@@ -137,6 +137,6 @@ codekg mcp          # MCP server (Claude Code, Copilot, Cline, Continue)
 
 ## Related Work
 
-- **Microsoft GraphRAG** — Probabilistic inference; CodeKG prioritizes determinism and auditability.
-- **Amplify** — Embedding-only search; CodeKG augments with structural graph traversal.
-- **LanceDB** — Vector database used for semantic indexing in CodeKG.
+- **Microsoft GraphRAG** — Probabilistic inference; PyCodeKG prioritizes determinism and auditability.
+- **Amplify** — Embedding-only search; PyCodeKG augments with structural graph traversal.
+- **LanceDB** — Vector database used for semantic indexing in PyCodeKG.

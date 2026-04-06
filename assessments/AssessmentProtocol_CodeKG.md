@@ -1,22 +1,22 @@
-# CodeKG Agent Assessment Protocol
+# PyCodeKG Agent Assessment Protocol
 
 **Author:** Eric G. Suchanek, PhD <suchanek@mac.com>
-**Repository:** https://github.com/Flux-Frontiers/code_kg.git
+**Repository:** https://github.com/Flux-Frontiers/pycode_kg.git
 **Testing Platform: 2024 M3 Max, Macbook Pro, 36GB RAM, 1TB SSD**
 
 ---
 
 ## Background
 
-CodeKG is a tool that indexes Python codebases into a hybrid semantic + structural knowledge graph and exposes it to AI agents via MCP (Model Context Protocol). It evolved from [repo_viz](https://github.com/suchanek/repo_viz.git), an AST-based repository visualization system using PyVista into a semantically-accessible knowledge graph with precise, structurally-grounded data.
+PyCodeKG is a tool that indexes Python codebases into a hybrid semantic + structural knowledge graph and exposes it to AI agents via MCP (Model Context Protocol). It evolved from [repo_viz](https://github.com/suchanek/repo_viz.git), an AST-based repository visualization system using PyVista into a semantically-accessible knowledge graph with precise, structurally-grounded data.
 
-You have access to CodeKG's MCP tools in this session. Your task is to **evaluate the tool itself** — not the repository it happens to be indexing.
+You have access to PyCodeKG's MCP tools in this session. Your task is to **evaluate the tool itself** — not the repository it happens to be indexing.
 
 ---
 
 ## Your Assignment
 
-Perform a thorough, hands-on assessment of CodeKG's functional utility for understanding Python codebases **from your perspective as an AI agent**. Exercise every available tool, document what you find, and deliver a structured written assessment. Assess overall speed if possible.
+Perform a thorough, hands-on assessment of PyCodeKG's functional utility for understanding Python codebases **from your perspective as an AI agent**. Exercise every available tool, document what you find, and deliver a structured written assessment. Assess overall speed if possible.
 
 ---
 
@@ -77,7 +77,7 @@ Score each dimension from 1 (poor) to 5 (excellent) with brief justification:
 Write your assessment as a markdown file saved to:
 
 ```
-./assessments/CodeKG_assessment_<model_name>_<datestamp>.md
+./assessments/PyCodeKG_assessment_<model_name>_<datestamp>.md
 ```
 
 Where `<model_name>` is your model identifier (e.g., `claude_opus_4`, `gpt_4o`, `gemini_2_pro`) and `<datestamp>` is `YYYY-MM-DD` format.
@@ -87,16 +87,16 @@ Where `<model_name>` is your model identifier (e.g., `claude_opus_4`, `gpt_4o`, 
 1. **Executive Summary** — 2-3 paragraph overall assessment
 2. **Tool-by-Tool Evaluation** — Rate and discuss each MCP tool you exercised
 3. **Scorecard** — The evaluation criteria table with your scores and justifications
-4. **Comparison to Default Workflow** — How does CodeKG change your approach vs. raw file access?
-5. **Strengths** — What CodeKG does well
+4. **Comparison to Default Workflow** — How does PyCodeKG change your approach vs. raw file access?
+5. **Strengths** — What PyCodeKG does well
 6. **Weaknesses & Suggestions** — What could be improved, with specific recommendations
-7. **Overall Verdict** — Would you recommend CodeKG? For what use cases? Final rating out of 5.
+7. **Overall Verdict** — Would you recommend PyCodeKG? For what use cases? Final rating out of 5.
 
 ---
 
 ## Important Notes
 
-- **Assess the tool, not the repo.** Your target codebase may be CodeKG itself or another Python project. Either way, focus on how well the *tools* help you understand the code.
+- **Assess the tool, not the repo.** Your target codebase may be PyCodeKG itself or another Python project. Either way, focus on how well the *tools* help you understand the code.
 - **Be honest and specific.** Vague praise is not useful. Cite concrete examples of where a tool helped or fell short.
-- **Compare to your baseline.** Without CodeKG, you would use file reading, grep, and manual navigation. Explicitly compare the two approaches.
+- **Compare to your baseline.** Without PyCodeKG, you would use file reading, grep, and manual navigation. Explicitly compare the two approaches.
 - **Exercise every tool.** Don't skip tools — even if you think they overlap, each has different strengths worth evaluating.

@@ -1,6 +1,6 @@
-# CodeKG: Making Sense of Your Codebase (Without the Hallucination)
+# PyCodeKG: Making Sense of Your Codebase (Without the Hallucination)
 
-**We just released CodeKG.** It's a knowledge graph for Python codebases that lets you search, navigate, and extract code context with precision. No embeddings guessing. No probabilistic inference. Just structure + semantics working together.
+**We just released PyCodeKG.** It's a knowledge graph for Python codebases that lets you search, navigate, and extract code context with precision. No embeddings guessing. No probabilistic inference. Just structure + semantics working together.
 
 ---
 
@@ -8,14 +8,14 @@
 
 If you've ever tried to use semantic search on code, you've probably hit this: the embedding says your search result is close, but it's not actually related. Or you get snippets without line numbers. Or you can't trace back why a result even came up.
 
-We built CodeKG to fix that.
+We built PyCodeKG to fix that.
 
 ---
 
 ## How It Works (Plain English)
 
 **Step 1: Build the graph**
-- CodeKG parses your Python repo with three passes:
+- PyCodeKG parses your Python repo with three passes:
   1. Extract structure (modules, classes, functions, calls, imports, inheritance)
   2. Build call graph (who calls who)
   3. Walk data-flow (variable reads/writes, attribute access)
@@ -27,12 +27,12 @@ We built CodeKG to fix that.
 
 **Step 3: Query**
 - You ask something like: *"database connection setup"*
-- CodeKG finds semantically similar functions (the embedding layer)
+- PyCodeKG finds semantically similar functions (the embedding layer)
 - Then expands outward using the graph (all callers, all dependencies, etc.)
 - Returns ranked, deduplicated results with exact line numbers.
 
 **Step 4: Extract snippets**
-- CodeKG pulls the actual source code from your files.
+- PyCodeKG pulls the actual source code from your files.
 - You get definition snippets + call-site snippets.
 - Every snippet has line numbers. Zero guessing.
 
@@ -73,7 +73,7 @@ We built CodeKG to fix that.
 **Fastest way (one-liner):**
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Flux-Frontiers/code_kg/main/scripts/install-skill.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Flux-Frontiers/pycode_kg/main/scripts/install-skill.sh | bash
 ```
 
 This sets up everything: graph, index, MCP config, and integrates with your IDE.
@@ -81,37 +81,37 @@ This sets up everything: graph, index, MCP config, and integrates with your IDE.
 **Manual:**
 
 ```bash
-pip install 'code-kg @ git+https://github.com/Flux-Frontiers/code_kg.git'
+pip install 'pycode-kg @ git+https://github.com/Flux-Frontiers/pycode_kg.git'
 
 # Build (full pipeline in one step)
-codekg-build --repo .
+pycodekg-build --repo .
 
 # Or step by step
-codekg-build-sqlite --repo .
-codekg-build-lancedb --repo .
+pycodekg-build-sqlite --repo .
+pycodekg-build-lancedb --repo .
 
 # Query
-codekg-query "your search here"
+pycodekg-query "your search here"
 
 # Pack source-grounded snippets for LLMs
-codekg-pack "authentication flow" --out context.md
+pycodekg-pack "authentication flow" --out context.md
 
 # Analyze codebase architecture
-codekg-analyze .
+pycodekg-analyze .
 
 # Visualize
-codekg-viz          # Streamlit web app
-codekg-viz3d        # 3D graph (PyVista)
+pycodekg-viz          # Streamlit web app
+pycodekg-viz3d        # 3D graph (PyVista)
 
 # Start MCP server (Claude Code, Copilot, Cline, Continue)
-codekg-mcp --repo .
+pycodekg-mcp --repo .
 ```
 
 ---
 
 ## Repository & Docs
 
-[**github.com/Flux-Frontiers/code_kg**](https://github.com/Flux-Frontiers/code_kg)
+[**github.com/Flux-Frontiers/pycode_kg**](https://github.com/Flux-Frontiers/pycode_kg)
 
 - Quick start guide in the README
 - Full architecture & design philosophy in `/docs`
@@ -126,7 +126,7 @@ codekg-mcp --repo .
 
 ## Questions?
 
-- How does it compare to GraphRAG? GraphRAG uses probabilistic inference. CodeKG uses deterministic AST parsing and structural graph traversal.
+- How does it compare to GraphRAG? GraphRAG uses probabilistic inference. PyCodeKG uses deterministic AST parsing and structural graph traversal.
 - Does it work with my IDE? Yes. MCP integration with Claude Code, GitHub Copilot, Cursor, Continue. Streamlit web app. 3D visualizer.
 - Can I use this in production? Yes. It's read-only. Build the graph once, query infinite times.
 - What's the license? Elastic 2.0. Free for internal use, no reselling.

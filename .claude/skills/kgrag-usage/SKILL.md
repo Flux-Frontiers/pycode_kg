@@ -7,7 +7,7 @@ description: "Use KGRAG to query across federated knowledge graphs (code, docs, 
 
 ## Overview
 
-KGRAG is the **federated query layer** for CodeKG, DocKG, and MetaKG. It maintains a central registry of all knowledge graphs across all repositories and enables cross-KG semantic search, snippet extraction, and batch operations. Use KGRAG when you need to search or analyze code/docs across multiple projects simultaneously.
+KGRAG is the **federated query layer** for PyCodeKG, DocKG, and MetaKG. It maintains a central registry of all knowledge graphs across all repositories and enables cross-KG semantic search, snippet extraction, and batch operations. Use KGRAG when you need to search or analyze code/docs across multiple projects simultaneously.
 
 ## Core Commands
 

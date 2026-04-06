@@ -2,12 +2,12 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "CodeKG: Rebuild (SQLite + LanceDB with --wipe)",
+      "label": "PyCodeKG: Rebuild (SQLite + LanceDB with --wipe)",
       "type": "shell",
       "command": "/bin/bash",
       "args": [
         "-c",
-        "${workspaceFolder}/.venv/bin/codekg build-sqlite --repo . --wipe && ${workspaceFolder}/.venv/bin/codekg build-lancedb --wipe"
+        "${workspaceFolder}/.venv/bin/pycodekg build-sqlite --repo . --wipe && ${workspaceFolder}/.venv/bin/pycodekg build-lancedb --wipe"
       ],
       "group": {
         "kind": "build",
@@ -20,9 +20,9 @@
       "problemMatcher": []
     },
     {
-      "label": "CodeKG: Build SQLite Graph",
+      "label": "PyCodeKG: Build SQLite Graph",
       "type": "shell",
-      "command": "${workspaceFolder}/.venv/bin/codekg",
+      "command": "${workspaceFolder}/.venv/bin/pycodekg",
       "args": ["build-sqlite", "--repo", "."],
       "group": "build",
       "presentation": {
@@ -31,9 +31,9 @@
       }
     },
     {
-      "label": "CodeKG: Build LanceDB Index",
+      "label": "PyCodeKG: Build LanceDB Index",
       "type": "shell",
-      "command": "${workspaceFolder}/.venv/bin/codekg",
+      "command": "${workspaceFolder}/.venv/bin/pycodekg",
       "args": ["build-lancedb"],
       "group": "build",
       "presentation": {
@@ -42,12 +42,12 @@
       }
     },
     {
-      "label": "CodeKG: Query (Interactive)",
+      "label": "PyCodeKG: Query (Interactive)",
       "type": "shell",
       "command": "/bin/bash",
       "args": [
         "-c",
-        "read -p 'Query: ' q && ${workspaceFolder}/.venv/bin/codekg query --q \"$q\""
+        "read -p 'Query: ' q && ${workspaceFolder}/.venv/bin/pycodekg query --q \"$q\""
       ],
       "group": "test",
       "presentation": {
@@ -57,9 +57,9 @@
       "isBackground": false
     },
     {
-      "label": "CodeKG: List Snapshots",
+      "label": "PyCodeKG: List Snapshots",
       "type": "shell",
-      "command": "${workspaceFolder}/.venv/bin/codekg",
+      "command": "${workspaceFolder}/.venv/bin/pycodekg",
       "args": ["snapshot", "list"],
       "group": "test",
       "presentation": {
@@ -68,12 +68,12 @@
       }
     },
     {
-      "label": "CodeKG: Save Snapshot",
+      "label": "PyCodeKG: Save Snapshot",
       "type": "shell",
       "command": "/bin/bash",
       "args": [
         "-c",
-        "read -p 'Version label (e.g. 0.5.0): ' v && ${workspaceFolder}/.venv/bin/codekg snapshot save \"$v\" --repo . --branch \"$(git rev-parse --abbrev-ref HEAD)\""
+        "read -p 'Version label (e.g. 0.5.0): ' v && ${workspaceFolder}/.venv/bin/pycodekg snapshot save \"$v\" --repo . --branch \"$(git rev-parse --abbrev-ref HEAD)\""
       ],
       "group": "test",
       "presentation": {
@@ -82,9 +82,9 @@
       }
     },
     {
-      "label": "CodeKG: Generate Architecture",
+      "label": "PyCodeKG: Generate Architecture",
       "type": "shell",
-      "command": "${workspaceFolder}/.venv/bin/codekg",
+      "command": "${workspaceFolder}/.venv/bin/pycodekg",
       "args": ["architecture", ".", "--markdown", "architecture.md"],
       "group": "test",
       "presentation": {
@@ -93,9 +93,9 @@
       }
     },
     {
-      "label": "CodeKG: Run Thorough Analysis",
+      "label": "PyCodeKG: Run Thorough Analysis",
       "type": "shell",
-      "command": "${workspaceFolder}/.venv/bin/codekg",
+      "command": "${workspaceFolder}/.venv/bin/pycodekg",
       "args": ["analyze", "."],
       "group": "test",
       "presentation": {

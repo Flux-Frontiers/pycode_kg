@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Benchmark candidate embedding models for CodeKG query quality.
+"""Benchmark candidate embedding models for PyCodeKG query quality.
 
 This script rebuilds a LanceDB index for each model, runs a fixed query suite
 across one or more rerank modes, and writes a machine-readable JSON report plus
@@ -9,7 +9,7 @@ Usage example:
 
     python scripts/benchmark_embedders.py \
       --repo-root . \
-      --sqlite .codekg/graph.sqlite \
+      --sqlite .pycodekg/graph.sqlite \
       --models "all-MiniLM-L6-v2,all-MiniLM-L12-v2,BAAI/bge-small-en-v1.5,all-mpnet-base-v2" \
       --modes "hybrid,semantic,legacy"
 """
@@ -32,7 +32,7 @@ _SRC_DIR = _REPO_ROOT / "src"
 if str(_SRC_DIR) not in sys.path:
     sys.path.insert(0, str(_SRC_DIR))
 
-from code_kg import CodeKG  # noqa: E402
+from pycode_kg import PyCodeKG  # noqa: E402
 
 
 @dataclass(frozen=True)
@@ -91,7 +91,7 @@ def _slugify_model(model: str) -> str:
 def _top_metrics(nodes: list[dict], top_n: int) -> dict[str, float | int]:
     """Compute compact quality metrics from ranked nodes.
 
-    :param nodes: Ranked node dictionaries from ``CodeKG.query``.
+    :param nodes: Ranked node dictionaries from ``PyCodeKG.query``.
     :param top_n: Prefix length to summarize.
     :return: Metrics dictionary.
     """
@@ -180,7 +180,7 @@ def _run_benchmark(
         print(f"\n=== Model: {model} ===")
         print(f"Rebuilding LanceDB at {model_lancedb} ...")
         t0 = time.perf_counter()
-        kg = CodeKG(
+        kg = PyCodeKG(
             repo_root=repo_root,
             db_path=sqlite_path,
             lancedb_dir=model_lancedb,
@@ -339,12 +339,12 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--repo-root", default=".", help="Repository root path.")
     parser.add_argument(
         "--sqlite",
-        default=".codekg/graph.sqlite",
-        help="Path to existing CodeKG SQLite graph.",
+        default=".pycodekg/graph.sqlite",
+        help="Path to existing PyCodeKG SQLite graph.",
     )
     parser.add_argument(
         "--lancedb-root",
-        default=".codekg/lancedb-benchmark",
+        default=".pycodekg/lancedb-benchmark",
         help="Root dir for per-model LanceDB indexes.",
     )
     parser.add_argument(
@@ -402,7 +402,7 @@ def main() -> int:
 
     if not sqlite_path.exists():
         print(f"ERROR: SQLite graph not found at {sqlite_path}")
-        print("Build it first, e.g.: .venv/bin/codekg build-sqlite --repo . --wipe")
+        print("Build it first, e.g.: .venv/bin/pycodekg build-sqlite --repo . --wipe")
         return 2
 
     models = [m.strip() for m in args.models.split(",") if m.strip()]

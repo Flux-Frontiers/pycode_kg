@@ -1,4 +1,4 @@
-# CodeKG Architecture Analysis
+# PyCodeKG Architecture Analysis
 
 **Coherent Descriptions of Your Codebase Structure**
 
@@ -8,7 +8,7 @@ Generate comprehensive, machine-readable architectural documentation from your c
 
 ## Overview
 
-The `codekg architecture` command produces two complementary outputs:
+The `pycodekg architecture` command produces two complementary outputs:
 
 **Markdown** — Human-readable documentation for wikis, READMEs, and presentations
 - Architectural layers with responsibilities
@@ -34,12 +34,12 @@ The `codekg architecture` command produces two complementary outputs:
 
 ### 1. Build the Knowledge Graph
 ```bash
-codekg build
+pycodekg build
 ```
 
 ### 2. Generate Thorough Analysis (Optional but Recommended)
 ```bash
-codekg analyze --json ~/.claude/codekg_analysis_latest.json
+pycodekg analyze --json ~/.claude/pycodekg_analysis_latest.json
 ```
 
 This produces complexity metrics, docstring coverage, and identifies architectural issues.
@@ -48,22 +48,22 @@ This produces complexity metrics, docstring coverage, and identifies architectur
 
 **With thorough analysis insights** (richest output):
 ```bash
-codekg architecture --load-latest --markdown docs/architecture.md --json arch.json
+pycodekg architecture --load-latest --markdown docs/architecture.md --json arch.json
 ```
 
 **Without analysis** (still includes layers and components):
 ```bash
-codekg architecture --markdown docs/architecture.md --json arch.json
+pycodekg architecture --markdown docs/architecture.md --json arch.json
 ```
 
 **Explicit analysis path**:
 ```bash
-codekg architecture --analysis ~/my-analysis.json --markdown docs/architecture.md
+pycodekg architecture --analysis ~/my-analysis.json --markdown docs/architecture.md
 ```
 
 **Print to console**:
 ```bash
-codekg architecture --load-latest
+pycodekg architecture --load-latest
 ```
 
 ---
@@ -71,33 +71,33 @@ codekg architecture --load-latest
 ## Command Reference
 
 ```bash
-codekg architecture [OPTIONS] [REPO_ROOT]
+pycodekg architecture [OPTIONS] [REPO_ROOT]
 ```
 
 ### Options
 
 | Option | Description |
 |--------|-------------|
-| `--db PATH` | SQLite knowledge graph path (default: `<repo>/.codekg/graph.sqlite`) |
+| `--db PATH` | SQLite knowledge graph path (default: `<repo>/.pycodekg/graph.sqlite`) |
 | `--markdown PATH` | Save Markdown description |
 | `--json PATH` | Save JSON description (infographic-ready) |
 | `--analysis PATH` | Incorporate thorough analysis from file |
-| `--load-latest` | Auto-load latest analysis from `~/.claude/codekg_analysis_latest.json` |
+| `--load-latest` | Auto-load latest analysis from `~/.claude/pycodekg_analysis_latest.json` |
 
 ---
 
 ## Workflow: Thorough Analysis + Architecture
 
-For the richest architectural insights, combine `codekg analyze` with `codekg architecture`:
+For the richest architectural insights, combine `pycodekg analyze` with `pycodekg architecture`:
 
 ```bash
 # Step 1: Run thorough analysis (creates complexity metrics, hotspots, coverage)
-codekg analyze --quiet --json ~/.claude/codekg_analysis_latest.json
+pycodekg analyze --quiet --json ~/.claude/pycodekg_analysis_latest.json
 
 # Step 2: Generate enriched architecture
-codekg architecture --load-latest \
+pycodekg architecture --load-latest \
   --markdown docs/architecture.md \
-  --json assets/codekg_architecture.json
+  --json assets/pycodekg_architecture.json
 
 # Step 3: Use outputs
 # - Markdown for documentation
@@ -114,7 +114,7 @@ codekg architecture --load-latest \
 Layers are detected automatically from your module structure:
 
 ```
-src/code_kg/
+src/pycode_kg/
 ├── cli/           → Command-line Interface layer
 ├── store/         → Data Persistence layer
 ├── index/         → Semantic Search layer
@@ -240,7 +240,7 @@ Heavily called functions. Changes impact many dependents.
 ## Best Practices
 
 1. **Generate at milestones** — After refactoring, at releases, during onboarding
-2. **Use thorough analysis** — Always run `codekg analyze` first for rich insights
+2. **Use thorough analysis** — Always run `pycodekg analyze` first for rich insights
 3. **Version with code** — Commit architecture description alongside changes
 4. **Use for communication** — Share Markdown with team, include in docs
 5. **Automate** — Add to CI pipeline, generate before releases
@@ -254,12 +254,12 @@ Heavily called functions. Changes impact many dependents.
 ### Python Integration
 
 ```python
-from code_kg.architecture import ArchitectureAnalyzer
-from code_kg.store import GraphStore
+from pycode_kg.architecture import ArchitectureAnalyzer
+from pycode_kg.store import GraphStore
 from pathlib import Path
 import json
 
-store = GraphStore(Path(".codekg/graph.sqlite"))
+store = GraphStore(Path(".pycodekg/graph.sqlite"))
 analyzer = ArchitectureAnalyzer(
     store,
     repo_root=Path("."),
@@ -286,7 +286,7 @@ with open("architecture.md", "w") as f:
 ## FAQ
 
 **Q: Do I need thorough analysis to use architecture?**
-A: No. `codekg architecture` works standalone. But with `--load-latest` or `--analysis`, you get richer insights: complexity hotspots, health signals, and issue tracking.
+A: No. `pycodekg architecture` works standalone. But with `--load-latest` or `--analysis`, you get richer insights: complexity hotspots, health signals, and issue tracking.
 
 **Q: Where does the layer detection come from?**
 A: Automatically detected from your module directory structure (e.g., `src/cli/` → CLI Layer).

@@ -1,13 +1,13 @@
-# CodeKG Agent Assessment
+# PyCodeKG Agent Assessment
 
 **Author:** Claude Sonnet 4.6
 **Date:** 2026-03-13
-**Repository:** https://github.com/Flux-Frontiers/code_kg.git
+**Repository:** https://github.com/Flux-Frontiers/pycode_kg.git
 **Platform:** 2024 M3 Max, Macbook Pro, 36GB RAM, 1TB SSD
 
 ## Executive Summary
 
-CodeKG is a sophisticated Python codebase analysis tool that creates a hybrid semantic + structural knowledge graph from Python repositories. After comprehensive testing of all available MCP tools, I found CodeKG to be a **highly effective and well-engineered solution** that significantly enhances codebase understanding compared to traditional file-based approaches.
+PyCodeKG is a sophisticated Python codebase analysis tool that creates a hybrid semantic + structural knowledge graph from Python repositories. After comprehensive testing of all available MCP tools, I found PyCodeKG to be a **highly effective and well-engineered solution** that significantly enhances codebase understanding compared to traditional file-based approaches.
 
 The tool excels at providing **structural accuracy**, **semantic search capabilities**, and **architectural insights** that would be difficult or impossible to obtain through manual code exploration. The MCP server interface makes it seamlessly accessible to AI agents, enabling powerful code analysis workflows.
 
@@ -116,14 +116,14 @@ The tool excels at providing **structural accuracy**, **semantic search capabili
 
 ## Comparison to Default Workflow
 
-**Without CodeKG (Traditional Approach):**
+**Without PyCodeKG (Traditional Approach):**
 - Manual file reading and grep searches
 - Difficult to understand cross-module relationships
 - No semantic search capabilities
 - Time-consuming architectural analysis
 - Limited understanding of codebase structure
 
-**With CodeKG:**
+**With PyCodeKG:**
 - Semantic queries find code by intent ("error handling strategy")
 - Instant structural relationship visualization
 - Comprehensive architectural analysis in seconds
@@ -138,13 +138,13 @@ The tool excels at providing **structural accuracy**, **semantic search capabili
 ## Strengths
 
 ### 1. **Hybrid Semantic + Structural Approach**
-CodeKG's combination of semantic embeddings with structural graph analysis is its killer feature. This allows finding code by intent while maintaining precise structural relationships.
+PyCodeKG's combination of semantic embeddings with structural graph analysis is its killer feature. This allows finding code by intent while maintaining precise structural relationships.
 
 ### 2. **Comprehensive Architectural Analysis**
 The nine-phase analysis provides deep insights into codebase health, complexity, coupling, and structural importance that would take significant manual effort to discover.
 
 ### 3. **Excellent MCP Integration**
-The MCP server interface makes CodeKG seamlessly accessible to AI agents, enabling powerful automated code analysis workflows.
+The MCP server interface makes PyCodeKG seamlessly accessible to AI agents, enabling powerful automated code analysis workflows.
 
 ### 4. **Accurate Cross-Module Resolution**
 The sym: stub system with import-aware filtering correctly resolves cross-module callers, which is notoriously difficult in static analysis.
@@ -181,7 +181,7 @@ Each MCP tool has clear parameters, sensible defaults, and returns well-structur
 
 **Rating: 4.8/5 ⭐⭐⭐⭐⭐**
 
-CodeKG is an **exceptional tool** that significantly enhances codebase understanding and analysis capabilities. It's particularly valuable for:
+PyCodeKG is an **exceptional tool** that significantly enhances codebase understanding and analysis capabilities. It's particularly valuable for:
 
 1. **AI Agents:** Provides structured, semantic access to codebases
 2. **Code Reviews:** Quickly understand architectural patterns and complexity
@@ -201,4 +201,4 @@ CodeKG is an **exceptional tool** that significantly enhances codebase understan
 - Very small projects where overhead isn't justified
 - Teams without Python development needs
 
-CodeKG represents a significant advancement in codebase analysis tools and is highly recommended for Python development teams looking to improve their code understanding and architectural decision-making capabilities.
+PyCodeKG represents a significant advancement in codebase analysis tools and is highly recommended for Python development teams looking to improve their code understanding and architectural decision-making capabilities.

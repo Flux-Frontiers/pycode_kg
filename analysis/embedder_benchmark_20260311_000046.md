@@ -2,9 +2,9 @@
 
 - Started (UTC): 2026-03-11T00:00:46.589614+00:00
 - Completed (UTC): 2026-03-11T00:01:10.366402+00:00
-- Repo: `/Users/egs/repos/code_kg`
-- SQLite: `/Users/egs/repos/code_kg/.codekg/graph.sqlite`
-- LanceDB root: `/Users/egs/repos/code_kg/.codekg/lancedb-benchmark`
+- Repo: `/Users/egs/repos/pycode_kg`
+- SQLite: `/Users/egs/repos/pycode_kg/.pycodekg/graph.sqlite`
+- LanceDB root: `/Users/egs/repos/pycode_kg/.pycodekg/lancedb-benchmark`
 - Hybrid weights: semantic=0.7, lexical=0.3
 
 ## Model: `all-MiniLM-L6-v2`
@@ -54,21 +54,21 @@
 - 2. `_compute_span` (score=0.279, sem=0.399, lex=0.000, hop=0)
 - 3. `LayoutNode.line_count` (score=0.278, sem=0.396, lex=0.000, hop=0)
 - 4. `LayoutNode` (score=0.275, sem=0.393, lex=0.000, hop=0)
-- 5. `CodeKGVisitor._set_node_source_meta` (score=0.273, sem=0.390, lex=0.000, hop=0)
+- 5. `PyCodeKGVisitor._set_node_source_meta` (score=0.273, sem=0.390, lex=0.000, hop=0)
 
 #### Top nodes (semantic)
 - 1. `_read_lines` (score=0.403, sem=0.403, lex=0.000, hop=0)
 - 2. `_compute_span` (score=0.399, sem=0.399, lex=0.000, hop=0)
 - 3. `LayoutNode.line_count` (score=0.396, sem=0.396, lex=0.000, hop=0)
 - 4. `LayoutNode` (score=0.393, sem=0.393, lex=0.000, hop=0)
-- 5. `CodeKGVisitor._set_node_source_meta` (score=0.390, sem=0.390, lex=0.000, hop=0)
+- 5. `PyCodeKGVisitor._set_node_source_meta` (score=0.390, sem=0.390, lex=0.000, hop=0)
 
 #### Top nodes (legacy)
 - 1. `_read_lines` (score=0.403, sem=0.403, lex=0.000, hop=0)
 - 2. `_compute_span` (score=0.399, sem=0.399, lex=0.000, hop=0)
 - 3. `LayoutNode.line_count` (score=0.396, sem=0.396, lex=0.000, hop=0)
 - 4. `LayoutNode` (score=0.393, sem=0.393, lex=0.000, hop=0)
-- 5. `CodeKGVisitor._set_node_source_meta` (score=0.390, sem=0.390, lex=0.000, hop=0)
+- 5. `PyCodeKGVisitor._set_node_source_meta` (score=0.390, sem=0.390, lex=0.000, hop=0)
 
 ### Query: `how does the graph get built from source code`
 - Params: k=8, hop=1, max_nodes=8
@@ -81,7 +81,7 @@
 
 #### Top nodes (hybrid)
 - 1. `CodeGraph` (score=0.494, sem=0.563, lex=0.333, hop=0)
-- 2. `CodeKG` (score=0.490, sem=0.557, lex=0.333, hop=1)
+- 2. `PyCodeKG` (score=0.490, sem=0.557, lex=0.333, hop=1)
 - 3. `ArchitectureAnalyzer._build_architecture_graph` (score=0.469, sem=0.527, lex=0.333, hop=0)
 - 4. `CodeGraph.result` (score=0.454, sem=0.554, lex=0.222, hop=1)
 - 5. `CodeGraph.__init__` (score=0.436, sem=0.528, lex=0.222, hop=0)
@@ -90,14 +90,14 @@
 - 1. `graph` (score=0.569, sem=0.569, lex=0.111, hop=0)
 - 2. `CodeGraph` (score=0.563, sem=0.563, lex=0.333, hop=0)
 - 3. `CodeGraph.__repr__` (score=0.561, sem=0.561, lex=0.111, hop=0)
-- 4. `CodeKG.graph` (score=0.557, sem=0.557, lex=0.111, hop=0)
-- 5. `CodeKG.build_graph` (score=0.557, sem=0.557, lex=0.111, hop=1)
+- 4. `PyCodeKG.graph` (score=0.557, sem=0.557, lex=0.111, hop=0)
+- 5. `PyCodeKG.build_graph` (score=0.557, sem=0.557, lex=0.111, hop=1)
 
 #### Top nodes (legacy)
 - 1. `graph` (score=0.569, sem=0.569, lex=0.111, hop=0)
 - 2. `CodeGraph` (score=0.563, sem=0.563, lex=0.333, hop=0)
 - 3. `CodeGraph.__repr__` (score=0.561, sem=0.561, lex=0.111, hop=0)
-- 4. `CodeKG.graph` (score=0.557, sem=0.557, lex=0.111, hop=0)
+- 4. `PyCodeKG.graph` (score=0.557, sem=0.557, lex=0.111, hop=0)
 - 5. `CodeGraph.nodes` (score=0.554, sem=0.554, lex=0.111, hop=0)
 
 ## Model: `all-MiniLM-L12-v2`
@@ -175,7 +175,7 @@
 #### Top nodes (hybrid)
 - 1. `CodeGraph` (score=0.468, sem=0.526, lex=0.333, hop=1)
 - 2. `ArchitectureAnalyzer._build_architecture_graph` (score=0.466, sem=0.523, lex=0.333, hop=0)
-- 3. `CodeKG` (score=0.459, sem=0.513, lex=0.333, hop=1)
+- 3. `PyCodeKG` (score=0.459, sem=0.513, lex=0.333, hop=1)
 - 4. `CodeGraph.__init__` (score=0.449, sem=0.546, lex=0.222, hop=0)
 - 5. `BuildStats` (score=0.428, sem=0.516, lex=0.222, hop=1)
 
@@ -191,7 +191,7 @@
 - 2. `CodeGraph.__repr__` (score=0.537, sem=0.537, lex=0.111, hop=0)
 - 3. `graph` (score=0.526, sem=0.526, lex=0.111, hop=0)
 - 4. `ArchitectureAnalyzer._build_architecture_graph` (score=0.523, sem=0.523, lex=0.333, hop=0)
-- 5. `CodeKG.build_graph` (score=0.516, sem=0.516, lex=0.111, hop=0)
+- 5. `PyCodeKG.build_graph` (score=0.516, sem=0.516, lex=0.111, hop=0)
 
 ## Model: `BAAI/bge-small-en-v1.5`
 - Build: 1.35s, indexed_rows=349, dim=384
@@ -268,7 +268,7 @@
 #### Top nodes (hybrid)
 - 1. `CodeGraph` (score=0.579, sem=0.684, lex=0.333, hop=0)
 - 2. `ArchitectureAnalyzer._build_architecture_graph` (score=0.578, sem=0.684, lex=0.333, hop=0)
-- 3. `CodeKG` (score=0.564, sem=0.663, lex=0.333, hop=1)
+- 3. `PyCodeKG` (score=0.564, sem=0.663, lex=0.333, hop=1)
 - 4. `CodeGraph.result` (score=0.552, sem=0.693, lex=0.222, hop=0)
 - 5. `CodeGraph.__init__` (score=0.546, sem=0.684, lex=0.222, hop=1)
 
@@ -329,25 +329,25 @@
 | `legacy` | 0.015 | 6 | 6 | 6 | 0.398 | 0.398 | 0.000 |
 
 #### Top nodes (hybrid)
-- 1. `CodeKGAnalyzer._is_special_entry_point` (score=0.283, sem=0.405, lex=0.000, hop=0)
+- 1. `PyCodeKGAnalyzer._is_special_entry_point` (score=0.283, sem=0.405, lex=0.000, hop=0)
 - 2. `LayoutNode.line_count` (score=0.280, sem=0.400, lex=0.000, hop=0)
-- 3. `CodeKG.__exit__` (score=0.278, sem=0.396, lex=0.000, hop=0)
-- 4. `CodeKGAnalyzer._analyze_snapshots` (score=0.277, sem=0.396, lex=0.000, hop=0)
-- 5. `CodeKGAnalyzer._analyze_docstring_coverage` (score=0.276, sem=0.394, lex=0.000, hop=0)
+- 3. `PyCodeKG.__exit__` (score=0.278, sem=0.396, lex=0.000, hop=0)
+- 4. `PyCodeKGAnalyzer._analyze_snapshots` (score=0.277, sem=0.396, lex=0.000, hop=0)
+- 5. `PyCodeKGAnalyzer._analyze_docstring_coverage` (score=0.276, sem=0.394, lex=0.000, hop=0)
 
 #### Top nodes (semantic)
-- 1. `CodeKGAnalyzer._is_special_entry_point` (score=0.405, sem=0.405, lex=0.000, hop=0)
+- 1. `PyCodeKGAnalyzer._is_special_entry_point` (score=0.405, sem=0.405, lex=0.000, hop=0)
 - 2. `LayoutNode.line_count` (score=0.400, sem=0.400, lex=0.000, hop=0)
-- 3. `CodeKG.__exit__` (score=0.396, sem=0.396, lex=0.000, hop=0)
-- 4. `CodeKGAnalyzer._analyze_snapshots` (score=0.396, sem=0.396, lex=0.000, hop=0)
-- 5. `CodeKGAnalyzer._analyze_docstring_coverage` (score=0.394, sem=0.394, lex=0.000, hop=0)
+- 3. `PyCodeKG.__exit__` (score=0.396, sem=0.396, lex=0.000, hop=0)
+- 4. `PyCodeKGAnalyzer._analyze_snapshots` (score=0.396, sem=0.396, lex=0.000, hop=0)
+- 5. `PyCodeKGAnalyzer._analyze_docstring_coverage` (score=0.394, sem=0.394, lex=0.000, hop=0)
 
 #### Top nodes (legacy)
-- 1. `CodeKGAnalyzer._is_special_entry_point` (score=0.405, sem=0.405, lex=0.000, hop=0)
+- 1. `PyCodeKGAnalyzer._is_special_entry_point` (score=0.405, sem=0.405, lex=0.000, hop=0)
 - 2. `LayoutNode.line_count` (score=0.400, sem=0.400, lex=0.000, hop=0)
-- 3. `CodeKG.__exit__` (score=0.396, sem=0.396, lex=0.000, hop=0)
-- 4. `CodeKGAnalyzer._analyze_snapshots` (score=0.396, sem=0.396, lex=0.000, hop=0)
-- 5. `CodeKGAnalyzer._analyze_docstring_coverage` (score=0.394, sem=0.394, lex=0.000, hop=0)
+- 3. `PyCodeKG.__exit__` (score=0.396, sem=0.396, lex=0.000, hop=0)
+- 4. `PyCodeKGAnalyzer._analyze_snapshots` (score=0.396, sem=0.396, lex=0.000, hop=0)
+- 5. `PyCodeKGAnalyzer._analyze_docstring_coverage` (score=0.394, sem=0.394, lex=0.000, hop=0)
 
 ### Query: `how does the graph get built from source code`
 - Params: k=8, hop=1, max_nodes=8
@@ -360,10 +360,10 @@
 
 #### Top nodes (hybrid)
 - 1. `_tab_snippets` (score=0.497, sem=0.520, lex=0.444, hop=1)
-- 2. `CodeKGVisitor._add_edge` (score=0.495, sem=0.516, lex=0.444, hop=1)
+- 2. `PyCodeKGVisitor._add_edge` (score=0.495, sem=0.516, lex=0.444, hop=1)
 - 3. `app` (score=0.464, sem=0.520, lex=0.333, hop=1)
 - 4. `_build_pyvis` (score=0.463, sem=0.518, lex=0.333, hop=0)
-- 5. `CodeKGVisitor` (score=0.461, sem=0.516, lex=0.333, hop=0)
+- 5. `PyCodeKGVisitor` (score=0.461, sem=0.516, lex=0.333, hop=0)
 
 #### Top nodes (semantic)
 - 1. `CodeGraph.__repr__` (score=0.539, sem=0.539, lex=0.111, hop=0)
@@ -376,7 +376,7 @@
 - 1. `CodeGraph.__repr__` (score=0.539, sem=0.539, lex=0.111, hop=0)
 - 2. `main` (score=0.520, sem=0.520, lex=0.222, hop=0)
 - 3. `_build_pyvis` (score=0.518, sem=0.518, lex=0.333, hop=0)
-- 4. `CodeKGVisitor` (score=0.516, sem=0.516, lex=0.333, hop=0)
+- 4. `PyCodeKGVisitor` (score=0.516, sem=0.516, lex=0.333, hop=0)
 - 5. `CodeGraph` (score=0.510, sem=0.510, lex=0.333, hop=0)
 
 ## Model: `microsoft/codebert-base`
@@ -408,7 +408,7 @@
 #### Top nodes (legacy)
 - 1. `SnapshotManifest` (score=0.902, sem=0.902, lex=0.000, hop=0)
 - 2. `ModuleLayer` (score=0.901, sem=0.901, lex=0.000, hop=0)
-- 3. `CodeKG.__exit__` (score=0.900, sem=0.900, lex=0.000, hop=0)
+- 3. `PyCodeKG.__exit__` (score=0.900, sem=0.900, lex=0.000, hop=0)
 - 4. `BuildStats.__str__` (score=0.899, sem=0.899, lex=0.000, hop=0)
 - 5. `MainWindow.on_pick` (score=0.899, sem=0.899, lex=0.000, hop=0)
 
@@ -424,23 +424,23 @@
 #### Top nodes (hybrid)
 - 1. `LayoutNode.line_count` (score=0.653, sem=0.933, lex=0.000, hop=0)
 - 2. `suppress_ingestion_logging` (score=0.651, sem=0.930, lex=0.000, hop=0)
-- 3. `CodeKG.__exit__` (score=0.650, sem=0.929, lex=0.000, hop=0)
+- 3. `PyCodeKG.__exit__` (score=0.650, sem=0.929, lex=0.000, hop=0)
 - 4. `_docstring_signal` (score=0.650, sem=0.928, lex=0.000, hop=0)
-- 5. `CodeKGAnalyzer._analyze_baseline` (score=0.650, sem=0.928, lex=0.000, hop=0)
+- 5. `PyCodeKGAnalyzer._analyze_baseline` (score=0.650, sem=0.928, lex=0.000, hop=0)
 
 #### Top nodes (semantic)
 - 1. `LayoutNode.line_count` (score=0.933, sem=0.933, lex=0.000, hop=0)
 - 2. `suppress_ingestion_logging` (score=0.930, sem=0.930, lex=0.000, hop=0)
-- 3. `CodeKG.__exit__` (score=0.929, sem=0.929, lex=0.000, hop=0)
+- 3. `PyCodeKG.__exit__` (score=0.929, sem=0.929, lex=0.000, hop=0)
 - 4. `_docstring_signal` (score=0.928, sem=0.928, lex=0.000, hop=0)
-- 5. `CodeKGAnalyzer._analyze_baseline` (score=0.928, sem=0.928, lex=0.000, hop=0)
+- 5. `PyCodeKGAnalyzer._analyze_baseline` (score=0.928, sem=0.928, lex=0.000, hop=0)
 
 #### Top nodes (legacy)
 - 1. `LayoutNode.line_count` (score=0.933, sem=0.933, lex=0.000, hop=0)
 - 2. `suppress_ingestion_logging` (score=0.930, sem=0.930, lex=0.000, hop=0)
-- 3. `CodeKG.__exit__` (score=0.929, sem=0.929, lex=0.000, hop=0)
+- 3. `PyCodeKG.__exit__` (score=0.929, sem=0.929, lex=0.000, hop=0)
 - 4. `_docstring_signal` (score=0.928, sem=0.928, lex=0.000, hop=0)
-- 5. `CodeKGAnalyzer._analyze_baseline` (score=0.928, sem=0.928, lex=0.000, hop=0)
+- 5. `PyCodeKGAnalyzer._analyze_baseline` (score=0.928, sem=0.928, lex=0.000, hop=0)
 
 ### Query: `how does the graph get built from source code`
 - Params: k=8, hop=1, max_nodes=8
@@ -454,7 +454,7 @@
 #### Top nodes (hybrid)
 - 1. `index` (score=0.802, sem=0.907, lex=0.556, hop=1)
 - 2. `cmd_query` (score=0.771, sem=0.911, lex=0.444, hop=0)
-- 3. `CodeKG` (score=0.739, sem=0.912, lex=0.333, hop=1)
+- 3. `PyCodeKG` (score=0.739, sem=0.912, lex=0.333, hop=1)
 - 4. `kg` (score=0.735, sem=0.908, lex=0.333, hop=1)
 - 5. `build_sqlite` (score=0.735, sem=0.907, lex=0.333, hop=0)
 
@@ -467,7 +467,7 @@
 
 #### Top nodes (legacy)
 - 1. `MainWindow.on_pick` (score=0.913, sem=0.913, lex=0.222, hop=0)
-- 2. `CodeKG.__exit__` (score=0.912, sem=0.912, lex=0.222, hop=0)
+- 2. `PyCodeKG.__exit__` (score=0.912, sem=0.912, lex=0.222, hop=0)
 - 3. `cmd_query` (score=0.911, sem=0.911, lex=0.444, hop=0)
 - 4. `BuildStats.__str__` (score=0.909, sem=0.909, lex=0.111, hop=0)
 - 5. `_escape` (score=0.908, sem=0.908, lex=0.000, hop=0)

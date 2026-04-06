@@ -1,12 +1,12 @@
 > **Analysis Report Metadata**  
 > - **Generated:** 2026-03-11T22:52:55Z  
-> - **Version:** code-kg 0.7.1  
+> - **Version:** pycode-kg 0.7.1  
 > - **Commit:** d8ee9eb (feature/bridge_centrality)  
 > - **Platform:** Darwin arm64 | Python 3.12.10  
 > - **Graph:** 6540 nodes · 6352 edges (414 meaningful)  
 > - **Included directories:** src  
 
-# code_kg Analysis
+# pycode_kg Analysis
 
 **Generated:** 2026-03-11 22:52:55 UTC
 
@@ -14,7 +14,7 @@
 
 ## 📊 Executive Summary
 
-This report provides a comprehensive architectural analysis of the **code_kg** repository using CodeKG's knowledge graph. The analysis covers complexity hotspots, module coupling, key call chains, and code quality signals to guide refactoring and architecture decisions.
+This report provides a comprehensive architectural analysis of the **pycode_kg** repository using PyCodeKG's knowledge graph. The analysis covers complexity hotspots, module coupling, key call chains, and code quality signals to guide refactoring and architecture decisions.
 
 | Overall Quality | Grade | Score |
 |----------------|-------|-------|
@@ -51,21 +51,21 @@ Most-called functions are potential bottlenecks or core functionality. These fun
 
 | # | Function | Module | Callers |
 |---|----------|--------|---------|
-| 1 | `_get_kg()` | src/code_kg/mcp_server.py | **15** |
-| 2 | `close()` | src/code_kg/kg.py | **15** |
-| 3 | `close()` | src/code_kg/store.py | **15** |
-| 4 | `node()` | src/code_kg/store.py | **13** |
-| 5 | `con()` | src/code_kg/store.py | **12** |
-| 6 | `store()` | src/code_kg/kg.py | **8** |
-| 7 | `to_json()` | src/code_kg/kg.py | **6** |
-| 8 | `extract()` | src/code_kg/graph.py | **5** |
-| 9 | `_add_edge()` | src/code_kg/visitor.py | **5** |
-| 10 | `_get_node_id()` | src/code_kg/visitor.py | **5** |
-| 11 | `to_dict()` | src/code_kg/kg.py | **5** |
-| 12 | `load_manifest()` | src/code_kg/snapshots.py | **5** |
-| 13 | `_add_var_edge()` | src/code_kg/visitor.py | **5** |
-| 14 | `load_snapshot()` | src/code_kg/snapshots.py | **5** |
-| 15 | `compute_coderank()` | src/code_kg/ranking/coderank.py | **5** |
+| 1 | `_get_kg()` | src/pycode_kg/mcp_server.py | **15** |
+| 2 | `close()` | src/pycode_kg/kg.py | **15** |
+| 3 | `close()` | src/pycode_kg/store.py | **15** |
+| 4 | `node()` | src/pycode_kg/store.py | **13** |
+| 5 | `con()` | src/pycode_kg/store.py | **12** |
+| 6 | `store()` | src/pycode_kg/kg.py | **8** |
+| 7 | `to_json()` | src/pycode_kg/kg.py | **6** |
+| 8 | `extract()` | src/pycode_kg/graph.py | **5** |
+| 9 | `_add_edge()` | src/pycode_kg/visitor.py | **5** |
+| 10 | `_get_node_id()` | src/pycode_kg/visitor.py | **5** |
+| 11 | `to_dict()` | src/pycode_kg/kg.py | **5** |
+| 12 | `load_manifest()` | src/pycode_kg/snapshots.py | **5** |
+| 13 | `_add_var_edge()` | src/pycode_kg/visitor.py | **5** |
+| 14 | `load_snapshot()` | src/pycode_kg/snapshots.py | **5** |
+| 15 | `compute_coderank()` | src/pycode_kg/ranking/coderank.py | **5** |
 
 
 **Insight:** Functions with high fan-in are either core APIs or bottlenecks. Review these for:
@@ -81,7 +81,7 @@ Functions that call many others may indicate complex orchestration logic or poor
 
 | # | Function | Module | Calls | Type |
 |---|----------|--------|-------|------|
-| 1 | `__init__()` | src/code_kg/viz3d.py | **95** | Orchestrator |
+| 1 | `__init__()` | src/pycode_kg/viz3d.py | **95** | Orchestrator |
 
 ---
 
@@ -92,16 +92,16 @@ Cohesion = incoming / (incoming + outgoing + 1); higher = more internally focuse
 
 | Module | Functions | Classes | Incoming | Outgoing | Cohesion |
 |--------|-----------|---------|----------|----------|----------|
-| `src/code_kg/kg.py` | 12 | 5 | 5 | 3 | 0.33 |
-| `src/code_kg/viz3d.py` | 9 | 3 | 0 | 0 | 0.00 |
-| `src/code_kg/codekg_thorough_analysis.py` | 5 | 4 | 3 | 1 | 0.20 |
-| `src/code_kg/store.py` | 3 | 2 | 8 | 2 | 0.18 |
-| `src/code_kg/mcp_server.py` | 23 | 0 | 0 | 3 | 0.75 |
-| `src/code_kg/snapshots.py` | 0 | 5 | 5 | 0 | 0.00 |
-| `src/code_kg/index.py` | 5 | 4 | 5 | 0 | 0.00 |
-| `src/code_kg/visitor.py` | 1 | 1 | 1 | 1 | 0.33 |
-| `src/code_kg/architecture.py` | 0 | 4 | 1 | 1 | 0.33 |
-| `src/code_kg/layout3d.py` | 3 | 5 | 0 | 0 | 0.00 |
+| `src/pycode_kg/kg.py` | 12 | 5 | 5 | 3 | 0.33 |
+| `src/pycode_kg/viz3d.py` | 9 | 3 | 0 | 0 | 0.00 |
+| `src/pycode_kg/pycodekg_thorough_analysis.py` | 5 | 4 | 3 | 1 | 0.20 |
+| `src/pycode_kg/store.py` | 3 | 2 | 8 | 2 | 0.18 |
+| `src/pycode_kg/mcp_server.py` | 23 | 0 | 0 | 3 | 0.75 |
+| `src/pycode_kg/snapshots.py` | 0 | 5 | 5 | 0 | 0.00 |
+| `src/pycode_kg/index.py` | 5 | 4 | 5 | 0 | 0.00 |
+| `src/pycode_kg/visitor.py` | 1 | 1 | 1 | 1 | 0.33 |
+| `src/pycode_kg/architecture.py` | 0 | 4 | 1 | 1 | 0.33 |
+| `src/pycode_kg/layout3d.py` | 3 | 5 | 0 | 0 | 0.00 |
 
 ---
 
@@ -123,16 +123,16 @@ Identified public APIs (module-level functions with high usage).
 
 | Function | Module | Fan-In | Type |
 |----------|--------|--------|------|
-| `CodeKG()` | src/code_kg/kg.py | 8 | class |
-| `GraphStore()` | src/code_kg/store.py | 8 | class |
-| `SnapshotManager()` | src/code_kg/snapshots.py | 7 | class |
-| `StructuralImportanceRanker()` | src/code_kg/analysis/centrality.py | 5 | class |
-| `compute_coderank()` | src/code_kg/ranking/coderank.py | 5 | function |
-| `build()` | src/code_kg/cli/cmd_build_full.py | 4 | function |
-| `SentenceTransformerEmbedder()` | src/code_kg/index.py | 4 | class |
-| `pack()` | src/code_kg/cli/cmd_query.py | 3 | function |
-| `norm()` | src/code_kg/analysis/framework_detector.py | 3 | function |
-| `SnapshotDelta()` | src/code_kg/snapshots.py | 3 | class |
+| `PyCodeKG()` | src/pycode_kg/kg.py | 8 | class |
+| `GraphStore()` | src/pycode_kg/store.py | 8 | class |
+| `SnapshotManager()` | src/pycode_kg/snapshots.py | 7 | class |
+| `StructuralImportanceRanker()` | src/pycode_kg/analysis/centrality.py | 5 | class |
+| `compute_coderank()` | src/pycode_kg/ranking/coderank.py | 5 | function |
+| `build()` | src/pycode_kg/cli/cmd_build_full.py | 4 | function |
+| `SentenceTransformerEmbedder()` | src/pycode_kg/index.py | 4 | class |
+| `pack()` | src/pycode_kg/cli/cmd_query.py | 3 | function |
+| `norm()` | src/pycode_kg/analysis/framework_detector.py | 3 | function |
+| `SnapshotDelta()` | src/pycode_kg/snapshots.py | 3 | class |
 ---
 
 ## 📝 Docstring Coverage
@@ -154,25 +154,25 @@ value only when a docstring is present.
 
 ## 🏆 Structural Importance Ranking (SIR)
 
-Weighted PageRank aggregated by module — reveals architectural spine. Cross-module edges boosted 1.5×; private symbols penalized 0.85×. Node-level detail: `codekg centrality --top 25`
+Weighted PageRank aggregated by module — reveals architectural spine. Cross-module edges boosted 1.5×; private symbols penalized 0.85×. Node-level detail: `pycodekg centrality --top 25`
 
 | Rank | Score | Members | Module |
 |------|-------|---------|--------|
-| 1 | 0.150591 | 27 | `src/code_kg/store.py` |
-| 2 | 0.140968 | 45 | `src/code_kg/kg.py` |
-| 3 | 0.099705 | 24 | `src/code_kg/snapshots.py` |
-| 4 | 0.090184 | 40 | `src/code_kg/viz3d.py` |
-| 5 | 0.051315 | 23 | `src/code_kg/index.py` |
-| 6 | 0.044460 | 33 | `src/code_kg/codekg_thorough_analysis.py` |
-| 7 | 0.038323 | 14 | `src/code_kg/analysis/centrality.py` |
-| 8 | 0.035963 | 20 | `src/code_kg/visitor.py` |
-| 9 | 0.034754 | 24 | `src/code_kg/mcp_server.py` |
-| 10 | 0.034442 | 17 | `src/code_kg/layout3d.py` |
-| 11 | 0.033991 | 8 | `src/code_kg/codekg.py` |
-| 12 | 0.032544 | 9 | `src/code_kg/graph.py` |
-| 13 | 0.028203 | 18 | `src/code_kg/architecture.py` |
-| 14 | 0.027225 | 3 | `src/code_kg/ranking/cli_rank.py` |
-| 15 | 0.023361 | 14 | `src/code_kg/ranking/coderank.py` |
+| 1 | 0.150591 | 27 | `src/pycode_kg/store.py` |
+| 2 | 0.140968 | 45 | `src/pycode_kg/kg.py` |
+| 3 | 0.099705 | 24 | `src/pycode_kg/snapshots.py` |
+| 4 | 0.090184 | 40 | `src/pycode_kg/viz3d.py` |
+| 5 | 0.051315 | 23 | `src/pycode_kg/index.py` |
+| 6 | 0.044460 | 33 | `src/pycode_kg/pycodekg_thorough_analysis.py` |
+| 7 | 0.038323 | 14 | `src/pycode_kg/analysis/centrality.py` |
+| 8 | 0.035963 | 20 | `src/pycode_kg/visitor.py` |
+| 9 | 0.034754 | 24 | `src/pycode_kg/mcp_server.py` |
+| 10 | 0.034442 | 17 | `src/pycode_kg/layout3d.py` |
+| 11 | 0.033991 | 8 | `src/pycode_kg/pycodekg.py` |
+| 12 | 0.032544 | 9 | `src/pycode_kg/graph.py` |
+| 13 | 0.028203 | 18 | `src/pycode_kg/architecture.py` |
+| 14 | 0.027225 | 3 | `src/pycode_kg/ranking/cli_rank.py` |
+| 15 | 0.023361 | 14 | `src/pycode_kg/ranking/coderank.py` |
 
 
 
@@ -203,7 +203,7 @@ Weighted PageRank aggregated by module — reveals architectural spine. Cross-mo
 3. **Add tests for key call chains** — the identified call chains represent well-traveled execution paths that benefit most from regression coverage
 
 ### Long-term Architecture
-1. **Version and stabilize the public API** — document breaking-change policies for `CodeKG`, `GraphStore`, `SnapshotManager`
+1. **Version and stabilize the public API** — document breaking-change policies for `PyCodeKG`, `GraphStore`, `SnapshotManager`
 2. **Enforce layer boundaries** — add linting or CI checks to prevent unexpected cross-module dependencies as the codebase grows
 3. **Monitor hot paths** — instrument the high fan-in functions identified here to catch performance regressions early
 
@@ -215,15 +215,15 @@ Weighted PageRank aggregated by module — reveals architectural spine. Cross-mo
 
 | Class | Module | Depth | Parents | Children |
 |-------|--------|-------|---------|----------|
-| `SentenceTransformerEmbedder` | src/code_kg/index.py | 1 | 1 | 0 |
-| `AlliumLayout` | src/code_kg/layout3d.py | 1 | 1 | 0 |
-| `LayerCakeLayout` | src/code_kg/layout3d.py | 1 | 1 | 0 |
-| `Embedder` | src/code_kg/index.py | 0 | 0 | 1 |
-| `Layout3D` | src/code_kg/layout3d.py | 0 | 1 | 2 |
-| `CodeKGVisitor` | src/code_kg/visitor.py | 0 | 1 | 0 |
-| `DocstringPopup` | src/code_kg/viz3d.py | 0 | 1 | 0 |
-| `KGVisualizer` | src/code_kg/viz3d.py | 0 | 1 | 0 |
-| `MainWindow` | src/code_kg/viz3d.py | 0 | 1 | 0 |
+| `SentenceTransformerEmbedder` | src/pycode_kg/index.py | 1 | 1 | 0 |
+| `AlliumLayout` | src/pycode_kg/layout3d.py | 1 | 1 | 0 |
+| `LayerCakeLayout` | src/pycode_kg/layout3d.py | 1 | 1 | 0 |
+| `Embedder` | src/pycode_kg/index.py | 0 | 0 | 1 |
+| `Layout3D` | src/pycode_kg/layout3d.py | 0 | 1 | 2 |
+| `PyCodeKGVisitor` | src/pycode_kg/visitor.py | 0 | 1 | 0 |
+| `DocstringPopup` | src/pycode_kg/viz3d.py | 0 | 1 | 0 |
+| `KGVisualizer` | src/pycode_kg/viz3d.py | 0 | 1 | 0 |
+| `MainWindow` | src/pycode_kg/viz3d.py | 0 | 1 | 0 |
 
 
 ---
@@ -261,26 +261,26 @@ Weighted PageRank over CALLS + IMPORTS + INHERITS edges (test paths excluded). S
 
 | Rank | Score | Kind | Name | Module |
 |------|-------|------|------|--------|
-| 1 | 0.000659 | method | `GraphStore.con` | src/code_kg/store.py |
-| 2 | 0.000600 | method | `CodeKG.store` | src/code_kg/kg.py |
-| 3 | 0.000551 | method | `CodeGraph.extract` | src/code_kg/graph.py |
-| 4 | 0.000505 | function | `_get_kg` | src/code_kg/mcp_server.py |
-| 5 | 0.000362 | class | `SnapshotDelta` | src/code_kg/snapshots.py |
-| 6 | 0.000344 | method | `CodeKGVisitor._get_node_id` | src/code_kg/visitor.py |
-| 7 | 0.000344 | method | `CodeKGVisitor._add_edge` | src/code_kg/visitor.py |
-| 8 | 0.000338 | function | `expr_to_name` | src/code_kg/codekg.py |
-| 9 | 0.000334 | method | `SnippetPack.to_dict` | src/code_kg/kg.py |
-| 10 | 0.000323 | class | `SnapshotManifest` | src/code_kg/snapshots.py |
-| 11 | 0.000304 | function | `_format_table` | src/code_kg/cli/cmd_centrality.py |
-| 12 | 0.000303 | method | `SnapshotManager.load_manifest` | src/code_kg/snapshots.py |
-| 13 | 0.000280 | method | `CodeKGVisitor._add_var_edge` | src/code_kg/visitor.py |
-| 14 | 0.000276 | function | `_load_store` | src/code_kg/app.py |
-| 15 | 0.000270 | method | `GraphStore.close` | src/code_kg/store.py |
-| 16 | 0.000270 | method | `SentenceTransformerEmbedder.embed_texts` | src/code_kg/index.py |
-| 17 | 0.000270 | method | `CodeKG.close` | src/code_kg/kg.py |
-| 18 | 0.000267 | function | `load_snapshots_timeline` | src/code_kg/viz3d_timeline.py |
-| 19 | 0.000258 | method | `SnapshotManager.load_snapshot` | src/code_kg/snapshots.py |
-| 20 | 0.000258 | method | `CodeKG.embedder` | src/code_kg/kg.py |
+| 1 | 0.000659 | method | `GraphStore.con` | src/pycode_kg/store.py |
+| 2 | 0.000600 | method | `PyCodeKG.store` | src/pycode_kg/kg.py |
+| 3 | 0.000551 | method | `CodeGraph.extract` | src/pycode_kg/graph.py |
+| 4 | 0.000505 | function | `_get_kg` | src/pycode_kg/mcp_server.py |
+| 5 | 0.000362 | class | `SnapshotDelta` | src/pycode_kg/snapshots.py |
+| 6 | 0.000344 | method | `PyCodeKGVisitor._get_node_id` | src/pycode_kg/visitor.py |
+| 7 | 0.000344 | method | `PyCodeKGVisitor._add_edge` | src/pycode_kg/visitor.py |
+| 8 | 0.000338 | function | `expr_to_name` | src/pycode_kg/pycodekg.py |
+| 9 | 0.000334 | method | `SnippetPack.to_dict` | src/pycode_kg/kg.py |
+| 10 | 0.000323 | class | `SnapshotManifest` | src/pycode_kg/snapshots.py |
+| 11 | 0.000304 | function | `_format_table` | src/pycode_kg/cli/cmd_centrality.py |
+| 12 | 0.000303 | method | `SnapshotManager.load_manifest` | src/pycode_kg/snapshots.py |
+| 13 | 0.000280 | method | `PyCodeKGVisitor._add_var_edge` | src/pycode_kg/visitor.py |
+| 14 | 0.000276 | function | `_load_store` | src/pycode_kg/app.py |
+| 15 | 0.000270 | method | `GraphStore.close` | src/pycode_kg/store.py |
+| 16 | 0.000270 | method | `SentenceTransformerEmbedder.embed_texts` | src/pycode_kg/index.py |
+| 17 | 0.000270 | method | `PyCodeKG.close` | src/pycode_kg/kg.py |
+| 18 | 0.000267 | function | `load_snapshots_timeline` | src/pycode_kg/viz3d_timeline.py |
+| 19 | 0.000258 | method | `SnapshotManager.load_snapshot` | src/pycode_kg/snapshots.py |
+| 20 | 0.000258 | method | `PyCodeKG.embedder` | src/pycode_kg/kg.py |
 
 ---
 
@@ -292,54 +292,54 @@ Top structurally-dominant nodes per architectural concern (0.60 × semantic + 0.
 
 | Rank | Score | Kind | Name | Module |
 |------|-------|------|------|--------|
-| 1 | 0.7681 | method | `CodeKGVisitor._extract_reads` | src/code_kg/visitor.py |
-| 2 | 0.75 | method | `CodeKG.__exit__` | src/code_kg/kg.py |
-| 3 | 0.7496 | method | `SnapshotManifest.from_dict` | src/code_kg/snapshots.py |
-| 4 | 0.7389 | method | `Snapshot.from_dict` | src/code_kg/snapshots.py |
-| 5 | 0.734 | method | `SemanticIndex._get_table` | src/code_kg/index.py |
+| 1 | 0.7681 | method | `PyCodeKGVisitor._extract_reads` | src/pycode_kg/visitor.py |
+| 2 | 0.75 | method | `PyCodeKG.__exit__` | src/pycode_kg/kg.py |
+| 3 | 0.7496 | method | `SnapshotManifest.from_dict` | src/pycode_kg/snapshots.py |
+| 4 | 0.7389 | method | `Snapshot.from_dict` | src/pycode_kg/snapshots.py |
+| 5 | 0.734 | method | `SemanticIndex._get_table` | src/pycode_kg/index.py |
 
 ### Configuration Loading Initialization Setup
 
 | Rank | Score | Kind | Name | Module |
 |------|-------|------|------|--------|
-| 1 | 0.7536 | function | `_init_state` | src/code_kg/app.py |
-| 2 | 0.7482 | function | `_load_kg` | src/code_kg/app.py |
-| 3 | 0.7402 | function | `main` | src/code_kg/mcp_server.py |
-| 4 | 0.7301 | method | `MainWindow.__init__` | src/code_kg/viz3d.py |
-| 5 | 0.7262 | function | `load_include_dirs` | src/code_kg/config.py |
+| 1 | 0.7536 | function | `_init_state` | src/pycode_kg/app.py |
+| 2 | 0.7482 | function | `_load_kg` | src/pycode_kg/app.py |
+| 3 | 0.7402 | function | `main` | src/pycode_kg/mcp_server.py |
+| 4 | 0.7301 | method | `MainWindow.__init__` | src/pycode_kg/viz3d.py |
+| 5 | 0.7262 | function | `load_include_dirs` | src/pycode_kg/config.py |
 
 ### Data Persistence Storage Database
 
 | Rank | Score | Kind | Name | Module |
 |------|-------|------|------|--------|
-| 1 | 0.8349 | method | `CodeKG.store` | src/code_kg/kg.py |
-| 2 | 0.7602 | function | `_load_store` | src/code_kg/app.py |
-| 3 | 0.7196 | method | `SemanticIndex.build` | src/code_kg/index.py |
-| 4 | 0.7103 | function | `_get_store` | src/code_kg/app.py |
-| 5 | 0.7075 | method | `GraphStore.__init__` | src/code_kg/store.py |
+| 1 | 0.8349 | method | `PyCodeKG.store` | src/pycode_kg/kg.py |
+| 2 | 0.7602 | function | `_load_store` | src/pycode_kg/app.py |
+| 3 | 0.7196 | method | `SemanticIndex.build` | src/pycode_kg/index.py |
+| 4 | 0.7103 | function | `_get_store` | src/pycode_kg/app.py |
+| 5 | 0.7075 | method | `GraphStore.__init__` | src/pycode_kg/store.py |
 
 ### Query Search Retrieval Semantic
 
 | Rank | Score | Kind | Name | Module |
 |------|-------|------|------|--------|
-| 1 | 0.75 | method | `CodeKG.query` | src/code_kg/kg.py |
-| 2 | 0.7438 | method | `SemanticIndex.search` | src/code_kg/index.py |
-| 3 | 0.7143 | function | `query_codebase` | src/code_kg/mcp_server.py |
-| 4 | 0.7039 | function | `query` | src/code_kg/cli/cmd_query.py |
-| 5 | 0.7034 | function | `query_ranked` | src/code_kg/mcp_server.py |
+| 1 | 0.75 | method | `PyCodeKG.query` | src/pycode_kg/kg.py |
+| 2 | 0.7438 | method | `SemanticIndex.search` | src/pycode_kg/index.py |
+| 3 | 0.7143 | function | `query_codebase` | src/pycode_kg/mcp_server.py |
+| 4 | 0.7039 | function | `query` | src/pycode_kg/cli/cmd_query.py |
+| 5 | 0.7034 | function | `query_ranked` | src/pycode_kg/mcp_server.py |
 
 ### Graph Traversal Node Edge
 
 | Rank | Score | Kind | Name | Module |
 |------|-------|------|------|--------|
-| 1 | 0.75 | method | `LayerCakeLayout.compute` | src/code_kg/layout3d.py |
-| 2 | 0.7486 | method | `AlliumLayout.compute` | src/code_kg/layout3d.py |
-| 3 | 0.7427 | method | `Layout3D.compute` | src/code_kg/layout3d.py |
-| 4 | 0.7209 | method | `GraphStore.edges_from` | src/code_kg/store.py |
-| 5 | 0.7083 | method | `GraphStore.edges_within` | src/code_kg/store.py |
+| 1 | 0.75 | method | `LayerCakeLayout.compute` | src/pycode_kg/layout3d.py |
+| 2 | 0.7486 | method | `AlliumLayout.compute` | src/pycode_kg/layout3d.py |
+| 3 | 0.7427 | method | `Layout3D.compute` | src/pycode_kg/layout3d.py |
+| 4 | 0.7209 | method | `GraphStore.edges_from` | src/pycode_kg/store.py |
+| 5 | 0.7083 | method | `GraphStore.edges_within` | src/pycode_kg/store.py |
 
 
 
 ---
 
-*Report generated by CodeKG Thorough Analysis Tool — analysis completed in 4.6s*
+*Report generated by PyCodeKG Thorough Analysis Tool — analysis completed in 4.6s*

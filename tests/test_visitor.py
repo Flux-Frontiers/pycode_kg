@@ -1,25 +1,25 @@
 """
 test_visitor.py
 
-Tests for CodeKGVisitor — scope tracking and argument handling.
+Tests for PyCodeKGVisitor — scope tracking and argument handling.
 """
 
 from __future__ import annotations
 
 import ast
 
-from code_kg.visitor import CodeKGVisitor
+from pycode_kg.visitor import PyCodeKGVisitor
 
 
-def _visit(src: str, module_id: str = "mod") -> CodeKGVisitor:
+def _visit(src: str, module_id: str = "mod") -> PyCodeKGVisitor:
     """Parse *src*, run the visitor, and return it for inspection."""
     tree = ast.parse(src)
-    vis = CodeKGVisitor(module_id=module_id, file_path="mod.py")
+    vis = PyCodeKGVisitor(module_id=module_id, file_path="mod.py")
     vis.visit(tree)
     return vis
 
 
-def _scope(vis: CodeKGVisitor, name: str) -> set[str]:
+def _scope(vis: PyCodeKGVisitor, name: str) -> set[str]:
     """Return ``vars_in_scope`` for the first scope whose key contains *name*."""
     for key, vars_ in vis.vars_in_scope.items():
         if name in key:

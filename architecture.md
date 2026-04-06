@@ -22,67 +22,67 @@ Handles src concerns.
 - Component responsibility
 
 **Modules:**
-- `src/code_kg/__init__.py`
-- `src/code_kg/__main__.py`
-- `src/code_kg/app.py`
-- `src/code_kg/architecture.py`
-- `src/code_kg/build_codekg_lancedb.py`
-- `src/code_kg/build_codekg_sqlite.py`
-- `src/code_kg/cli/__init__.py`
-- `src/code_kg/cli/cmd_analyze.py`
-- `src/code_kg/cli/cmd_architecture.py`
-- `src/code_kg/cli/cmd_build.py`
-- `src/code_kg/cli/cmd_build_full.py`
-- `src/code_kg/cli/cmd_mcp.py`
-- `src/code_kg/cli/cmd_model.py`
-- `src/code_kg/cli/cmd_query.py`
-- `src/code_kg/cli/cmd_snapshot.py`
-- `src/code_kg/cli/cmd_viz.py`
-- `src/code_kg/cli/main.py`
-- `src/code_kg/cli/options.py`
-- `src/code_kg/codekg.py`
-- `src/code_kg/codekg_query.py`
-- `src/code_kg/codekg_snippet_packer.py`
-- `src/code_kg/codekg_thorough_analysis.py`
-- `src/code_kg/codekg_viz.py`
-- `src/code_kg/codekg_viz3d.py`
-- `src/code_kg/config.py`
-- `src/code_kg/graph.py`
-- `src/code_kg/index.py`
-- `src/code_kg/kg.py`
-- `src/code_kg/layout3d.py`
-- `src/code_kg/mcp_server.py`
-- `src/code_kg/snapshots.py`
-- `src/code_kg/store.py`
-- `src/code_kg/utils.py`
-- `src/code_kg/visitor.py`
-- `src/code_kg/viz3d.py`
-- `src/code_kg/viz3d_timeline.py`
+- `src/pycode_kg/__init__.py`
+- `src/pycode_kg/__main__.py`
+- `src/pycode_kg/app.py`
+- `src/pycode_kg/architecture.py`
+- `src/pycode_kg/build_pycodekg_lancedb.py`
+- `src/pycode_kg/build_pycodekg_sqlite.py`
+- `src/pycode_kg/cli/__init__.py`
+- `src/pycode_kg/cli/cmd_analyze.py`
+- `src/pycode_kg/cli/cmd_architecture.py`
+- `src/pycode_kg/cli/cmd_build.py`
+- `src/pycode_kg/cli/cmd_build_full.py`
+- `src/pycode_kg/cli/cmd_mcp.py`
+- `src/pycode_kg/cli/cmd_model.py`
+- `src/pycode_kg/cli/cmd_query.py`
+- `src/pycode_kg/cli/cmd_snapshot.py`
+- `src/pycode_kg/cli/cmd_viz.py`
+- `src/pycode_kg/cli/main.py`
+- `src/pycode_kg/cli/options.py`
+- `src/pycode_kg/pycodekg.py`
+- `src/pycode_kg/pycodekg_query.py`
+- `src/pycode_kg/pycodekg_snippet_packer.py`
+- `src/pycode_kg/pycodekg_thorough_analysis.py`
+- `src/pycode_kg/pycodekg_viz.py`
+- `src/pycode_kg/pycodekg_viz3d.py`
+- `src/pycode_kg/config.py`
+- `src/pycode_kg/graph.py`
+- `src/pycode_kg/index.py`
+- `src/pycode_kg/kg.py`
+- `src/pycode_kg/layout3d.py`
+- `src/pycode_kg/mcp_server.py`
+- `src/pycode_kg/snapshots.py`
+- `src/pycode_kg/store.py`
+- `src/pycode_kg/utils.py`
+- `src/pycode_kg/visitor.py`
+- `src/pycode_kg/viz3d.py`
+- `src/pycode_kg/viz3d_timeline.py`
 
 ## Key Components
 
 ### ModuleLayer
-**Type:** `class` | **File:** `src/code_kg/architecture.py:40`
+**Type:** `class` | **File:** `src/pycode_kg/architecture.py:40`
 
 Represents a logical layer or module group.
 
 ### ComponentNode
-**Type:** `class` | **File:** `src/code_kg/architecture.py:50`
+**Type:** `class` | **File:** `src/pycode_kg/architecture.py:50`
 
 A significant architectural component.
 
 ### ArchitectureGraph
-**Type:** `class` | **File:** `src/code_kg/architecture.py:62`
+**Type:** `class` | **File:** `src/pycode_kg/architecture.py:62`
 
 Structured representation of architecture with provenance.
 
 ### ArchitectureAnalyzer
-**Type:** `class` | **File:** `src/code_kg/architecture.py:82`
+**Type:** `class` | **File:** `src/pycode_kg/architecture.py:82`
 
 Analyzes codebase architecture and produces coherent descriptions.
 
 ### Node
-**Type:** `class` | **File:** `src/code_kg/codekg.py:54`
+**Type:** `class` | **File:** `src/pycode_kg/pycodekg.py:54`
 
 Graph node.
 
@@ -99,7 +99,7 @@ Semantic search → graph expansion → snippet packing
 Repository scanning → code analysis → graph storage
 
 - CodeGraph walks repo and extracts Python files
-- CodeKGVisitor traverses AST, collects nodes and edges
+- PyCodeKGVisitor traverses AST, collects nodes and edges
 - GraphStore persists in SQLite with symbol resolution
 
 ## Dependency & Coupling Analysis
@@ -114,17 +114,17 @@ Repository scanning → code analysis → graph storage
 - imports: tempfile
 - imports: pathlib.Path
 
-**src/code_kg/store.py**
+**src/pycode_kg/store.py**
 - imports: __future__.annotations
 - imports: json
 - imports: sqlite3
 - imports: collections.abc.Iterable
 - imports: collections.abc.Sequence
 - imports: pathlib.Path
-- imports: code_kg.codekg.Edge
-- imports: code_kg.codekg.Node
+- imports: pycode_kg.pycodekg.Edge
+- imports: pycode_kg.pycodekg.Node
 
-**src/code_kg/snapshots.py**
+**src/pycode_kg/snapshots.py**
 - imports: __future__.annotations
 - imports: json
 - imports: subprocess
@@ -136,58 +136,58 @@ Repository scanning → code analysis → graph storage
 - imports: pathlib.Path
 - imports: typing.Any
 
-**src/code_kg/codekg.py**
+**src/pycode_kg/pycodekg.py**
 - imports: __future__.annotations
 - imports: ast
 - imports: os
 - imports: collections.abc.Iterable
 - imports: dataclasses.dataclass
 - imports: pathlib.Path
-- imports: code_kg.utils.node_id
-- imports: code_kg.utils.rel_module_path
-- imports: code_kg.visitor.CodeKGVisitor
+- imports: pycode_kg.utils.node_id
+- imports: pycode_kg.utils.rel_module_path
+- imports: pycode_kg.visitor.PyCodeKGVisitor
 
-**src/code_kg/config.py**
+**src/pycode_kg/config.py**
 - imports: __future__.annotations
 - imports: tomllib
 - imports: pathlib.Path
 
-**src/code_kg/index.py**
+**src/pycode_kg/index.py**
 - imports: __future__.annotations
 - imports: collections.abc.Sequence
 - imports: dataclasses.dataclass
 - imports: pathlib.Path
 - imports: typing.TYPE_CHECKING
 - imports: numpy
-- imports: code_kg.codekg.DEFAULT_MODEL
+- imports: pycode_kg.pycodekg.DEFAULT_MODEL
 
-**src/code_kg/graph.py**
+**src/pycode_kg/graph.py**
 - imports: __future__.annotations
 - imports: collections.Counter
 - imports: pathlib.Path
-- imports: code_kg.codekg.Edge
-- imports: code_kg.codekg.Node
-- imports: code_kg.codekg.extract_repo
+- imports: pycode_kg.pycodekg.Edge
+- imports: pycode_kg.pycodekg.Node
+- imports: pycode_kg.pycodekg.extract_repo
 
-**src/code_kg/__init__.py**
-- imports: code_kg.codekg.DEFAULT_MODEL
-- imports: code_kg.codekg.Edge
-- imports: code_kg.codekg.Node
-- imports: code_kg.graph.CodeGraph
-- imports: code_kg.index.Embedder
-- imports: code_kg.index.SeedHit
-- imports: code_kg.index.SemanticIndex
-- imports: code_kg.index.SentenceTransformerEmbedder
-- imports: code_kg.kg.BuildStats
-- imports: code_kg.kg.CodeKG
-- imports: code_kg.kg.QueryResult
-- imports: code_kg.kg.Snippet
-- imports: code_kg.kg.SnippetPack
-- imports: code_kg.store.DEFAULT_RELS
-- imports: code_kg.store.GraphStore
-- imports: code_kg.store.ProvMeta
+**src/pycode_kg/__init__.py**
+- imports: pycode_kg.pycodekg.DEFAULT_MODEL
+- imports: pycode_kg.pycodekg.Edge
+- imports: pycode_kg.pycodekg.Node
+- imports: pycode_kg.graph.CodeGraph
+- imports: pycode_kg.index.Embedder
+- imports: pycode_kg.index.SeedHit
+- imports: pycode_kg.index.SemanticIndex
+- imports: pycode_kg.index.SentenceTransformerEmbedder
+- imports: pycode_kg.kg.BuildStats
+- imports: pycode_kg.kg.PyCodeKG
+- imports: pycode_kg.kg.QueryResult
+- imports: pycode_kg.kg.Snippet
+- imports: pycode_kg.kg.SnippetPack
+- imports: pycode_kg.store.DEFAULT_RELS
+- imports: pycode_kg.store.GraphStore
+- imports: pycode_kg.store.ProvMeta
 
-**src/code_kg/codekg_thorough_analysis.py**
+**src/pycode_kg/pycodekg_thorough_analysis.py**
 - imports: datetime
 - imports: json
 - imports: logging
@@ -201,36 +201,36 @@ Repository scanning → code analysis → graph storage
 - imports: rich.panel.Panel
 - imports: rich.table.Table
 
-**src/code_kg/build_codekg_lancedb.py**
-- imports: code_kg.cli.cmd_build.build_lancedb
+**src/pycode_kg/build_pycodekg_lancedb.py**
+- imports: pycode_kg.cli.cmd_build.build_lancedb
 
-**src/code_kg/layout3d.py**
+**src/pycode_kg/layout3d.py**
 - imports: __future__.annotations
 - imports: abc.ABC
 - imports: abc.abstractmethod
 - imports: dataclasses.dataclass
 - imports: numpy
 
-**src/code_kg/build_codekg_sqlite.py**
-- imports: code_kg.cli.cmd_build.build_sqlite
+**src/pycode_kg/build_pycodekg_sqlite.py**
+- imports: pycode_kg.cli.cmd_build.build_sqlite
 
-**src/code_kg/visitor.py**
+**src/pycode_kg/visitor.py**
 - imports: ast
-- imports: code_kg.utils.node_id
+- imports: pycode_kg.utils.node_id
 
-**src/code_kg/utils.py**
+**src/pycode_kg/utils.py**
 - imports: __future__.annotations
 - imports: pathlib.Path
 
-**src/code_kg/viz3d_timeline.py**
+**src/pycode_kg/viz3d_timeline.py**
 - imports: __future__.annotations
 - imports: pathlib.Path
 - imports: typing.Any
 - imports: plotly.graph_objects
 - imports: plotly.subplots
-- imports: code_kg.snapshots.SnapshotManager
+- imports: pycode_kg.snapshots.SnapshotManager
 
-**src/code_kg/architecture.py**
+**src/pycode_kg/architecture.py**
 - imports: __future__.annotations
 - imports: json
 - imports: dataclasses.asdict

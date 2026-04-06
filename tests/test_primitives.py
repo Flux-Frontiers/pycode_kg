@@ -1,7 +1,7 @@
 """
 test_primitives.py
 
-Tests for the locked v0 primitives in codekg.py:
+Tests for the locked v0 primitives in pycodekg.py:
   Node, Edge, node_id, rel_module_path, expr_to_name, iter_python_files, extract_repo
 """
 
@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from code_kg.codekg import (
+from pycode_kg.pycodekg import (
     Edge,
     Node,
     expr_to_name,

@@ -13,7 +13,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from code_kg.architecture import (
+from pycode_kg.architecture import (
     ArchitectureAnalyzer,
     ArchitectureGraph,
     ComponentNode,
@@ -35,9 +35,9 @@ def mock_store() -> MagicMock:
         if kinds and "class" in kinds:
             return [
                 {
-                    "id": "cls:src/code_kg/store:GraphStore",
+                    "id": "cls:src/pycode_kg/store:GraphStore",
                     "name": "GraphStore",
-                    "module_path": "src/code_kg/store.py",
+                    "module_path": "src/pycode_kg/store.py",
                     "kind": "class",
                     "lineno": 42,
                     "docstring": "Main graph storage class",
@@ -45,18 +45,18 @@ def mock_store() -> MagicMock:
             ]
         return [
             {
-                "id": "mod:src/code_kg/cli:cli",
-                "module_path": "src/code_kg/cli",
+                "id": "mod:src/pycode_kg/cli:cli",
+                "module_path": "src/pycode_kg/cli",
                 "kind": "module",
             },
             {
-                "id": "mod:src/code_kg/store:store",
-                "module_path": "src/code_kg/store",
+                "id": "mod:src/pycode_kg/store:store",
+                "module_path": "src/pycode_kg/store",
                 "kind": "module",
             },
             {
-                "id": "mod:src/code_kg/index:index",
-                "module_path": "src/code_kg/index",
+                "id": "mod:src/pycode_kg/index:index",
+                "module_path": "src/pycode_kg/index",
                 "kind": "module",
             },
         ]
@@ -64,8 +64,8 @@ def mock_store() -> MagicMock:
     store.query_nodes = MagicMock(side_effect=mock_query_nodes)
     store.con = MagicMock()
     store.con.execute.return_value.fetchall.return_value = [
-        ("src/code_kg/store", "src/code_kg/index"),
-        ("src/code_kg/cli", "src/code_kg/store"),
+        ("src/pycode_kg/store", "src/pycode_kg/index"),
+        ("src/pycode_kg/cli", "src/pycode_kg/store"),
     ]
     return store
 
@@ -101,7 +101,7 @@ def test_module_layer_creation() -> None:
     layer = ModuleLayer(
         name="CLI Layer",
         description="Command-line interface",
-        modules=["src/code_kg/cli/__init__.py", "src/code_kg/cli/main.py"],
+        modules=["src/pycode_kg/cli/__init__.py", "src/pycode_kg/cli/main.py"],
         responsibilities=["Handle CLI commands", "Route subcommands"],
     )
     assert layer.name == "CLI Layer"
@@ -118,16 +118,16 @@ def test_module_layer_creation() -> None:
 def test_component_node_creation() -> None:
     """Test ComponentNode creation."""
     comp = ComponentNode(
-        node_id="cls:src/code_kg/store:GraphStore",
+        node_id="cls:src/pycode_kg/store:GraphStore",
         name="GraphStore",
         kind="class",
         description="Central graph storage and querying",
-        file="src/code_kg/store.py",
+        file="src/pycode_kg/store.py",
         lineno=42,
     )
     assert comp.name == "GraphStore"
     assert comp.kind == "class"
-    assert comp.file == "src/code_kg/store.py"
+    assert comp.file == "src/pycode_kg/store.py"
     assert comp.lineno == 42
 
 
@@ -139,14 +139,14 @@ def test_component_node_creation() -> None:
 def test_architecture_graph_creation() -> None:
     """Test ArchitectureGraph creation."""
     graph = ArchitectureGraph(
-        title="CodeKG Architecture",
+        title="PyCodeKG Architecture",
         description="Knowledge graph for Python codebases",
         layers=[],
         key_components=[],
         critical_paths=[],
         coupling_summary={},
     )
-    assert graph.title == "CodeKG Architecture"
+    assert graph.title == "PyCodeKG Architecture"
     assert graph.description == "Knowledge graph for Python codebases"
     assert graph.generated_at is not None
 
@@ -239,10 +239,10 @@ def test_architecture_analyzer_identify_key_components(
     """Test key component identification."""
     architecture_analyzer.store.query_nodes.return_value = [
         {
-            "id": "cls:src/code_kg/store:GraphStore",
+            "id": "cls:src/pycode_kg/store:GraphStore",
             "name": "GraphStore",
             "kind": "class",
-            "module_path": "src/code_kg/store.py",
+            "module_path": "src/pycode_kg/store.py",
             "lineno": 42,
             "docstring": "Main graph storage class",
         }
@@ -316,8 +316,8 @@ def test_architecture_analyzer_generate_summary(
 ) -> None:
     """Test architecture summary generation."""
     layers = [
-        ModuleLayer("CLI Layer", "CLI", ["src/code_kg/cli"], []),
-        ModuleLayer("Store Layer", "Storage", ["src/code_kg/store"], []),
+        ModuleLayer("CLI Layer", "CLI", ["src/pycode_kg/cli"], []),
+        ModuleLayer("Store Layer", "Storage", ["src/pycode_kg/store"], []),
     ]
     summary = architecture_analyzer._generate_architecture_summary(layers)
     assert "CLI Layer" in summary or "Store Layer" in summary

@@ -126,11 +126,11 @@ Extract relevant snippets from KGs and prepare markdown for feeding to LLMs.
 
 ## Workflow 4: Running Architectural Analysis
 
-Analyze a single CodeKG instance for complexity, issues, and strengths.
+Analyze a single PyCodeKG instance for complexity, issues, and strengths.
 
 **Steps:**
 
-1. **Check available CodeKGs:**
+1. **Check available PyCodeKGs:**
    ```bash
    kgrag list | grep code
    ```
@@ -147,7 +147,7 @@ Analyze a single CodeKG instance for complexity, issues, and strengths.
    ```
    - Open browser
    - Go to **🧪 Analysis** tab
-   - Select a CodeKG
+   - Select a PyCodeKG
    - Click **Run Analysis**
    - Results show: complexity hotspots, call chains, docstring coverage, orphaned code, etc.
 

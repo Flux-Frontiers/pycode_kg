@@ -1,12 +1,12 @@
-# Structural Importance Ranking (SIR) for CodeKG
+# Structural Importance Ranking (SIR) for PyCodeKG
 
 Author: Eric G. Suchanek, PhD  
-Project: CodeKG  
-Repository: https://github.com/flux-frontiers/code_kg
+Project: PyCodeKG  
+Repository: https://github.com/flux-frontiers/pycode_kg
 
 ## Overview
 
-This document describes a deterministic algorithm for computing **structural importance scores** for nodes in a CodeKG knowledge graph.
+This document describes a deterministic algorithm for computing **structural importance scores** for nodes in a PyCodeKG knowledge graph.
 
 The algorithm is called **Structural Importance Ranking (SIR)**.
 
@@ -18,17 +18,17 @@ Its purpose is to identify the architectural core of a codebase:
 - framework-like abstractions
 - widely reused utilities
 
-Unlike embedding-based approaches, SIR relies entirely on the structural dependency graph produced by CodeKG. This makes the result deterministic, explainable, reproducible, and independent of LLM heuristics.
+Unlike embedding-based approaches, SIR relies entirely on the structural dependency graph produced by PyCodeKG. This makes the result deterministic, explainable, reproducible, and independent of LLM heuristics.
 
-## Why this fits CodeKG
+## Why this fits PyCodeKG
 
-CodeKG already builds a deterministic static graph in SQLite, stores typed structural edges, and adds post-build `RESOLVES_TO` edges for symbol resolution. The repository README describes CodeKG as a deterministic, explainable knowledge graph built from AST structure in SQLite, with post-build symbol resolution and a Click-based CLI. citeturn438305view0turn820418view3turn591393view1
+PyCodeKG already builds a deterministic static graph in SQLite, stores typed structural edges, and adds post-build `RESOLVES_TO` edges for symbol resolution. The repository README describes PyCodeKG as a deterministic, explainable knowledge graph built from AST structure in SQLite, with post-build symbol resolution and a Click-based CLI. citeturn438305view0turn820418view3turn591393view1
 
 SIR therefore belongs **after** symbol resolution and **before or alongside** downstream retrieval/indexing.
 
 ## Conceptual Model
 
-CodeKG builds a directed multigraph:
+PyCodeKG builds a directed multigraph:
 
 ```text
 G = (V, E)
@@ -69,7 +69,7 @@ Before computing importance, normalize the graph.
 
 ### Step 1: Resolve symbol stubs
 
-CodeKG can emit edges like:
+PyCodeKG can emit edges like:
 
 ```text
 f -> sym:Foo
@@ -197,12 +197,12 @@ For each node you can report:
 ## Recommended CLI
 
 ```bash
-codekg centrality --repo .
-codekg centrality --repo . --kind function
-codekg centrality --repo . --kind module
-codekg centrality --repo . --top 50
-codekg centrality --repo . --json
-codekg centrality --repo . --write-db
+pycodekg centrality --repo .
+pycodekg centrality --repo . --kind function
+pycodekg centrality --repo . --kind module
+pycodekg centrality --repo . --top 50
+pycodekg centrality --repo . --json
+pycodekg centrality --repo . --write-db
 ```
 
 ## Suggested persistence table
@@ -235,4 +235,4 @@ The post-build `RESOLVES_TO` phase already exists in `GraphStore.resolve_symbols
 
 ## Summary
 
-Structural Importance Ranking (SIR) gives CodeKG a deterministic and explainable centrality layer over the existing structural graph. It identifies components that matter because **many important parts of the system rely on them**.
+Structural Importance Ranking (SIR) gives PyCodeKG a deterministic and explainable centrality layer over the existing structural graph. It identifies components that matter because **many important parts of the system rely on them**.

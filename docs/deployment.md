@@ -1,4 +1,4 @@
-# CodeKG Deployment Guide
+# PyCodeKG Deployment Guide
 
 *Author: Eric G. Suchanek, PhD*
 
@@ -6,12 +6,12 @@
 
 ## Overview
 
-CodeKG has two distinct deployment surfaces:
+PyCodeKG has two distinct deployment surfaces:
 
 | Surface | What it is | Best options |
 |---|---|---|
-| **Python library + CLI** | `code_kg` package + unified `codekg` CLI | PyPI, Conda, GitHub Releases |
-| **Streamlit web app** | `codekg viz` interactive graph explorer | Streamlit Cloud, Fly.io |
+| **Python library + CLI** | `pycode_kg` package + unified `pycodekg` CLI | PyPI, Conda, GitHub Releases |
+| **Streamlit web app** | `pycodekg viz` interactive graph explorer | Streamlit Cloud, Fly.io |
 
 These can be deployed independently or together. The sections below cover each option in detail.
 
@@ -24,7 +24,7 @@ The project is already structured perfectly for PyPI: `pyproject.toml` with Poet
 ### 1a. Prepare for release
 
 ```bash
-# Bump version in pyproject.toml and src/code_kg/__init__.py
+# Bump version in pyproject.toml and src/pycode_kg/__init__.py
 # e.g. 0.1.0 → 0.2.0
 
 # Ensure the lock file is current
@@ -35,8 +35,8 @@ poetry run pytest
 
 # Build sdist + wheel
 poetry build
-# → dist/code_kg-0.1.0.tar.gz
-# → dist/code_kg-0.1.0-py3-none-any.whl
+# → dist/pycode_kg-0.1.0.tar.gz
+# → dist/pycode_kg-0.1.0-py3-none-any.whl
 ```
 
 ### 1b. Publish to TestPyPI first
@@ -49,7 +49,7 @@ poetry publish --repository testpypi
 Verify the install:
 
 ```bash
-pip install --index-url https://test.pypi.org/simple/ code-kg
+pip install --index-url https://test.pypi.org/simple/ pycode-kg
 ```
 
 ### 1c. Publish to PyPI
@@ -62,20 +62,20 @@ poetry publish
 After publishing, users install with:
 
 ```bash
-pip install code-kg
+pip install pycode-kg
 ```
 
-The `codekg` CLI and all subcommands become available immediately:
+The `pycodekg` CLI and all subcommands become available immediately:
 
 ```
-codekg build-sqlite
-codekg build-lancedb
-codekg query
-codekg pack
-codekg viz
-codekg viz3d
-codekg analyze
-codekg mcp
+pycodekg build-sqlite
+pycodekg build-lancedb
+pycodekg query
+pycodekg pack
+pycodekg viz
+pycodekg viz3d
+pycodekg analyze
+pycodekg mcp
 ```
 
 ### 1d. Automate with GitHub Actions
@@ -119,9 +119,9 @@ git push origin v0.1.0
 
 The fastest way to share the Streamlit app publicly — free tier available.
 
-1. Push the repo to GitHub (already done: `github.com/Flux-Frontiers/code_kg`)
+1. Push the repo to GitHub (already done: `github.com/Flux-Frontiers/pycode_kg`)
 2. Go to [share.streamlit.io](https://share.streamlit.io) → **New app**
-3. Select repo `Flux-Frontiers/code_kg`, branch `main`, main file `src/code_kg/app.py`
+3. Select repo `Flux-Frontiers/pycode_kg`, branch `main`, main file `src/pycode_kg/app.py`
 4. Add a `requirements.txt` (Streamlit Cloud doesn't use Poetry directly):
 
 ```bash
@@ -146,10 +146,10 @@ brew install flyctl
 fly auth login
 
 # From the repo root
-fly launch --name codekg --region iad
+fly launch --name pycodekg --region iad
 
 # Add a persistent volume for SQLite + LanceDB
-fly volumes create codekg_data --size 10 --region iad
+fly volumes create pycodekg_data --size 10 --region iad
 
 # Deploy
 fly deploy
@@ -159,7 +159,7 @@ Add to `fly.toml`:
 
 ```toml
 [mounts]
-  source = "codekg_data"
+  source = "pycodekg_data"
   destination = "/data"
 
 [[services]]
@@ -186,47 +186,47 @@ poetry build
 
 # Create a GitHub release and attach artifacts
 gh release create v0.1.0 dist/* \
-  --title "CodeKG v0.1.0" \
+  --title "PyCodeKG v0.1.0" \
   --notes "Initial release"
 ```
 
 Users install directly from the release:
 
 ```bash
-pip install https://github.com/Flux-Frontiers/code_kg/releases/download/v0.1.0/code_kg-0.1.0-py3-none-any.whl
+pip install https://github.com/Flux-Frontiers/pycode_kg/releases/download/v0.1.0/pycode_kg-0.1.0-py3-none-any.whl
 ```
 
 ---
 
 ## Option 5 — MCP Server (AI agent integration)
 
-CodeKG ships a production-ready MCP server (`codekg mcp`) that exposes the full hybrid query and snippet-pack pipeline as structured tools for any MCP-compatible agent — Claude Code, Kilo Code, GitHub Copilot, Claude Desktop, Cursor, Continue, or any custom agent.
+PyCodeKG ships a production-ready MCP server (`pycodekg mcp`) that exposes the full hybrid query and snippet-pack pipeline as structured tools for any MCP-compatible agent — Claude Code, Kilo Code, GitHub Copilot, Claude Desktop, Cursor, Continue, or any custom agent.
 
 ### Install
 
 ```bash
 # MCP server is included in the standard install — no extra needed
-poetry add 'code-kg @ git+https://github.com/Flux-Frontiers/code_kg.git'
+poetry add 'pycode-kg @ git+https://github.com/Flux-Frontiers/pycode_kg.git'
 # or
-pip install 'code-kg @ git+https://github.com/Flux-Frontiers/code_kg.git'
+pip install 'pycode-kg @ git+https://github.com/Flux-Frontiers/pycode_kg.git'
 
 # With 3D visualizer (optional)
-poetry add 'code-kg[viz3d] @ git+https://github.com/Flux-Frontiers/code_kg.git'
+poetry add 'pycode-kg[viz3d] @ git+https://github.com/Flux-Frontiers/pycode_kg.git'
 ```
 
 ### Build the knowledge graph first
 
 ```bash
-codekg build-sqlite --repo /path/to/repo
-codekg build-lancedb
+pycodekg build-sqlite --repo /path/to/repo
+pycodekg build-lancedb
 ```
 
 ### Start the server manually
 
 ```bash
-codekg mcp \
+pycodekg mcp \
   --repo /path/to/repo \
-  --db   /path/to/repo/.codekg/graph.sqlite
+  --db   /path/to/repo/.pycodekg/graph.sqlite
 ```
 
 ### Exposed tools
@@ -252,18 +252,18 @@ codekg mcp \
 ```json
 {
   "mcpServers": {
-    "codekg": {
-      "command": "codekg",
+    "pycodekg": {
+      "command": "pycodekg",
       "args": ["mcp",
         "--repo", "/absolute/path/to/repo",
-        "--db",   "/absolute/path/to/repo/.codekg/graph.sqlite"
+        "--db",   "/absolute/path/to/repo/.pycodekg/graph.sqlite"
       ]
     }
   }
 }
 ```
 
-**Kilo Code** (`.mcp.json` — Copilot servers without CodeKG):
+**Kilo Code** (`.mcp.json` — Copilot servers without PyCodeKG):
 ```json
 {
   "mcpServers": {
@@ -278,12 +278,12 @@ codekg mcp \
 ```json
 {
   "servers": {
-    "codekg": {
+    "pycodekg": {
       "type": "stdio",
-      "command": "codekg",
+      "command": "pycodekg",
       "args": ["mcp",
         "--repo", "/absolute/path/to/repo",
-        "--db",   "/absolute/path/to/repo/.codekg/graph.sqlite"
+        "--db",   "/absolute/path/to/repo/.pycodekg/graph.sqlite"
       ],
       "env": { "POETRY_VIRTUALENVS_IN_PROJECT": "false" }
     }
@@ -293,14 +293,14 @@ codekg mcp \
 
 **Claude Desktop** — use the absolute venv binary path (Poetry not on PATH):
 ```bash
-poetry env info --path   # → /path/to/venv; binary at /path/to/venv/bin/codekg
+poetry env info --path   # → /path/to/venv; binary at /path/to/venv/bin/pycodekg
 ```
 ```json
 {
   "mcpServers": {
-    "codekg": {
-      "command": "/path/to/venv/bin/codekg",
-      "args": ["mcp", "--repo", "/abs/path", "--db", "/abs/path/.codekg/graph.sqlite"]
+    "pycodekg": {
+      "command": "/path/to/venv/bin/pycodekg",
+      "args": ["mcp", "--repo", "/abs/path", "--db", "/abs/path/.pycodekg/graph.sqlite"]
     }
   }
 }
@@ -331,18 +331,18 @@ See [`docs/MCP.md`](MCP.md) for the complete reference.
 ### Suggested release order
 
 1. **PyPI first** — the `pyproject.toml` is already complete; `poetry build && poetry publish` is all it takes.
-2. **MCP server** — add as a CLI entry point so agent users get it automatically with `pip install code-kg`.
+2. **MCP server** — add as a CLI entry point so agent users get it automatically with `pip install pycode-kg`.
 
 ---
 
 ## Pre-release Checklist
 
-- [ ] Bump `version` in `pyproject.toml` and `src/code_kg/__init__.py`
+- [ ] Bump `version` in `pyproject.toml` and `src/pycode_kg/__init__.py`
 - [ ] Update `CHANGELOG.md`
 - [ ] Run `poetry run pytest` — all tests green
 - [ ] Run `poetry run ruff check src/` — no lint errors
 - [ ] Run `poetry build` — wheel and sdist build cleanly
-- [ ] Test install in a fresh venv: `pip install dist/code_kg-*.whl`
-- [ ] Smoke-test all `codekg` subcommands
+- [ ] Test install in a fresh venv: `pip install dist/pycode_kg-*.whl`
+- [ ] Smoke-test all `pycodekg` subcommands
 - [ ] `git tag v0.1.0 && git push origin v0.1.0`
 - [ ] `poetry publish` (or let GitHub Actions do it)

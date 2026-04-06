@@ -1,8 +1,8 @@
-# Integration Notes for CodeKG
+# Integration Notes for PyCodeKG
 
 ## Goal
 
-Integrate CodeRank without disrupting the current CodeKG build and query flow.
+Integrate CodeRank without disrupting the current PyCodeKG build and query flow.
 
 Current flow, conceptually:
 
@@ -25,10 +25,10 @@ query -> semantic seeds -> local subgraph -> hybrid rank / PPR -> explanations -
 
 Place:
 
-- `src/codekg/ranking/coderank.py`
-- `src/codekg/ranking/cli_rank.py`
+- `src/pycodekg/ranking/coderank.py`
+- `src/pycodekg/ranking/cli_rank.py`
 
-and register a CLI command that points to `codekg.ranking.cli_rank:main`.
+and register a CLI command that points to `pycodekg.ranking.cli_rank:main`.
 
 ### Step 2. Compute global rank after graph build
 
@@ -83,8 +83,8 @@ Add fields like:
 ### CLI
 
 ```bash
-codekg rank --sqlite .codekg/graph.sqlite --top 25
-codekg rank --sqlite .codekg/graph.sqlite --persist-metric coderank_global
+pycodekg rank --sqlite .pycodekg/graph.sqlite --top 25
+pycodekg rank --sqlite .pycodekg/graph.sqlite --persist-metric coderank_global
 ```
 
 ### Query path
@@ -92,8 +92,8 @@ codekg rank --sqlite .codekg/graph.sqlite --persist-metric coderank_global
 Your existing search/query command can add a `--rank` option:
 
 ```bash
-codekg query "database connection" --rank hybrid
-codekg query "database connection" --rank ppr
+pycodekg query "database connection" --rank hybrid
+pycodekg query "database connection" --rank ppr
 ```
 
 ### MCP tools

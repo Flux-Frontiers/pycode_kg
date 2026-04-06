@@ -4,7 +4,7 @@
 
 | Repo | File |
 |---|---|
-| code_kg | `src/code_kg/snapshots.py` |
+| pycode_kg | `src/pycode_kg/snapshots.py` |
 | doc_kg | `src/doc_kg/snapshots.py` |
 | FTreeKG | `src/snapshots.py` |
 | diary_kg | `src/diary_kg/snapshots.py` |
@@ -28,7 +28,7 @@
 
 ## Domain-specific differences (intentional, not bugs)
 
-| Aspect | code_kg | doc_kg | FTreeKG | diary_kg |
+| Aspect | pycode_kg | doc_kg | FTreeKG | diary_kg |
 |---|---|---|---|---|
 | Class prefix | `Snapshot*` | `Snapshot*` | `Snapshot*` | `DiarySnapshot*` |
 | Coverage field | `docstring_coverage` + `critical_issues` | `coverage_score` + `issues_count` | `total_files` + `total_dirs` | `chunk_count` + `entry_count` |
@@ -40,7 +40,7 @@
 
 ## Changes made
 
-### code_kg — `src/code_kg/snapshots.py`
+### pycode_kg — `src/pycode_kg/snapshots.py`
 - **Removed** legacy delta backfill from `load_snapshot` (no longer needed; deltas are always persisted at save time)
 - **Added** `"latest"` shorthand to `load_snapshot` — resolves to the most recent snapshot by timestamp
 

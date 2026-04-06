@@ -1,7 +1,7 @@
 import sqlite3
 from pathlib import Path
 
-from code_kg.ranking.coderank import (
+from pycode_kg.ranking.coderank import (
     build_code_graph,
     combine_hybrid_scores,
     compute_coderank,

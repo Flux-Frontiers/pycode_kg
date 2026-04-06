@@ -1,19 +1,19 @@
-# CodeKG Agent Assessment - GPT-4.1
+# PyCodeKG Agent Assessment - GPT-4.1
 
 **Author:** GPT-4.1  
 **Date:** 2026-03-13  
-**Repository:** https://github.com/Flux-Frontiers/code_kg.git  
+**Repository:** https://github.com/Flux-Frontiers/pycode_kg.git  
 **Testing Platform:** 2026 M3 Max, MacBook Pro, 36GB RAM, 1TB SSD  
 
 ---
 
 ## Executive Summary
 
-CodeKG is a powerful tool that transforms Python codebases into searchable knowledge graphs, exposing them to AI agents via MCP. My assessment reveals a mature, well-architected system that significantly enhances code understanding capabilities compared to traditional file-based workflows.
+PyCodeKG is a powerful tool that transforms Python codebases into searchable knowledge graphs, exposing them to AI agents via MCP. My assessment reveals a mature, well-architected system that significantly enhances code understanding capabilities compared to traditional file-based workflows.
 
 The tool excels at providing structured insights through semantic search, architectural analysis, and temporal tracking. The hybrid approach combining vector similarity with structural graph traversal produces highly relevant results, while the comprehensive MCP interface offers multiple ways to explore code relationships. The 92.7% docstring coverage in the codebase itself demonstrates the tool's maturity and attention to documentation.
 
-However, there are areas for improvement, particularly around performance optimization for large codebases and more intuitive error handling. Overall, CodeKG represents a significant advancement in AI-assisted code understanding, offering unique capabilities that would be difficult to replicate with conventional tools.
+However, there are areas for improvement, particularly around performance optimization for large codebases and more intuitive error handling. Overall, PyCodeKG represents a significant advancement in AI-assisted code understanding, offering unique capabilities that would be difficult to replicate with conventional tools.
 
 ---
 
@@ -74,14 +74,14 @@ Enhances semantic search with structural importance ranking using CodeRank. The 
 
 ## Comparison to Default Workflow
 
-Without CodeKG, my default workflow involves:
+Without PyCodeKG, my default workflow involves:
 1. Using `grep` or `ripgrep` for text-based searches
 2. Reading files manually to understand code structure
 3. Using AST parsers for structural analysis
 4. Manually tracing call relationships
 5. Building mental models through exploration
 
-CodeKG transforms this workflow by:
+PyCodeKG transforms this workflow by:
 - **Speed**: Queries return results in seconds vs. minutes of manual exploration
 - **Relevance**: Semantic search finds conceptually related code, not just text matches
 - **Context**: Provides comprehensive node information with relationships in one query
@@ -132,7 +132,7 @@ The most significant improvement is the ability to ask conceptual questions like
 
 **Final Rating: ⭐⭐⭐⭐⭐ (5/5)**
 
-**Recommendation:** I highly recommend CodeKG for AI agents working with Python codebases. It provides unique capabilities that significantly enhance code understanding and analysis compared to traditional tools.
+**Recommendation:** I highly recommend PyCodeKG for AI agents working with Python codebases. It provides unique capabilities that significantly enhance code understanding and analysis compared to traditional tools.
 
 **Best Use Cases:**
 - **Codebase Exploration**: Quickly understanding new codebases through semantic search
@@ -147,4 +147,4 @@ The most significant improvement is the ability to ask conceptual questions like
 - Teams conducting architectural reviews
 - Projects requiring comprehensive codebase documentation
 
-CodeKG represents a significant advancement in AI-assisted code understanding, offering capabilities that would be difficult or impossible to replicate with conventional tools. The combination of semantic search, structural analysis, and temporal tracking provides a comprehensive solution for modern code exploration needs.
+PyCodeKG represents a significant advancement in AI-assisted code understanding, offering capabilities that would be difficult or impossible to replicate with conventional tools. The combination of semantic search, structural analysis, and temporal tracking provides a comprehensive solution for modern code exploration needs.
