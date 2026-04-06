@@ -730,39 +730,6 @@ files = [
 colorama = {version = "*", markers = "platform_system == \"Windows\""}
 
 [[package]]
-name = "code-kg"
-version = "0.11.0"
-description = "A tool to build a searchable knowledge graph from Python repositories"
-optional = false
-python-versions = ">=3.12,<3.14"
-groups = ["dev"]
-files = []
-develop = false
-
-[package.dependencies]
-click = ">=8.1.0"
-kg-snapshot = ">=0.3.0"
-lancedb = ">=0.29.0"
-mcp = ">=1.0.0"
-numpy = ">=1.24.0"
-pandas = ">=2.0.0"
-rich = "^14.3.3"
-safetensors = "^0.5.0"
-sentence-transformers = "^5.2.0"
-torch = ">=2.5.1"
-transformers = "^4.57.6"
-
-[package.extras]
-viz = ["plotly (>=5.14.0)", "pyvis (>=0.3.2)", "streamlit (>=1.35.0)"]
-viz3d = ["PyQt5 (>=5.15.0)", "markdown (>=3.6)", "param (>=2.0.0)", "pyvista[jupyter] (>=0.44.0)", "pyvistaqt (>=0.11.0)", "trame-vtk (>=2.0.0)"]
-
-[package.source]
-type = "git"
-url = "https://github.com/Flux-Frontiers/code_kg.git"
-reference = "HEAD"
-resolved_reference = "28cb387fec9b88c7caa870cc3c38d5ca5f0c9540"
-
-[[package]]
 name = "colorama"
 version = "0.4.6"
 description = "Cross-platform colored terminal text."
@@ -1695,27 +1662,6 @@ test = ["aiohttp (!=4.0.0a0,!=4.0.0a1)", "numpy", "pytest", "pytest-asyncio (!=0
 test-downstream = ["aiobotocore (>=2.5.4,<3.0.0)", "dask[dataframe,test]", "moto[server] (>4,<5)", "pytest-timeout", "xarray"]
 test-full = ["adlfs", "aiohttp (!=4.0.0a0,!=4.0.0a1)", "backports-zstd ; python_version < \"3.14\"", "cloudpickle", "dask", "distributed", "dropbox", "dropboxdrivefs", "fastparquet", "fusepy", "gcsfs", "jinja2", "kerchunk", "libarchive-c", "lz4", "notebook", "numpy", "ocifs", "pandas (<3.0.0)", "panel", "paramiko", "pyarrow", "pyarrow (>=1)", "pyftpdlib", "pygit2", "pytest", "pytest-asyncio (!=0.22.0)", "pytest-benchmark", "pytest-cov", "pytest-mock", "pytest-recording", "pytest-rerunfailures", "python-snappy", "requests", "smbprotocol", "tqdm", "urllib3", "zarr", "zstandard ; python_version < \"3.14\""]
 tqdm = ["tqdm"]
-
-[[package]]
-name = "ftree-kg"
-version = "0.4.0"
-description = "KGModule for file tree knowledge graphs"
-optional = false
-python-versions = ">=3.12,<3.14"
-groups = ["dev"]
-files = []
-develop = false
-
-[package.dependencies]
-click = "^8.1.0"
-code-kg = {git = "https://github.com/Flux-Frontiers/code_kg.git"}
-doc-kg = {git = "https://github.com/Flux-Frontiers/doc_kg.git"}
-
-[package.source]
-type = "git"
-url = "https://github.com/Flux-Frontiers/FTree_kg.git"
-reference = "HEAD"
-resolved_reference = "47bf3f585df400208e62640d8d76fe1819472062"
 
 [[package]]
 name = "gitdb"
@@ -7111,4 +7057,4 @@ viz3d = ["PyQt5", "markdown", "param", "pyvista", "pyvistaqt", "trame-vtk"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12,<3.14"
-content-hash = "a9403f98f5ae91c32cecd42f401d4d4f0abaffd6378547171d122139fa0b13e0"
+content-hash = "b67a03ceb086ebbcde9d904c18c5e51dc16c93dd7cb6fab2ce0b595faf5d566a"

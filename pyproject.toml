@@ -95,7 +95,6 @@ trame-vtk = ">=2.0.0"
 
 [tool.poetry.group.dev.dependencies]
 doc-kg = { git = "https://github.com/Flux-Frontiers/doc_kg.git" }
-ftree-kg = { git = "https://github.com/Flux-Frontiers/FTree_kg.git" }
 agent-kg = { git = "https://github.com/Flux-Frontiers/agent_kg.git" }
 pytest = ">=8.0.0"
 pytest-cov = ">=5.0.0"
