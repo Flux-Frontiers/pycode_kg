@@ -15,7 +15,6 @@ import click
 
 from pycode_kg.cli.main import cli
 from pycode_kg.cli.options import exclude_option, include_option, repo_option
-from pycode_kg.pycodekg import DEFAULT_MODEL
 from pycode_kg.config import load_exclude_dirs, load_include_dirs
 from pycode_kg.graph import CodeGraph
 from pycode_kg.index import (
@@ -23,6 +22,7 @@ from pycode_kg.index import (
     SentenceTransformerEmbedder,
     suppress_ingestion_logging,
 )
+from pycode_kg.pycodekg import DEFAULT_MODEL
 from pycode_kg.store import GraphStore
 
 

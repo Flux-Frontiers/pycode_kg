@@ -13,7 +13,9 @@ from collections import defaultdict
 from pycode_kg.analysis.centrality import CentralityRecord, StructuralImportanceRanker
 
 
-def compute_bridge_centrality(kind="module", include_imports=True, top=25, db_path="pycodekg.sqlite"):
+def compute_bridge_centrality(
+    kind="module", include_imports=True, top=25, db_path="pycodekg.sqlite"
+):
     """
     Compute module connectivity: unique module interactions per module.
 

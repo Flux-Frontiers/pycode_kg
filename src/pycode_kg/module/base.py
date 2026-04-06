@@ -26,7 +26,6 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from pycode_kg.pycodekg import DEFAULT_MODEL
 from pycode_kg.index import (
     Embedder,
     SemanticIndex,
@@ -50,6 +49,7 @@ from pycode_kg.module.types import (
     semantic_score_from_distance,
     spans_overlap,
 )
+from pycode_kg.pycodekg import DEFAULT_MODEL
 from pycode_kg.store import DEFAULT_RELS, GraphStore
 
 if TYPE_CHECKING:

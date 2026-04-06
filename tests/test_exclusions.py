@@ -16,9 +16,9 @@ from pathlib import Path
 
 import pytest
 
-from pycode_kg.pycodekg import extract_repo, iter_python_files
 from pycode_kg.config import load_include_dirs
 from pycode_kg.graph import CodeGraph
+from pycode_kg.pycodekg import extract_repo, iter_python_files
 
 # ============================================================================
 # Fixtures

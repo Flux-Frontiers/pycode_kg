@@ -112,19 +112,19 @@ PyCodeKG changes the workflow in two important ways. First, semantic search gets
 
 ## Weaknesses & Suggestions
 
-- **Docstring sensitivity:** Broad conceptual retrieval appears strongly influenced by docstring wording. That is useful, but it may over-reward well-documented modules and under-represent sparsely documented but important code.  
+- **Docstring sensitivity:** Broad conceptual retrieval appears strongly influenced by docstring wording. That is useful, but it may over-reward well-documented modules and under-represent sparsely documented but important code.
   **Suggestion:** expose a clearer breakdown of semantic-vs-lexical-vs-docstring contribution by default, or allow a docstring weighting toggle in MCP tools.
 
-- **Role labeling in `explain()`:** The current “Role in Codebase” categories can understate centrality.  
+- **Role labeling in `explain()`:** The current “Role in Codebase” categories can understate centrality.
   **Suggestion:** incorporate fan-in, fan-out, and cross-surface usage into richer labels such as “core query primitive,” “entry-point adapter,” or “infrastructure hub.”
 
-- **Potential overconfidence in analysis summaries:** Statements like “No deep call chains detected” depend on extraction scope and heuristics.  
+- **Potential overconfidence in analysis summaries:** Statements like “No deep call chains detected” depend on extraction scope and heuristics.
   **Suggestion:** include confidence notes or method disclaimers in analysis sections where false negatives are plausible.
 
-- **Edge evidence visibility:** Some tools show line numbers or evidence, but not uniformly.  
+- **Edge evidence visibility:** Some tools show line numbers or evidence, but not uniformly.
   **Suggestion:** standardize optional evidence display across `get_node`, `callers`, and `explain`.
 
-- **Meaningful-node context:** New users may initially be surprised by the high symbol count.  
+- **Meaningful-node context:** New users may initially be surprised by the high symbol count.
   **Suggestion:** carry the “meaningful vs symbol” explanation consistently across orientation and snapshot outputs.
 
 ## Overall Verdict

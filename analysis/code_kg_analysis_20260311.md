@@ -1,10 +1,10 @@
-> **Analysis Report Metadata**  
-> - **Generated:** 2026-03-11T22:52:55Z  
-> - **Version:** pycode-kg 0.7.1  
-> - **Commit:** d8ee9eb (feature/bridge_centrality)  
-> - **Platform:** Darwin arm64 | Python 3.12.10  
-> - **Graph:** 6540 nodes · 6352 edges (414 meaningful)  
-> - **Included directories:** src  
+> **Analysis Report Metadata**
+> - **Generated:** 2026-03-11T22:52:55Z
+> - **Version:** pycode-kg 0.7.1
+> - **Commit:** d8ee9eb (feature/bridge_centrality)
+> - **Platform:** Darwin arm64 | Python 3.12.10
+> - **Graph:** 6540 nodes · 6352 edges (414 meaningful)
+> - **Included directories:** src
 
 # pycode_kg Analysis
 

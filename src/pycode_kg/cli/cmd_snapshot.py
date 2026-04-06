@@ -18,9 +18,9 @@ import click
 
 from pycode_kg.cli.main import cli
 from pycode_kg.cli.options import sqlite_option
+from pycode_kg.kg import PyCodeKG
 from pycode_kg.pycodekg import DEFAULT_MODEL
 from pycode_kg.pycodekg_thorough_analysis import PyCodeKGAnalyzer
-from pycode_kg.kg import PyCodeKG
 from pycode_kg.snapshots import SnapshotManager
 from pycode_kg.store import GraphStore
 

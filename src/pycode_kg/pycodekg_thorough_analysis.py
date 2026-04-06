@@ -2488,7 +2488,9 @@ Functions with zero callers (potential dead code):
                     f" | {cov_str} | {dn_str} | {de_str} | {dc_str} |"
                 )
         else:
-            out.append("No snapshots found. Run `pycodekg snapshot save <version>` to capture one.\n")
+            out.append(
+                "No snapshots found. Run `pycodekg snapshot save <version>` to capture one.\n"
+            )
         out.append("")
 
         # Orphaned Functions

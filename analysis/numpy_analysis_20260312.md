@@ -1,11 +1,11 @@
-> **Analysis Report Metadata**  
-> - **Generated:** 2026-03-12T01:52:26Z  
-> - **Version:** pycode-kg 0.7.1  
-> - **Commit:** b981a5f (main)  
-> - **Platform:** Darwin arm64 | Python 3.12.10  
-> - **Graph:** 126666 nodes · 252449 edges (14475 meaningful)  
-> - **Included directories:** all  
-> - **Elapsed time:** 6m 4s  
+> **Analysis Report Metadata**
+> - **Generated:** 2026-03-12T01:52:26Z
+> - **Version:** pycode-kg 0.7.1
+> - **Commit:** b981a5f (main)
+> - **Platform:** Darwin arm64 | Python 3.12.10
+> - **Graph:** 126666 nodes · 252449 edges (14475 meaningful)
+> - **Included directories:** all
+> - **Elapsed time:** 6m 4s
 
 # numpy Analysis
 

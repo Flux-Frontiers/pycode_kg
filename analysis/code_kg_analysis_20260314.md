@@ -1,12 +1,12 @@
-> **Analysis Report Metadata**  
-> - **Generated:** 2026-03-14T21:56:50Z  
-> - **Version:** pycode-kg 0.8.1  
-> - **Commit:** f4fc790 (develop)  
-> - **Platform:** Darwin arm64 | Python 3.12.13  
-> - **Graph:** 6782 nodes · 6565 edges (424 meaningful)  
-> - **Included directories:** src  
-> - **Excluded directories:** none  
-> - **Elapsed time:** 6s  
+> **Analysis Report Metadata**
+> - **Generated:** 2026-03-14T21:56:50Z
+> - **Version:** pycode-kg 0.8.1
+> - **Commit:** f4fc790 (develop)
+> - **Platform:** Darwin arm64 | Python 3.12.13
+> - **Graph:** 6782 nodes · 6565 edges (424 meaningful)
+> - **Included directories:** src
+> - **Excluded directories:** none
+> - **Elapsed time:** 6s
 
 # pycode_kg Analysis
 

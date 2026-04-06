@@ -1,7 +1,7 @@
 # Structural Importance Ranking (SIR) for PyCodeKG
 
-Author: Eric G. Suchanek, PhD  
-Project: PyCodeKG  
+Author: Eric G. Suchanek, PhD
+Project: PyCodeKG
 Repository: https://github.com/flux-frontiers/pycode_kg
 
 ## Overview

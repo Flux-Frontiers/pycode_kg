@@ -36,8 +36,6 @@ __version__ = "0.11.0"
 __author__ = "Eric G. Suchanek, PhD"
 
 # Low-level primitives (locked v0 contract)
-from pycode_kg.pycodekg import DEFAULT_MODEL, Edge, Node
-
 # Layered classes
 from pycode_kg.graph import CodeGraph
 from pycode_kg.index import Embedder, SeedHit, SemanticIndex, SentenceTransformerEmbedder
@@ -46,7 +44,8 @@ from pycode_kg.index import Embedder, SeedHit, SemanticIndex, SentenceTransforme
 from pycode_kg.kg import BuildStats, PyCodeKG, QueryResult, Snippet, SnippetPack
 
 # KGModule SDK
-from pycode_kg.module import PyCodeKGExtractor, EdgeSpec, KGExtractor, KGModule, NodeSpec
+from pycode_kg.module import EdgeSpec, KGExtractor, KGModule, NodeSpec, PyCodeKGExtractor
+from pycode_kg.pycodekg import DEFAULT_MODEL, Edge, Node
 from pycode_kg.snapshots import (
     Snapshot,
     SnapshotDelta,
