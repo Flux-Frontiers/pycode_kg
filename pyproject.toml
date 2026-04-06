@@ -20,26 +20,16 @@
 # Last Revision: 2026-03-12 17:27:42
 #
 
-
-
-[[tool.poetry.source]]
-name = "testpypi"
-url = "https://test.pypi.org/simple/"
-priority = "supplemental"
-
-[build-system]
-requires = ["poetry-core>=2.0.0"]
-build-backend = "poetry.core.masonry.api"
-
-[tool.poetry]
+[project]
 name = "pycode-kg"
 version = "0.11.0"
 description = "A tool to build a searchable knowledge graph from Python repositories"
-authors = ["Eric G. Suchanek, PhD <suchanek@mac.com>"]
-license = "Elastic-2.0"
 readme = "README.md"
-homepage = "https://github.com/Flux-Frontiers/pycode_kg"
-repository = "https://github.com/Flux-Frontiers/pycode_kg"
+license = "Elastic-2.0"
+requires-python = ">=3.12,<3.14"
+authors = [
+    { name = "Eric G. Suchanek, PhD", email = "suchanek@mac.com" },
+]
 keywords = ["knowledge-graph", "code-analysis", "ast", "lancedb", "sqlite", "semantic-search"]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -47,40 +37,64 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
+dependencies = [
+    "lancedb>=0.29.0",
+    "numpy>=1.24.0",
+    "transformers>=4.57.6,<5",
+    "sentence-transformers>=5.2.0,<6",
+    "safetensors>=0.5.0,<1",
+    "torch>=2.5.1",
+    "pandas>=2.0.0",
+    "rich>=14.3.3,<15",
+    "click>=8.1.0",
+    "mcp>=1.0.0",
+    "kg-snapshot>=0.3.0",
+]
+
+[project.optional-dependencies]
+viz = ["streamlit>=1.35.0", "pyvis>=0.3.2", "plotly>=5.14.0"]
+viz3d = [
+    "pyvista[jupyter]>=0.44.0",
+    "pyvistaqt>=0.11.0",
+    "PyQt5>=5.15.0",
+    "param>=2.0.0",
+    "markdown>=3.6",
+    "trame-vtk>=2.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/Flux-Frontiers/pycode_kg"
+Repository = "https://github.com/Flux-Frontiers/pycode_kg"
+
+[project.scripts]
+pycodekg              = "pycode_kg.cli.main:cli"
+pycodekg-mcp          = "pycode_kg.mcp_server:main"
+pycodekg-build-sqlite = "pycode_kg.cli.cmd_build:build_sqlite"
+pycodekg-build-lancedb = "pycode_kg.cli.cmd_build:build_lancedb"
+pycodekg-build        = "pycode_kg.cli.cmd_build_full:build"
+pycodekg-update       = "pycode_kg.cli.cmd_build_full:update"
+pycodekg-query        = "pycode_kg.cli.cmd_query:query"
+pycodekg-pack         = "pycode_kg.cli.cmd_query:pack"
+pycodekg-viz          = "pycode_kg.cli.cmd_viz:viz"
+pycodekg-viz3d        = "pycode_kg.cli.cmd_viz:viz3d"
+pycodekg-viz-timeline = "pycode_kg.cli.cmd_viz:viz_timeline"
+pycodekg-analyze      = "pycode_kg.cli.cmd_analyze:analyze"
+pycodekg-architecture = "pycode_kg.cli.cmd_architecture:architecture"
+pycodekg-download-model = "pycode_kg.cli.cmd_model:download_model"
+pycodekg-install-hooks = "pycode_kg.cli.cmd_hooks:install_hooks"
+pycodekg-centrality   = "pycode_kg.cli.cmd_centrality:cmd_centrality"
+
+[build-system]
+requires = ["poetry-core>=2.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[[tool.poetry.source]]
+name = "testpypi"
+url = "https://test.pypi.org/simple/"
+priority = "supplemental"
+
+[tool.poetry]
 packages = [{ include = "pycode_kg", from = "src" }]
-
-[tool.poetry.dependencies]
-python = ">=3.12,<3.14"
-lancedb = ">=0.29.0"
-numpy = ">=1.24.0"
-
-# from personal_agent
-transformers = "^4.57.6"
-sentence-transformers = "^5.2.0"
-safetensors = "^0.5.0"
-
-# sentence-transformers = "==4.1.0"
-# transformers = "<5.0.0"
-torch = ">=2.5.1"
-streamlit = { version = ">=1.35.0", optional = true }
-pyvis = { version = ">=0.3.2", optional = true }
-pandas = ">=2.0.0"
-rich = "^14.3.3"
-click = ">=8.1.0"
-mcp = ">=1.0.0"
-plotly = { version = ">=5.14.0", optional = true }
-pyvista = { version = ">=0.44.0", extras = ["jupyter"], optional = true }
-pyvistaqt = { version = ">=0.11.0", optional = true }
-PyQt5 = { version = ">=5.15.0", optional = true }
-param = { version = ">=2.0.0", optional = true }
-markdown = { version = ">=3.6", optional = true }
-trame-vtk = { version = ">=2.0.0", optional = true }
-
-kg-snapshot = { version = ">=0.3.0", source = "testpypi" }
-
-[tool.poetry.extras]
-viz = ["streamlit", "pyvis", "plotly"]
-viz3d = ["pyvista", "pyvistaqt", "PyQt5", "param", "markdown", "trame-vtk"]
 
 [tool.poetry.group.viz3d]
 optional = true
@@ -94,9 +108,13 @@ markdown = ">=3.6"
 trame-vtk = ">=2.0.0"
 
 [tool.poetry.group.dev.dependencies]
-doc-kg = { git = "https://github.com/Flux-Frontiers/doc_kg.git" }
-ftree-kg = { git = "https://github.com/Flux-Frontiers/FTree_kg.git" }
-agent-kg = { git = "https://github.com/Flux-Frontiers/agent_kg.git" }
+# NOTE: doc-kg, ftree-kg, and agent-kg temporarily removed — ftree-kg and
+# agent-kg depend on the old "code-kg" package name (code_kg.git) which no
+# longer exists after the pycode_kg rename. Re-add once those packages are
+# updated to reference "pycode-kg" (pycode_kg.git) instead.
+# doc-kg = { git = "https://github.com/Flux-Frontiers/doc_kg.git" }
+# ftree-kg = { git = "https://github.com/Flux-Frontiers/FTree_kg.git" }
+# agent-kg = { git = "https://github.com/Flux-Frontiers/agent_kg.git" }
 pytest = ">=8.0.0"
 pytest-cov = ">=5.0.0"
 ruff = ">=0.4.0"
@@ -105,26 +123,6 @@ pre-commit = "^4.5.1"
 detect-secrets = "^1.5.0"
 pylint = "^4.0.5"
 pdoc = ">=14.0.0"
-
-
-
-[tool.poetry.scripts]
-pycodekg              = "pycode_kg.cli.main:cli"
-pycodekg-mcp          = "pycode_kg.mcp_server:main"
-pycodekg-build-sqlite = "pycode_kg.cli.cmd_build:build_sqlite"
-pycodekg-build-lancedb = "pycode_kg.cli.cmd_build:build_lancedb"
-pycodekg-build        = "pycode_kg.cli.cmd_build_full:build"
-pycodekg-update       = "pycode_kg.cli.cmd_build_full:update"
-pycodekg-query        = "pycode_kg.cli.cmd_query:query"
-pycodekg-pack         = "pycode_kg.cli.cmd_query:pack"
-pycodekg-viz              = "pycode_kg.cli.cmd_viz:viz"
-pycodekg-viz3d            = "pycode_kg.cli.cmd_viz:viz3d"
-pycodekg-viz-timeline     = "pycode_kg.cli.cmd_viz:viz_timeline"
-pycodekg-analyze          = "pycode_kg.cli.cmd_analyze:analyze"
-pycodekg-architecture     = "pycode_kg.cli.cmd_architecture:architecture"
-pycodekg-download-model   = "pycode_kg.cli.cmd_model:download_model"
-pycodekg-install-hooks    = "pycode_kg.cli.cmd_hooks:install_hooks"
-pycodekg-centrality       = "pycode_kg.cli.cmd_centrality:cmd_centrality"
 
 [tool.ruff]
 line-length = 100
