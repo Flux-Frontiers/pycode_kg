@@ -1,0 +1,101 @@
+{
+  "key": "119b302bb6d51980ef8c3b5407bc04414b99d328",
+  "branch": "feature/bridge_centrality",
+  "timestamp": "2026-03-11T23:05:43.964440+00:00",
+  "version": "0.8.0",
+  "metrics": {
+    "total_nodes": 6540,
+    "total_edges": 6352,
+    "meaningful_nodes": 414,
+    "docstring_coverage": 0.9279999999999999,
+    "node_counts": {
+      "class": 42,
+      "function": 141,
+      "method": 181,
+      "module": 50,
+      "symbol": 6126
+    },
+    "edge_counts": {
+      "ATTR_ACCESS": 2118,
+      "CALLS": 2324,
+      "CONTAINS": 364,
+      "IMPORTS": 338,
+      "INHERITS": 8,
+      "RESOLVES_TO": 1200
+    },
+    "critical_issues": 1,
+    "complexity_median": 5
+  },
+  "hotspots": [
+    {
+      "name": "fn:src/code_kg/mcp_server.py:_get_kg",
+      "callers": 15,
+      "callees": 1,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/code_kg/kg.py:CodeKG.close",
+      "callers": 15,
+      "callees": 1,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/code_kg/store.py:GraphStore.close",
+      "callers": 15,
+      "callees": 1,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/code_kg/store.py:GraphStore.node",
+      "callers": 13,
+      "callees": 4,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/code_kg/store.py:GraphStore.con",
+      "callers": 12,
+      "callees": 4,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/code_kg/kg.py:CodeKG.store",
+      "callers": 8,
+      "callees": 1,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/code_kg/kg.py:SnippetPack.to_json",
+      "callers": 6,
+      "callees": 2,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/code_kg/graph.py:CodeGraph.extract",
+      "callers": 5,
+      "callees": 1,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/code_kg/visitor.py:CodeKGVisitor._add_edge",
+      "callers": 5,
+      "callees": 2,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/code_kg/visitor.py:CodeKGVisitor._get_node_id",
+      "callers": 5,
+      "callees": 4,
+      "risk_level": "low"
+    }
+  ],
+  "issues": [
+    "\u26a0\ufe0f  1 functions with high fan-out \u2014 potential orchestrators or god objects"
+  ],
+  "vs_previous": null,
+  "vs_baseline": {
+    "nodes": 1559,
+    "edges": 1421,
+    "coverage_delta": -0.038000000000000034,
+    "critical_issues_delta": 0
+  }
+}

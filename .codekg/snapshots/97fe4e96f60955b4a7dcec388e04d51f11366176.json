@@ -1,0 +1,99 @@
+{
+  "commit": "efa49715d91bd1f8f2df3b935f4c1be93ef870a0",
+  "tree_hash": "97fe4e96f60955b4a7dcec388e04d51f11366176",
+  "branch": "main",
+  "timestamp": "2026-03-09T03:48:39.764340+00:00",
+  "version": "0.7.0",
+  "metrics": {
+    "total_nodes": 4972,
+    "total_edges": 4932,
+    "meaningful_nodes": 347,
+    "docstring_coverage": 0.968,
+    "node_counts": {
+      "class": 36,
+      "function": 104,
+      "method": 168,
+      "module": 39,
+      "symbol": 4625
+    },
+    "edge_counts": {
+      "ATTR_ACCESS": 1660,
+      "CALLS": 1725,
+      "CONTAINS": 308,
+      "IMPORTS": 287,
+      "INHERITS": 8,
+      "RESOLVES_TO": 944
+    },
+    "critical_issues": 0,
+    "complexity_median": 1
+  },
+  "hotspots": [
+    {
+      "name": "m:src/code_kg/codekg_thorough_analysis.py:CodeKGAnalyzer.run_analysis",
+      "callers": 4,
+      "callees": 16,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/code_kg/codekg_thorough_analysis.py:CodeKGAnalyzer.to_markdown",
+      "callers": 4,
+      "callees": 11,
+      "risk_level": "low"
+    },
+    {
+      "name": "cls:src/code_kg/codekg_thorough_analysis.py:FunctionMetrics",
+      "callers": 3,
+      "callees": 0,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/code_kg/codekg_thorough_analysis.py:CodeKGAnalyzer.print_summary",
+      "callers": 2,
+      "callees": 12,
+      "risk_level": "low"
+    },
+    {
+      "name": "cls:src/code_kg/codekg_thorough_analysis.py:CallChain",
+      "callers": 1,
+      "callees": 0,
+      "risk_level": "low"
+    },
+    {
+      "name": "fn:scripts/generate_wiki.py:main",
+      "callers": 1,
+      "callees": 20,
+      "risk_level": "low"
+    },
+    {
+      "name": "fn:src/code_kg/cli/cmd_build_full.py:_summary",
+      "callers": 1,
+      "callees": 6,
+      "risk_level": "low"
+    },
+    {
+      "name": "fn:src/code_kg/cli/cmd_explain.py:_explain_node",
+      "callers": 1,
+      "callees": 17,
+      "risk_level": "low"
+    },
+    {
+      "name": "fn:src/code_kg/codekg.py:_enclosing_def",
+      "callers": 1,
+      "callees": 2,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/code_kg/architecture.py:ArchitectureAnalyzer._analyze_coupling",
+      "callers": 1,
+      "callees": 6,
+      "risk_level": "low"
+    }
+  ],
+  "vs_previous": null,
+  "vs_baseline": {
+    "nodes": 1154,
+    "edges": 1215,
+    "coverage_delta": -0.0020000000000000018,
+    "critical_issues_delta": -1
+  }
+}

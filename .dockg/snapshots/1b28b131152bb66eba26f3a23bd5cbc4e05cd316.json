@@ -1,0 +1,116 @@
+{
+  "commit": "1b28b131152bb66eba26f3a23bd5cbc4e05cd316",
+  "branch": "main",
+  "timestamp": "2026-03-14T18:12:47.756741+00:00",
+  "version": "v0.8.1",
+  "metrics": {
+    "total_nodes": 5980,
+    "total_edges": 49853,
+    "meaningful_nodes": 5936,
+    "coverage_score": 0.9509617417036568,
+    "node_counts": {
+      "chunk": 1577,
+      "document": 44,
+      "entity": 1307,
+      "keyword": 1212,
+      "section": 919,
+      "topic": 921
+    },
+    "edge_counts": {
+      "CONTAINS": 2496,
+      "CO_OCCURS_WITH": 31534,
+      "HAS_KEYWORD": 6061,
+      "HAS_TOPIC": 1596,
+      "MENTIONS_ENTITY": 6580,
+      "NEXT": 487,
+      "REFERENCES": 14,
+      "SIMILAR_TO": 1085
+    },
+    "issues_count": 0,
+    "complexity_median": 18.0
+  },
+  "hotspots": [
+    {
+      "id": "chunk:README.md:0082",
+      "file_path": "README.md",
+      "label": "Project Structure",
+      "references": 0,
+      "semantic_links": 18,
+      "total_links": 19
+    },
+    {
+      "id": "chunk:analysis/code_kg_analysis_20260310.md:0006",
+      "file_path": "analysis/code_kg_analysis_20260310.md",
+      "label": "\ud83d\udd25 Complexity Hotspots (High Fan-In)",
+      "references": 0,
+      "semantic_links": 18,
+      "total_links": 19
+    },
+    {
+      "id": "chunk:analysis/code_kg_analysis_20260311.md:0036",
+      "file_path": "analysis/code_kg_analysis_20260311.md",
+      "label": "Graph Traversal Node Edge",
+      "references": 0,
+      "semantic_links": 18,
+      "total_links": 19
+    },
+    {
+      "id": "chunk:analysis/code_kg_analysis_20260311.md:0030",
+      "file_path": "analysis/code_kg_analysis_20260311.md",
+      "label": "\ud83d\udcd0 CodeRank \u2014 Global Structural Importance",
+      "references": 0,
+      "semantic_links": 18,
+      "total_links": 18
+    },
+    {
+      "id": "chunk:analysis/code_kg_analysis_20260311.md:0034",
+      "file_path": "analysis/code_kg_analysis_20260311.md",
+      "label": "Data Persistence Storage Database",
+      "references": 0,
+      "semantic_links": 18,
+      "total_links": 18
+    },
+    {
+      "id": "chunk:assessments/CodeKG_assessment_gpt-4.1_2026-03-11.md:0008",
+      "file_path": "assessments/CodeKG_assessment_gpt-4.1_2026-03-11.md",
+      "label": "Scorecard",
+      "references": 0,
+      "semantic_links": 18,
+      "total_links": 18
+    },
+    {
+      "id": "chunk:analysis/code_kg_analysis_20260312.md:0036",
+      "file_path": "analysis/code_kg_analysis_20260312.md",
+      "label": "Graph Traversal Node Edge",
+      "references": 0,
+      "semantic_links": 17,
+      "total_links": 18
+    },
+    {
+      "id": "chunk:analysis/rerank_mode_comparison_2026-03-09.md:0012",
+      "file_path": "analysis/rerank_mode_comparison_2026-03-09.md",
+      "label": "Query 3: `\"how does the graph get built from source code\"` (hop=1, k=8, max_nodes=8)",
+      "references": 0,
+      "semantic_links": 17,
+      "total_links": 18
+    },
+    {
+      "id": "chunk:assessments/CodeKG_assessment_claude_sonnet_kat_coder_pro_4_6_2026-03-13.md:0014",
+      "file_path": "assessments/CodeKG_assessment_claude_sonnet_kat_coder_pro_4_6_2026-03-13.md",
+      "label": "Scorecard",
+      "references": 0,
+      "semantic_links": 17,
+      "total_links": 18
+    },
+    {
+      "id": "chunk:assessments/CodeKG_assessment_claude_sonnet_kat_coder_pro_4_6_2026-03-13.md:0016",
+      "file_path": "assessments/CodeKG_assessment_claude_sonnet_kat_coder_pro_4_6_2026-03-13.md",
+      "label": "Comparison to Default Workflow",
+      "references": 0,
+      "semantic_links": 17,
+      "total_links": 18
+    }
+  ],
+  "vs_previous": null,
+  "vs_baseline": null
+}

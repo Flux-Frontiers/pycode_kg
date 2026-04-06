@@ -1,0 +1,102 @@
+{
+  "key": "51ce844a12bc25740b40132647fb11f8e46195da",
+  "branch": "develop",
+  "timestamp": "2026-03-11T03:24:57.244480+00:00",
+  "version": "0.8.0",
+  "metrics": {
+    "total_nodes": 5438,
+    "total_edges": 5325,
+    "meaningful_nodes": 351,
+    "docstring_coverage": 0.972,
+    "node_counts": {
+      "class": 36,
+      "function": 104,
+      "method": 173,
+      "module": 38,
+      "symbol": 5087
+    },
+    "edge_counts": {
+      "ATTR_ACCESS": 1806,
+      "CALLS": 1930,
+      "CONTAINS": 313,
+      "IMPORTS": 286,
+      "INHERITS": 8,
+      "RESOLVES_TO": 982
+    },
+    "critical_issues": 2,
+    "complexity_median": 1
+  },
+  "hotspots": [
+    {
+      "name": "cls:src/code_kg/codekg_thorough_analysis.py:FunctionMetrics",
+      "callers": 4,
+      "callees": 0,
+      "risk_level": "medium"
+    },
+    {
+      "name": "cls:src/code_kg/codekg_thorough_analysis.py:ModuleMetrics",
+      "callers": 1,
+      "callees": 0,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/code_kg/codekg_thorough_analysis.py:CodeKGAnalyzer._analyze_module_coupling",
+      "callers": 1,
+      "callees": 10,
+      "risk_level": "low"
+    },
+    {
+      "name": "cls:src/code_kg/architecture.py:ModuleLayer",
+      "callers": 1,
+      "callees": 0,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/code_kg/codekg_thorough_analysis.py:CodeKGAnalyzer._analyze_inheritance",
+      "callers": 1,
+      "callees": 34,
+      "risk_level": "low"
+    },
+    {
+      "name": "fn:src/code_kg/codekg_thorough_analysis.py:CodeKGAnalyzer._analyze_inheritance._compute_depth",
+      "callers": 1,
+      "callees": 0,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/code_kg/codekg_thorough_analysis.py:CodeKGAnalyzer._analyze_dependencies",
+      "callers": 1,
+      "callees": 11,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/code_kg/architecture.py:ArchitectureAnalyzer._analyze_coupling",
+      "callers": 1,
+      "callees": 6,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/code_kg/kg.py:CodeKG.embedder",
+      "callers": 1,
+      "callees": 2,
+      "risk_level": "low"
+    },
+    {
+      "name": "fn:src/code_kg/codekg.py:_enclosing_def",
+      "callers": 1,
+      "callees": 2,
+      "risk_level": "low"
+    }
+  ],
+  "issues": [
+    "\ud83d\udd34 __init__ has high fan-out (95 calls) \u2014 consider breaking into smaller functions",
+    "\u26a0\ufe0f  1 functions with high fan-out \u2014 potential orchestrators or god objects"
+  ],
+  "vs_previous": null,
+  "vs_baseline": {
+    "nodes": 457,
+    "edges": 394,
+    "coverage_delta": 0.006000000000000005,
+    "critical_issues_delta": 1
+  }
+}

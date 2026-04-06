@@ -1,0 +1,101 @@
+{
+  "key": "2bbee104b7220c170c766251c7d37740b555435f",
+  "branch": "main",
+  "timestamp": "2026-03-13T17:45:53.651526+00:00",
+  "version": "0.8.1",
+  "metrics": {
+    "total_nodes": 6741,
+    "total_edges": 6535,
+    "meaningful_nodes": 423,
+    "docstring_coverage": 0.927,
+    "node_counts": {
+      "class": 42,
+      "function": 146,
+      "method": 184,
+      "module": 51,
+      "symbol": 6318
+    },
+    "edge_counts": {
+      "ATTR_ACCESS": 2179,
+      "CALLS": 2403,
+      "CONTAINS": 372,
+      "IMPORTS": 344,
+      "INHERITS": 8,
+      "RESOLVES_TO": 1229
+    },
+    "critical_issues": 1,
+    "complexity_median": 6
+  },
+  "hotspots": [
+    {
+      "name": "fn:src/code_kg/mcp_server.py:_get_kg",
+      "callers": 15,
+      "callees": 1,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/code_kg/kg.py:CodeKG.close",
+      "callers": 15,
+      "callees": 1,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/code_kg/store.py:GraphStore.close",
+      "callers": 15,
+      "callees": 1,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/code_kg/store.py:GraphStore.node",
+      "callers": 13,
+      "callees": 4,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/code_kg/store.py:GraphStore.con",
+      "callers": 12,
+      "callees": 4,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/code_kg/kg.py:CodeKG.store",
+      "callers": 8,
+      "callees": 1,
+      "risk_level": "low"
+    },
+    {
+      "name": "fn:src/code_kg/ranking/coderank.py:compute_coderank",
+      "callers": 6,
+      "callees": 2,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/code_kg/kg.py:SnippetPack.to_json",
+      "callers": 6,
+      "callees": 2,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/code_kg/graph.py:CodeGraph.extract",
+      "callers": 5,
+      "callees": 1,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/code_kg/visitor.py:CodeKGVisitor._add_edge",
+      "callers": 5,
+      "callees": 2,
+      "risk_level": "low"
+    }
+  ],
+  "issues": [
+    "\u26a0\ufe0f  1 functions with high fan-out \u2014 potential orchestrators or god objects"
+  ],
+  "vs_previous": null,
+  "vs_baseline": {
+    "nodes": 1760,
+    "edges": 1604,
+    "coverage_delta": -0.038999999999999924,
+    "critical_issues_delta": 0
+  }
+}

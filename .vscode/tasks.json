@@ -1,0 +1,107 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "CodeKG: Rebuild (SQLite + LanceDB with --wipe)",
+      "type": "shell",
+      "command": "/bin/bash",
+      "args": [
+        "-c",
+        "${workspaceFolder}/.venv/bin/codekg build-sqlite --repo . --wipe && ${workspaceFolder}/.venv/bin/codekg build-lancedb --wipe"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "CodeKG: Build SQLite Graph",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/bin/codekg",
+      "args": ["build-sqlite", "--repo", "."],
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "CodeKG: Build LanceDB Index",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/bin/codekg",
+      "args": ["build-lancedb"],
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "CodeKG: Query (Interactive)",
+      "type": "shell",
+      "command": "/bin/bash",
+      "args": [
+        "-c",
+        "read -p 'Query: ' q && ${workspaceFolder}/.venv/bin/codekg query --q \"$q\""
+      ],
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "isBackground": false
+    },
+    {
+      "label": "CodeKG: List Snapshots",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/bin/codekg",
+      "args": ["snapshot", "list"],
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "CodeKG: Save Snapshot",
+      "type": "shell",
+      "command": "/bin/bash",
+      "args": [
+        "-c",
+        "read -p 'Version label (e.g. 0.5.0): ' v && ${workspaceFolder}/.venv/bin/codekg snapshot save \"$v\" --repo . --branch \"$(git rev-parse --abbrev-ref HEAD)\""
+      ],
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "CodeKG: Generate Architecture",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/bin/codekg",
+      "args": ["architecture", ".", "--markdown", "architecture.md"],
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "CodeKG: Run Thorough Analysis",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/bin/codekg",
+      "args": ["analyze", "."],
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    }
+  ]
+}

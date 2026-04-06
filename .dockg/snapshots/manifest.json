@@ -1,0 +1,23 @@
+{
+  "format": "1.0",
+  "last_update": "2026-03-14T18:12:47.757261+00:00",
+  "snapshots": [
+    {
+      "commit": "1b28b131152bb66eba26f3a23bd5cbc4e05cd316",
+      "branch": "main",
+      "timestamp": "2026-03-14T18:12:47.756741+00:00",
+      "version": "v0.8.1",
+      "file": "1b28b131152bb66eba26f3a23bd5cbc4e05cd316.json",
+      "metrics": {
+        "nodes": 5980,
+        "edges": 49853,
+        "coverage": 0.9509617417036568,
+        "issues": 0
+      },
+      "deltas": {
+        "vs_previous": null,
+        "vs_baseline": null
+      }
+    }
+  ]
+}

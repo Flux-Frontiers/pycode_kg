@@ -1,0 +1,15 @@
+{
+  "servers": {
+    "codekg": {
+      "type": "stdio",
+      "command": "/Users/egs/repos/code_kg/.venv/bin/codekg",
+      "args": [
+        "mcp",
+        "--repo",
+        "/Users/egs/repos/code_kg",
+        "--db",
+        "/Users/egs/repos/code_kg/.codekg/graph.sqlite"
+      ]
+    }
+  }
+}

@@ -1,0 +1,98 @@
+{
+  "tree_hash": "28abdfd8a9b77d31e067c870aae3db66efea0429",
+  "branch": "develop",
+  "timestamp": "2026-03-10T02:16:55.086233+00:00",
+  "version": "0.7.1",
+  "metrics": {
+    "total_nodes": 5160,
+    "total_edges": 5100,
+    "meaningful_nodes": 342,
+    "docstring_coverage": 0.953,
+    "node_counts": {
+      "class": 36,
+      "function": 97,
+      "method": 171,
+      "module": 38,
+      "symbol": 4818
+    },
+    "edge_counts": {
+      "ATTR_ACCESS": 1732,
+      "CALLS": 1825,
+      "CONTAINS": 304,
+      "IMPORTS": 282,
+      "INHERITS": 8,
+      "RESOLVES_TO": 949
+    },
+    "critical_issues": 0,
+    "complexity_median": 1
+  },
+  "hotspots": [
+    {
+      "name": "cls:src/code_kg/codekg_thorough_analysis.py:FunctionMetrics",
+      "callers": 4,
+      "callees": 0,
+      "risk_level": "medium"
+    },
+    {
+      "name": "m:src/code_kg/visitor.py:CodeKGVisitor._qualname",
+      "callers": 3,
+      "callees": 0,
+      "risk_level": "medium"
+    },
+    {
+      "name": "m:src/code_kg/visitor.py:CodeKGVisitor._seed_params",
+      "callers": 2,
+      "callees": 1,
+      "risk_level": "low"
+    },
+    {
+      "name": "fn:src/code_kg/codekg.py:_enclosing_def",
+      "callers": 1,
+      "callees": 2,
+      "risk_level": "low"
+    },
+    {
+      "name": "cls:src/code_kg/codekg_thorough_analysis.py:ModuleMetrics",
+      "callers": 1,
+      "callees": 0,
+      "risk_level": "low"
+    },
+    {
+      "name": "cls:src/code_kg/codekg_thorough_analysis.py:CallChain",
+      "callers": 1,
+      "callees": 0,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/code_kg/codekg_thorough_analysis.py:CodeKGAnalyzer._compile_results",
+      "callers": 1,
+      "callees": 9,
+      "risk_level": "low"
+    },
+    {
+      "name": "cls:src/code_kg/architecture.py:ModuleLayer",
+      "callers": 1,
+      "callees": 0,
+      "risk_level": "low"
+    },
+    {
+      "name": "fn:src/code_kg/cli/cmd_build_full.py:_summary",
+      "callers": 1,
+      "callees": 6,
+      "risk_level": "low"
+    },
+    {
+      "name": "cls:src/code_kg/codekg.py:Node",
+      "callers": 1,
+      "callees": 0,
+      "risk_level": "low"
+    }
+  ],
+  "vs_previous": null,
+  "vs_baseline": {
+    "nodes": 179,
+    "edges": 169,
+    "coverage_delta": -0.013000000000000012,
+    "critical_issues_delta": -1
+  }
+}

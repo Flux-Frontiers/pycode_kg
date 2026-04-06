@@ -1,0 +1,157 @@
+{
+  "key": "e58379e5a7a515453af1eeff1a9968bddedd4383",
+  "branch": "main",
+  "timestamp": "2026-03-31T01:01:02.963138+00:00",
+  "version": "0.10.0",
+  "metrics": {
+    "db_path": ".codekg/graph.sqlite",
+    "total_nodes": 7058,
+    "meaningful_nodes": 466,
+    "total_edges": 6999,
+    "node_counts": {
+      "class": 46,
+      "function": 152,
+      "method": 213,
+      "module": 55,
+      "symbol": 6592
+    },
+    "edge_counts": {
+      "ATTR_ACCESS": 2290,
+      "CALLS": 2461,
+      "CONTAINS": 411,
+      "IMPORTS": 409,
+      "INHERITS": 14,
+      "RESOLVES_TO": 1414
+    },
+    "docstring_coverage": 0.927,
+    "critical_issues": 0,
+    "complexity_median": 6,
+    "module_node_counts": {
+      "src/code_kg/__init__.py": 4,
+      "src/code_kg/__main__.py": 1,
+      "src/code_kg/analysis/__init__.py": 2,
+      "src/code_kg/analysis/bridge.py": 36,
+      "src/code_kg/analysis/centrality.py": 171,
+      "src/code_kg/analysis/framework_detector.py": 31,
+      "src/code_kg/analysis/hybrid_rank.py": 40,
+      "src/code_kg/app.py": 364,
+      "src/code_kg/architecture.py": 202,
+      "src/code_kg/build_codekg_lancedb.py": 2,
+      "src/code_kg/build_codekg_sqlite.py": 2,
+      "src/code_kg/cli/__init__.py": 2,
+      "src/code_kg/cli/cmd_analyze.py": 18,
+      "src/code_kg/cli/cmd_architecture.py": 42,
+      "src/code_kg/cli/cmd_bridges.py": 16,
+      "src/code_kg/cli/cmd_build.py": 55,
+      "src/code_kg/cli/cmd_build_full.py": 103,
+      "src/code_kg/cli/cmd_centrality.py": 72,
+      "src/code_kg/cli/cmd_explain.py": 47,
+      "src/code_kg/cli/cmd_framework_nodes.py": 16,
+      "src/code_kg/cli/cmd_hooks.py": 22,
+      "src/code_kg/cli/cmd_mcp.py": 10,
+      "src/code_kg/cli/cmd_model.py": 13,
+      "src/code_kg/cli/cmd_query.py": 54,
+      "src/code_kg/cli/cmd_snapshot.py": 141,
+      "src/code_kg/cli/cmd_viz.py": 51,
+      "src/code_kg/cli/main.py": 2,
+      "src/code_kg/cli/options.py": 11,
+      "src/code_kg/codekg.py": 141,
+      "src/code_kg/codekg_query.py": 1,
+      "src/code_kg/codekg_snippet_packer.py": 1,
+      "src/code_kg/codekg_thorough_analysis.py": 958,
+      "src/code_kg/codekg_viz.py": 1,
+      "src/code_kg/codekg_viz3d.py": 1,
+      "src/code_kg/config.py": 21,
+      "src/code_kg/graph.py": 45,
+      "src/code_kg/index.py": 193,
+      "src/code_kg/kg.py": 43,
+      "src/code_kg/layout3d.py": 183,
+      "src/code_kg/mcp/bridge_tools.py": 7,
+      "src/code_kg/mcp/framework_tools.py": 4,
+      "src/code_kg/mcp_server.py": 499,
+      "src/code_kg/module/__init__.py": 2,
+      "src/code_kg/module/base.py": 262,
+      "src/code_kg/module/extractor.py": 58,
+      "src/code_kg/module/types.py": 214,
+      "src/code_kg/ranking/__init__.py": 1,
+      "src/code_kg/ranking/cli_rank.py": 46,
+      "src/code_kg/ranking/coderank.py": 255,
+      "src/code_kg/snapshots.py": 227,
+      "src/code_kg/store.py": 227,
+      "src/code_kg/utils.py": 8,
+      "src/code_kg/visitor.py": 263,
+      "src/code_kg/viz3d.py": 677,
+      "src/code_kg/viz3d_timeline.py": 70
+    }
+  },
+  "hotspots": [
+    {
+      "name": "fn:src/code_kg/mcp_server.py:_get_kg",
+      "callers": 15,
+      "callees": 1,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/code_kg/module/base.py:KGModule.close",
+      "callers": 15,
+      "callees": 1,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/code_kg/store.py:GraphStore.close",
+      "callers": 15,
+      "callees": 1,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/code_kg/store.py:GraphStore.node",
+      "callers": 14,
+      "callees": 4,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/code_kg/store.py:GraphStore.con",
+      "callers": 12,
+      "callees": 4,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/code_kg/module/base.py:KGModule.store",
+      "callers": 8,
+      "callees": 1,
+      "risk_level": "low"
+    },
+    {
+      "name": "fn:src/code_kg/ranking/coderank.py:compute_coderank",
+      "callers": 7,
+      "callees": 2,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/code_kg/module/types.py:SnippetPack.to_json",
+      "callers": 6,
+      "callees": 2,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/code_kg/module/types.py:SnippetPack.to_markdown",
+      "callers": 6,
+      "callees": 6,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/code_kg/graph.py:CodeGraph.extract",
+      "callers": 5,
+      "callees": 1,
+      "risk_level": "low"
+    }
+  ],
+  "issues": [],
+  "vs_previous": null,
+  "vs_baseline": {
+    "nodes": 2077,
+    "edges": 2068,
+    "coverage_delta": -0.038999999999999924,
+    "critical_issues_delta": -1
+  }
+}

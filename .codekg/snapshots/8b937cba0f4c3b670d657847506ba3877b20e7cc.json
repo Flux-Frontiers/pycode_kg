@@ -1,0 +1,98 @@
+{
+  "tree_hash": "8b937cba0f4c3b670d657847506ba3877b20e7cc",
+  "branch": "develop",
+  "timestamp": "2026-03-10T01:15:27.319830+00:00",
+  "version": "0.7.1",
+  "metrics": {
+    "total_nodes": 4936,
+    "total_edges": 4927,
+    "meaningful_nodes": 334,
+    "docstring_coverage": 0.9640000000000001,
+    "node_counts": {
+      "class": 36,
+      "function": 91,
+      "method": 169,
+      "module": 38,
+      "symbol": 4602
+    },
+    "edge_counts": {
+      "ATTR_ACCESS": 1655,
+      "CALLS": 1738,
+      "CONTAINS": 296,
+      "IMPORTS": 281,
+      "INHERITS": 8,
+      "RESOLVES_TO": 949
+    },
+    "critical_issues": 0,
+    "complexity_median": 1
+  },
+  "hotspots": [
+    {
+      "name": "cls:src/code_kg/kg.py:CodeKG",
+      "callers": 8,
+      "callees": 0,
+      "risk_level": "high"
+    },
+    {
+      "name": "cls:src/code_kg/codekg_thorough_analysis.py:FunctionMetrics",
+      "callers": 4,
+      "callees": 0,
+      "risk_level": "medium"
+    },
+    {
+      "name": "cls:src/code_kg/index.py:SentenceTransformerEmbedder",
+      "callers": 4,
+      "callees": 0,
+      "risk_level": "medium"
+    },
+    {
+      "name": "cls:src/code_kg/codekg_thorough_analysis.py:CodeKGAnalyzer",
+      "callers": 3,
+      "callees": 0,
+      "risk_level": "medium"
+    },
+    {
+      "name": "cls:src/code_kg/graph.py:CodeGraph",
+      "callers": 3,
+      "callees": 0,
+      "risk_level": "medium"
+    },
+    {
+      "name": "cls:src/code_kg/index.py:SemanticIndex",
+      "callers": 3,
+      "callees": 0,
+      "risk_level": "medium"
+    },
+    {
+      "name": "cls:src/code_kg/kg.py:BuildStats",
+      "callers": 2,
+      "callees": 0,
+      "risk_level": "low"
+    },
+    {
+      "name": "cls:src/code_kg/architecture.py:ArchitectureAnalyzer",
+      "callers": 1,
+      "callees": 0,
+      "risk_level": "low"
+    },
+    {
+      "name": "cls:src/code_kg/architecture.py:ArchitectureGraph",
+      "callers": 1,
+      "callees": 0,
+      "risk_level": "low"
+    },
+    {
+      "name": "cls:src/code_kg/architecture.py:ComponentNode",
+      "callers": 1,
+      "callees": 0,
+      "risk_level": "low"
+    }
+  ],
+  "vs_previous": null,
+  "vs_baseline": {
+    "nodes": -45,
+    "edges": -4,
+    "coverage_delta": -0.0019999999999998908,
+    "critical_issues_delta": -1
+  }
+}

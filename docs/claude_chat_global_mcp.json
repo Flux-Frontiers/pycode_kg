@@ -1,0 +1,26 @@
+{
+  "mcpServers": {
+    "codekg_codekg": {
+      "command": "/Users/egs/repos/code_kg/.venv/bin/codekg-mcp",
+      "args": [
+        "--repo",
+        "/Users/egs/repos/code_kg",
+        "--db",
+        "/Users/egs/repos/code_kg/.codekg/codekg.sqlite",
+        "--lancedb",
+        "/Users/egs/repos/code_kg/.codekg/lancedb"
+      ]
+    },
+	"dockg_codekg": {
+      "command": "/Users/egs/repos/code_kg/.venv/bin/dockg-mcp",
+      "args": [
+        "--repo",
+        "/Users/egs/repos/code_kg",
+        "--db",
+        "/Users/egs/repos/code_kg/.dockg/codekg.sqlite",
+        "--lancedb",
+        "/Users/egs/repos/code_kg/.dockg/lancedb"
+      ]
+    }
+  },
+}

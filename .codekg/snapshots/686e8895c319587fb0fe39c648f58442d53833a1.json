@@ -1,0 +1,99 @@
+{
+  "commit": "eff8e35c7b0fec1ad5596c7bc7013a03e015ea17",
+  "tree_hash": "686e8895c319587fb0fe39c648f58442d53833a1",
+  "branch": "main",
+  "timestamp": "2026-03-09T02:14:02.507791+00:00",
+  "version": "0.6.1",
+  "metrics": {
+    "total_nodes": 4976,
+    "total_edges": 4931,
+    "meaningful_nodes": 348,
+    "docstring_coverage": 0.966,
+    "node_counts": {
+      "class": 36,
+      "function": 105,
+      "method": 168,
+      "module": 39,
+      "symbol": 4628
+    },
+    "edge_counts": {
+      "ATTR_ACCESS": 1661,
+      "CALLS": 1724,
+      "CONTAINS": 309,
+      "IMPORTS": 285,
+      "INHERITS": 8,
+      "RESOLVES_TO": 944
+    },
+    "critical_issues": 0,
+    "complexity_median": 2
+  },
+  "hotspots": [
+    {
+      "name": "fn:src/code_kg/cli/cmd_query.py:query",
+      "callers": 7,
+      "callees": 11,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/code_kg/kg.py:SnippetPack.to_markdown",
+      "callers": 5,
+      "callees": 5,
+      "risk_level": "low"
+    },
+    {
+      "name": "fn:src/code_kg/cli/cmd_build_full.py:build",
+      "callers": 4,
+      "callees": 28,
+      "risk_level": "low"
+    },
+    {
+      "name": "fn:src/code_kg/cli/cmd_query.py:pack",
+      "callers": 3,
+      "callees": 14,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/code_kg/index.py:SentenceTransformerEmbedder.__init__",
+      "callers": 3,
+      "callees": 5,
+      "risk_level": "low"
+    },
+    {
+      "name": "cls:src/code_kg/snapshots.py:SnapshotDelta",
+      "callers": 2,
+      "callees": 0,
+      "risk_level": "low"
+    },
+    {
+      "name": "cls:src/code_kg/snapshots.py:SnapshotManifest",
+      "callers": 2,
+      "callees": 0,
+      "risk_level": "low"
+    },
+    {
+      "name": "cls:src/code_kg/snapshots.py:SnapshotMetrics",
+      "callers": 2,
+      "callees": 0,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/code_kg/kg.py:QueryResult.print_summary",
+      "callers": 2,
+      "callees": 7,
+      "risk_level": "low"
+    },
+    {
+      "name": "cls:src/code_kg/architecture.py:ArchitectureAnalyzer",
+      "callers": 1,
+      "callees": 0,
+      "risk_level": "low"
+    }
+  ],
+  "vs_previous": null,
+  "vs_baseline": {
+    "nodes": 1158,
+    "edges": 1214,
+    "coverage_delta": -0.0040000000000000036,
+    "critical_issues_delta": -1
+  }
+}

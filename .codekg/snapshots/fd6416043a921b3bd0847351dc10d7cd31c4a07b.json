@@ -1,0 +1,159 @@
+{
+  "key": "fd6416043a921b3bd0847351dc10d7cd31c4a07b",
+  "branch": "fix/snapshots",
+  "timestamp": "2026-03-19T01:15:26.383469+00:00",
+  "version": "0.9.1",
+  "metrics": {
+    "total_nodes": 6988,
+    "total_edges": 6951,
+    "meaningful_nodes": 459,
+    "docstring_coverage": 0.93,
+    "node_counts": {
+      "class": 47,
+      "function": 149,
+      "method": 208,
+      "module": 55,
+      "symbol": 6529
+    },
+    "edge_counts": {
+      "ATTR_ACCESS": 2250,
+      "CALLS": 2455,
+      "CONTAINS": 404,
+      "IMPORTS": 413,
+      "INHERITS": 12,
+      "RESOLVES_TO": 1417
+    },
+    "critical_issues": 2,
+    "complexity_median": 6,
+    "module_node_counts": {
+      "src/code_kg/__init__.py": 4,
+      "src/code_kg/__main__.py": 1,
+      "src/code_kg/analysis/__init__.py": 2,
+      "src/code_kg/analysis/bridge.py": 36,
+      "src/code_kg/analysis/centrality.py": 171,
+      "src/code_kg/analysis/framework_detector.py": 31,
+      "src/code_kg/analysis/hybrid_rank.py": 40,
+      "src/code_kg/app.py": 364,
+      "src/code_kg/architecture.py": 202,
+      "src/code_kg/build_codekg_lancedb.py": 2,
+      "src/code_kg/build_codekg_sqlite.py": 2,
+      "src/code_kg/cli/__init__.py": 2,
+      "src/code_kg/cli/cmd_analyze.py": 18,
+      "src/code_kg/cli/cmd_architecture.py": 42,
+      "src/code_kg/cli/cmd_bridges.py": 16,
+      "src/code_kg/cli/cmd_build.py": 55,
+      "src/code_kg/cli/cmd_build_full.py": 95,
+      "src/code_kg/cli/cmd_centrality.py": 72,
+      "src/code_kg/cli/cmd_explain.py": 47,
+      "src/code_kg/cli/cmd_framework_nodes.py": 16,
+      "src/code_kg/cli/cmd_hooks.py": 22,
+      "src/code_kg/cli/cmd_mcp.py": 10,
+      "src/code_kg/cli/cmd_model.py": 13,
+      "src/code_kg/cli/cmd_query.py": 54,
+      "src/code_kg/cli/cmd_snapshot.py": 141,
+      "src/code_kg/cli/cmd_viz.py": 51,
+      "src/code_kg/cli/main.py": 2,
+      "src/code_kg/cli/options.py": 11,
+      "src/code_kg/codekg.py": 141,
+      "src/code_kg/codekg_query.py": 1,
+      "src/code_kg/codekg_snippet_packer.py": 1,
+      "src/code_kg/codekg_thorough_analysis.py": 948,
+      "src/code_kg/codekg_viz.py": 1,
+      "src/code_kg/codekg_viz3d.py": 1,
+      "src/code_kg/config.py": 21,
+      "src/code_kg/graph.py": 45,
+      "src/code_kg/index.py": 193,
+      "src/code_kg/kg.py": 43,
+      "src/code_kg/layout3d.py": 183,
+      "src/code_kg/mcp/bridge_tools.py": 7,
+      "src/code_kg/mcp/framework_tools.py": 4,
+      "src/code_kg/mcp_server.py": 499,
+      "src/code_kg/module/__init__.py": 2,
+      "src/code_kg/module/base.py": 262,
+      "src/code_kg/module/extractor.py": 58,
+      "src/code_kg/module/types.py": 214,
+      "src/code_kg/ranking/__init__.py": 1,
+      "src/code_kg/ranking/cli_rank.py": 46,
+      "src/code_kg/ranking/coderank.py": 255,
+      "src/code_kg/snapshots.py": 250,
+      "src/code_kg/store.py": 227,
+      "src/code_kg/utils.py": 8,
+      "src/code_kg/visitor.py": 263,
+      "src/code_kg/viz3d.py": 596,
+      "src/code_kg/viz3d_timeline.py": 70
+    }
+  },
+  "hotspots": [
+    {
+      "name": "fn:src/code_kg/mcp_server.py:_get_kg",
+      "callers": 15,
+      "callees": 1,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/code_kg/module/base.py:KGModule.close",
+      "callers": 15,
+      "callees": 1,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/code_kg/store.py:GraphStore.close",
+      "callers": 15,
+      "callees": 1,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/code_kg/store.py:GraphStore.node",
+      "callers": 14,
+      "callees": 4,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/code_kg/store.py:GraphStore.con",
+      "callers": 12,
+      "callees": 4,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/code_kg/module/base.py:KGModule.store",
+      "callers": 8,
+      "callees": 1,
+      "risk_level": "low"
+    },
+    {
+      "name": "fn:src/code_kg/ranking/coderank.py:compute_coderank",
+      "callers": 7,
+      "callees": 2,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/code_kg/module/types.py:SnippetPack.to_json",
+      "callers": 6,
+      "callees": 2,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/code_kg/module/types.py:SnippetPack.to_markdown",
+      "callers": 6,
+      "callees": 6,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/code_kg/graph.py:CodeGraph.extract",
+      "callers": 5,
+      "callees": 1,
+      "risk_level": "low"
+    }
+  ],
+  "issues": [
+    "[WARN] 1 orphaned functions found (`_analyze_dependencies`) -- consider archiving or documenting",
+    "[WARN] 1 functions with high fan-out -- potential orchestrators or god objects"
+  ],
+  "vs_previous": null,
+  "vs_baseline": {
+    "nodes": 2007,
+    "edges": 2020,
+    "coverage_delta": -0.03599999999999992,
+    "critical_issues_delta": 1
+  }
+}
