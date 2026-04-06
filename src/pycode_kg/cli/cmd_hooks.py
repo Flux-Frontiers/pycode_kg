@@ -46,7 +46,7 @@ BRANCH=$(git rev-parse --abbrev-ref HEAD)
 # Rebuild both local indices to keep them in sync with staged content.
 "$REPO_ROOT/.venv/bin/pycodekg" build --repo "$REPO_ROOT" || exit 1
 if [ -d "$DOCKG_REPO" ]; then
-    "$REPO_ROOT/.venv/bin/dockg" build --repo "$DOCKG_REPO" --wipe || true
+    "$REPO_ROOT/.venv/bin/dockg" build --repo "$DOCKG_REPO" || true
 fi
 
 # Snapshot PyCodeKG (version auto-detected from installed package).
