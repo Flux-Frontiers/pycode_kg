@@ -1,6 +1,6 @@
 {
   "format": "1.0",
-  "last_update": "2026-04-06T13:21:44.836660+00:00",
+  "last_update": "2026-04-07T13:25:43.332970+00:00",
   "snapshots": [
     {
       "key": "78e44843c782001278004dfe9188449ab033ab3d",
@@ -6045,6 +6045,103 @@
           "nodes": 2077,
           "edges": 2068,
           "coverage_delta": -0.038999999999999924,
+          "critical_issues_delta": -1
+        }
+      }
+    },
+    {
+      "key": "0ff6f34c99a35ce1966c9e516475f30797982e18",
+      "branch": "main",
+      "timestamp": "2026-04-07T13:25:43.330342+00:00",
+      "version": "0.11.0",
+      "file": "0ff6f34c99a35ce1966c9e516475f30797982e18.json",
+      "metrics": {
+        "db_path": ".pycodekg/graph.sqlite",
+        "total_nodes": 7046,
+        "meaningful_nodes": 468,
+        "total_edges": 6987,
+        "node_counts": {
+          "class": 46,
+          "function": 152,
+          "method": 215,
+          "module": 55,
+          "symbol": 6578
+        },
+        "edge_counts": {
+          "ATTR_ACCESS": 2291,
+          "CALLS": 2452,
+          "CONTAINS": 413,
+          "IMPORTS": 411,
+          "INHERITS": 14,
+          "RESOLVES_TO": 1406
+        },
+        "docstring_coverage": 0.925,
+        "critical_issues": 0,
+        "complexity_median": 6,
+        "module_node_counts": {
+          "src/pycode_kg/__init__.py": 4,
+          "src/pycode_kg/__main__.py": 1,
+          "src/pycode_kg/analysis/__init__.py": 2,
+          "src/pycode_kg/analysis/bridge.py": 36,
+          "src/pycode_kg/analysis/centrality.py": 171,
+          "src/pycode_kg/analysis/framework_detector.py": 31,
+          "src/pycode_kg/analysis/hybrid_rank.py": 40,
+          "src/pycode_kg/app.py": 364,
+          "src/pycode_kg/architecture.py": 202,
+          "src/pycode_kg/build_pycodekg_lancedb.py": 2,
+          "src/pycode_kg/build_pycodekg_sqlite.py": 2,
+          "src/pycode_kg/cli/__init__.py": 2,
+          "src/pycode_kg/cli/cmd_analyze.py": 18,
+          "src/pycode_kg/cli/cmd_architecture.py": 42,
+          "src/pycode_kg/cli/cmd_bridges.py": 16,
+          "src/pycode_kg/cli/cmd_build.py": 55,
+          "src/pycode_kg/cli/cmd_build_full.py": 103,
+          "src/pycode_kg/cli/cmd_centrality.py": 72,
+          "src/pycode_kg/cli/cmd_explain.py": 47,
+          "src/pycode_kg/cli/cmd_framework_nodes.py": 16,
+          "src/pycode_kg/cli/cmd_hooks.py": 22,
+          "src/pycode_kg/cli/cmd_mcp.py": 10,
+          "src/pycode_kg/cli/cmd_model.py": 13,
+          "src/pycode_kg/cli/cmd_query.py": 54,
+          "src/pycode_kg/cli/cmd_snapshot.py": 141,
+          "src/pycode_kg/cli/cmd_viz.py": 51,
+          "src/pycode_kg/cli/main.py": 2,
+          "src/pycode_kg/cli/options.py": 11,
+          "src/pycode_kg/config.py": 21,
+          "src/pycode_kg/graph.py": 45,
+          "src/pycode_kg/index.py": 193,
+          "src/pycode_kg/kg.py": 43,
+          "src/pycode_kg/layout3d.py": 183,
+          "src/pycode_kg/mcp/bridge_tools.py": 7,
+          "src/pycode_kg/mcp/framework_tools.py": 4,
+          "src/pycode_kg/mcp_server.py": 499,
+          "src/pycode_kg/module/__init__.py": 2,
+          "src/pycode_kg/module/base.py": 262,
+          "src/pycode_kg/module/extractor.py": 58,
+          "src/pycode_kg/module/types.py": 214,
+          "src/pycode_kg/pycodekg.py": 141,
+          "src/pycode_kg/pycodekg_query.py": 1,
+          "src/pycode_kg/pycodekg_snippet_packer.py": 1,
+          "src/pycode_kg/pycodekg_thorough_analysis.py": 958,
+          "src/pycode_kg/pycodekg_viz.py": 1,
+          "src/pycode_kg/pycodekg_viz3d.py": 1,
+          "src/pycode_kg/ranking/__init__.py": 1,
+          "src/pycode_kg/ranking/cli_rank.py": 46,
+          "src/pycode_kg/ranking/coderank.py": 255,
+          "src/pycode_kg/snapshots.py": 212,
+          "src/pycode_kg/store.py": 227,
+          "src/pycode_kg/utils.py": 8,
+          "src/pycode_kg/visitor.py": 263,
+          "src/pycode_kg/viz3d.py": 677,
+          "src/pycode_kg/viz3d_timeline.py": 70
+        }
+      },
+      "deltas": {
+        "vs_previous": null,
+        "vs_baseline": {
+          "nodes": 2065,
+          "edges": 2056,
+          "coverage_delta": -0.040999999999999925,
           "critical_issues_delta": -1
         }
       }

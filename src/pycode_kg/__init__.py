@@ -32,7 +32,7 @@ KGModule SDK (build new domain KGs)::
     from pycode_kg import KGModule, KGExtractor, PyCodeKGExtractor, NodeSpec, EdgeSpec
 """
 
-__version__ = "0.11.0"
+__version__ = "0.12.0"
 __author__ = "Eric G. Suchanek, PhD"
 
 # Low-level primitives (locked v0 contract)

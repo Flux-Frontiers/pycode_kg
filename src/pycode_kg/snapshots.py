@@ -26,6 +26,11 @@ Usage
 >>> mgr.save_snapshot(snapshot)
 >>> manifest = mgr.load_manifest()
 >>> prev = mgr.get_previous(tree_hash)
+
+Author: Eric G. Suchanek, PhD
+Last Revision: 2026-04-07 09:13:36
+
+License: Elastic 2.0
 """
 
 from __future__ import annotations
@@ -33,15 +38,18 @@ from __future__ import annotations
 import json
 import sqlite3
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 # ---------------------------------------------------------------------------
 # Re-export shared data models
 # ---------------------------------------------------------------------------
-from kg_snapshot.snapshots import Snapshot as Snapshot  # noqa: F401 — re-export
+from kg_snapshot.snapshots import Snapshot as _BaseSnapshot
 from kg_snapshot.snapshots import SnapshotManager as _BaseSnapshotManager
-from kg_snapshot.snapshots import SnapshotManifest as SnapshotManifest  # noqa: F401 — re-export
+from kg_snapshot.snapshots import (  # noqa: F401 — re-export
+    SnapshotManifest as SnapshotManifest,
+)
 
 # ---------------------------------------------------------------------------
 # Domain-specific dataclasses  (used by cmd_snapshot.py and tests)
@@ -143,7 +151,7 @@ def delta_from_dict(data: dict[str, Any] | None) -> SnapshotDelta | None:
 # ---------------------------------------------------------------------------
 
 
-class Snapshot(Snapshot):  # type: ignore[no-redef]
+class Snapshot(_BaseSnapshot):
     """pycode-kg Snapshot with attribute-accessible metrics and delta fields.
 
     Subclasses the shared ``kg_rag.snapshots.Snapshot`` so that:
@@ -157,48 +165,41 @@ class Snapshot(Snapshot):  # type: ignore[no-redef]
       which store plain dicts, ensuring on-disk format compatibility.
     """
 
+    # Class-level type declarations for the raw storage attributes
+    _metrics_raw: dict[str, Any]
+    _vs_previous_raw: dict[str, Any] | None
+    _vs_baseline_raw: dict[str, Any] | None
+
     # ------------------------------------------------------------------
     # Attribute-access shims
     # ------------------------------------------------------------------
 
     @property  # type: ignore[override]
     def metrics(self) -> SnapshotMetrics:  # type: ignore[override]
-        raw = object.__getattribute__(self, "_metrics_raw")
-        return metrics_from_dict(raw)
+        return metrics_from_dict(self._metrics_raw)
 
     @metrics.setter
     def metrics(self, value: SnapshotMetrics | dict[str, Any]) -> None:
-        if isinstance(value, SnapshotMetrics):
-            object.__setattr__(self, "_metrics_raw", metrics_to_dict(value))
-        else:
-            object.__setattr__(self, "_metrics_raw", value)
+        self._metrics_raw = metrics_to_dict(value) if isinstance(value, SnapshotMetrics) else value
 
     @property  # type: ignore[override]
     def vs_previous(self) -> SnapshotDelta | None:  # type: ignore[override]
-        raw = object.__getattribute__(self, "_vs_previous_raw")
-        return delta_from_dict(raw)
+        return delta_from_dict(self._vs_previous_raw)
 
     @vs_previous.setter
     def vs_previous(self, value: SnapshotDelta | dict[str, Any] | None) -> None:
-        if isinstance(value, SnapshotDelta):
-            object.__setattr__(self, "_vs_previous_raw", delta_to_dict(value))
-        else:
-            object.__setattr__(self, "_vs_previous_raw", value)
+        self._vs_previous_raw = delta_to_dict(value) if isinstance(value, SnapshotDelta) else value
 
     @property  # type: ignore[override]
     def vs_baseline(self) -> SnapshotDelta | None:  # type: ignore[override]
-        raw = object.__getattribute__(self, "_vs_baseline_raw")
-        return delta_from_dict(raw)
+        return delta_from_dict(self._vs_baseline_raw)
 
     @vs_baseline.setter
     def vs_baseline(self, value: SnapshotDelta | dict[str, Any] | None) -> None:
-        if isinstance(value, SnapshotDelta):
-            object.__setattr__(self, "_vs_baseline_raw", delta_to_dict(value))
-        else:
-            object.__setattr__(self, "_vs_baseline_raw", value)
+        self._vs_baseline_raw = delta_to_dict(value) if isinstance(value, SnapshotDelta) else value
 
     # ------------------------------------------------------------------
-    # __init__: intercept and store raw dicts
+    # __init__: store raw dicts, pass them to super
     # ------------------------------------------------------------------
 
     def __init__(
@@ -213,36 +214,24 @@ class Snapshot(Snapshot):  # type: ignore[no-redef]
         vs_baseline: SnapshotDelta | dict[str, Any] | None = None,
         tree_hash: str = "",
     ) -> None:
-        # Store raw dicts before calling super().__init__
-        if isinstance(metrics, SnapshotMetrics):
-            object.__setattr__(self, "_metrics_raw", metrics_to_dict(metrics))
-        else:
-            object.__setattr__(self, "_metrics_raw", metrics or {})
-
-        if isinstance(vs_previous, SnapshotDelta):
-            object.__setattr__(self, "_vs_previous_raw", delta_to_dict(vs_previous))
-        else:
-            object.__setattr__(self, "_vs_previous_raw", vs_previous)
-
-        if isinstance(vs_baseline, SnapshotDelta):
-            object.__setattr__(self, "_vs_baseline_raw", delta_to_dict(vs_baseline))
-        else:
-            object.__setattr__(self, "_vs_baseline_raw", vs_baseline)
-
-        # Call parent __init__ with dict forms so the shared class stores them
-        raw_metrics = object.__getattribute__(self, "_metrics_raw")
-        raw_vs_prev = object.__getattribute__(self, "_vs_previous_raw")
-        raw_vs_base = object.__getattribute__(self, "_vs_baseline_raw")
-
+        self._metrics_raw = (
+            metrics_to_dict(metrics) if isinstance(metrics, SnapshotMetrics) else (metrics or {})
+        )
+        self._vs_previous_raw = (
+            delta_to_dict(vs_previous) if isinstance(vs_previous, SnapshotDelta) else vs_previous
+        )
+        self._vs_baseline_raw = (
+            delta_to_dict(vs_baseline) if isinstance(vs_baseline, SnapshotDelta) else vs_baseline
+        )
         super().__init__(
             branch=branch,
             timestamp=timestamp,
-            metrics=raw_metrics,
+            metrics=self._metrics_raw,
             version=version,
             hotspots=hotspots or [],
             issues=issues or [],
-            vs_previous=raw_vs_prev,
-            vs_baseline=raw_vs_base,
+            vs_previous=self._vs_previous_raw,
+            vs_baseline=self._vs_baseline_raw,
             tree_hash=tree_hash,
         )
 
@@ -252,19 +241,16 @@ class Snapshot(Snapshot):  # type: ignore[no-redef]
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize to JSON-compatible dict (plain dicts for all nested fields)."""
-        raw_metrics = object.__getattribute__(self, "_metrics_raw")
-        raw_vs_prev = object.__getattribute__(self, "_vs_previous_raw")
-        raw_vs_base = object.__getattribute__(self, "_vs_baseline_raw")
         return {
             "key": self.tree_hash,
             "branch": self.branch,
             "timestamp": self.timestamp,
             "version": self.version,
-            "metrics": raw_metrics,
+            "metrics": self._metrics_raw,
             "hotspots": self.hotspots,
             "issues": self.issues,
-            "vs_previous": raw_vs_prev,
-            "vs_baseline": raw_vs_base,
+            "vs_previous": self._vs_previous_raw,
+            "vs_baseline": self._vs_baseline_raw,
         }
 
     @staticmethod
@@ -330,6 +316,24 @@ class SnapshotManager(_BaseSnapshotManager):
         super().__init__(snapshots_dir, package_name=package_name, db_path=db_path)
 
     # ------------------------------------------------------------------
+    # Helper: wrap a base Snapshot in the local subclass
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _wrap_snapshot(base: _BaseSnapshot) -> Snapshot:
+        return Snapshot(
+            branch=base.branch,
+            timestamp=base.timestamp,
+            version=base.version,
+            metrics=base.metrics,
+            hotspots=base.hotspots,
+            issues=base.issues,
+            vs_previous=base.vs_previous,
+            vs_baseline=base.vs_baseline,
+            tree_hash=base.tree_hash,
+        )
+
+    # ------------------------------------------------------------------
     # capture — extended signature for backwards compat
     # ------------------------------------------------------------------
 
@@ -381,19 +385,7 @@ class SnapshotManager(_BaseSnapshotManager):
             module_node_counts=module_node_counts,
         )
 
-        # Wrap in pycode-kg Snapshot so callers get dataclass-style attribute access
-        snap = Snapshot(
-            branch=base_snap.branch,
-            timestamp=base_snap.timestamp,
-            version=base_snap.version,
-            metrics=base_snap.metrics,  # already a dict from base class
-            hotspots=base_snap.hotspots,
-            issues=base_snap.issues,
-            vs_previous=base_snap.vs_previous,
-            vs_baseline=base_snap.vs_baseline,
-            tree_hash=base_snap.tree_hash,
-        )
-        return snap
+        return self._wrap_snapshot(base_snap)
 
     # ------------------------------------------------------------------
     # Override load_snapshot to return pycode-kg Snapshot instances
@@ -402,59 +394,71 @@ class SnapshotManager(_BaseSnapshotManager):
     def load_snapshot(self, key: str) -> Snapshot | None:
         """Load a snapshot by key, returning a pycode-kg Snapshot instance."""
         base_snap = super().load_snapshot(key)
-        if base_snap is None:
-            return None
-        return Snapshot(
-            branch=base_snap.branch,
-            timestamp=base_snap.timestamp,
-            version=base_snap.version,
-            metrics=base_snap.metrics,
-            hotspots=base_snap.hotspots,
-            issues=base_snap.issues,
-            vs_previous=base_snap.vs_previous,
-            vs_baseline=base_snap.vs_baseline,
-            tree_hash=base_snap.tree_hash,
-        )
+        return self._wrap_snapshot(base_snap) if base_snap is not None else None
 
     # ------------------------------------------------------------------
     # save_snapshot — convert dataclass fields to plain dicts for manifest
     # ------------------------------------------------------------------
 
-    def save_snapshot(self, snapshot: Snapshot) -> Path:  # type: ignore[override]
-        """Persist snapshot, ensuring the manifest entry uses plain dicts.
+    def save_snapshot(self, snapshot: Snapshot, *, force: bool = False) -> Path | None:  # type: ignore[override]
+        """Persist snapshot, normalising metrics to a plain dict for the manifest.
 
-        The base :meth:`~kg_rag.snapshots.SnapshotManager.save_snapshot`
+        The base :meth:`~kg_snapshot.snapshots.SnapshotManager.save_snapshot`
         writes ``snapshot.metrics`` directly into the manifest dict.  For
         pycode-kg :class:`Snapshot` instances that property returns a
-        :class:`SnapshotMetrics` dataclass — not JSON-serializable — so
-        ``json.dumps`` raises ``TypeError``.  This override converts metrics
-        via :func:`metrics_to_dict` and deltas via :func:`delta_to_dict`
-        before writing the manifest.
+        :class:`SnapshotMetrics` dataclass — not JSON-serializable.  This
+        override uses the raw dict for manifest entries while preserving the
+        base's dedup behaviour.
 
         :param snapshot: Snapshot to persist.
-        :return: Path to the saved JSON file.
+        :param force: If ``True``, always write a new history entry.
+        :return: Path to the saved JSON file, or ``None`` if unchanged (dedup).
         :raises ValueError: If ``total_nodes`` is 0.
         """
-        from datetime import UTC, datetime  # pylint: disable=import-outside-toplevel
-
-        metrics_dict = metrics_to_dict(snapshot.metrics)
+        metrics_dict = snapshot._metrics_raw
         if metrics_dict.get("total_nodes", 0) == 0:
             raise ValueError(
                 "Refusing to save degenerate snapshot with 0 nodes. "
                 "Build the KG before capturing a snapshot."
             )
 
+        manifest = self.load_manifest()
+
+        # Dedup: if version + metrics unchanged, refresh the latest entry in-place.
+        if not force and manifest.snapshots:
+            latest = max(manifest.snapshots, key=lambda x: x.get("timestamp", ""))
+            if snapshot.version == latest.get("version", "") and not self._metrics_changed(
+                metrics_dict, latest.get("metrics", {})
+            ):
+                old_key = latest["key"]
+                old_file = self.snapshots_dir / latest.get("file", f"{old_key}.json")
+                snapshot_file = self.snapshots_dir / f"{snapshot.key}.json"
+                snapshot_file.write_text(
+                    json.dumps(snapshot.to_dict(), indent=2) + "\n",
+                    encoding="utf-8",
+                )
+                if old_key != snapshot.key and old_file.exists():
+                    old_file.unlink()
+                latest.update(
+                    key=snapshot.key,
+                    branch=snapshot.branch,
+                    timestamp=snapshot.timestamp,
+                    file=snapshot_file.name,
+                )
+                manifest.last_update = datetime.now(UTC).isoformat()
+                self._save_manifest(manifest)
+                return snapshot_file
+
+        # Normal path: new or changed snapshot.
         snapshot_file = self.snapshots_dir / f"{snapshot.key}.json"
         snapshot_file.write_text(json.dumps(snapshot.to_dict(), indent=2) + "\n", encoding="utf-8")
 
-        manifest = self.load_manifest()
         existing_idx = next(
             (i for i, s in enumerate(manifest.snapshots) if s.get("key") == snapshot.key),
             None,
         )
-
-        vs_prev = snapshot.vs_previous
-        vs_base = snapshot.vs_baseline
+        vs_prev = snapshot._vs_previous_raw
+        vs_base = snapshot._vs_baseline_raw
         manifest_entry: dict[str, Any] = {
             "key": snapshot.key,
             "branch": snapshot.branch,
@@ -462,17 +466,12 @@ class SnapshotManager(_BaseSnapshotManager):
             "version": snapshot.version,
             "file": snapshot_file.name,
             "metrics": metrics_dict,
-            "deltas": {
-                "vs_previous": delta_to_dict(vs_prev) if vs_prev is not None else None,
-                "vs_baseline": delta_to_dict(vs_base) if vs_base is not None else None,
-            },
+            "deltas": {"vs_previous": vs_prev, "vs_baseline": vs_base},
         }
-
         if existing_idx is not None:
             manifest.snapshots[existing_idx] = manifest_entry
         else:
             manifest.snapshots.append(manifest_entry)
-
         manifest.last_update = datetime.now(UTC).isoformat()
         self._save_manifest(manifest)
         return snapshot_file
@@ -481,19 +480,17 @@ class SnapshotManager(_BaseSnapshotManager):
     # Delta computation — adds coverage_delta and critical_issues_delta
     # ------------------------------------------------------------------
 
+    @staticmethod
+    def _as_metrics_dict(m: SnapshotMetrics | dict[str, Any]) -> dict[str, Any]:
+        """Return a plain metrics dict whether ``m`` is a dataclass or already a dict."""
+        return metrics_to_dict(m) if isinstance(m, SnapshotMetrics) else m  # type: ignore[arg-type]
+
     def _compute_delta(self, snap_new: Snapshot, snap_old: Snapshot) -> dict[str, Any]:
         """Compute pycode-kg metrics delta including coverage and issue count."""
-        new_m = (
-            snap_new.metrics
-            if isinstance(snap_new.metrics, dict)
-            else metrics_to_dict(snap_new.metrics)
-        )  # type: ignore[arg-type]
-        old_m = (
-            snap_old.metrics
-            if isinstance(snap_old.metrics, dict)
-            else metrics_to_dict(snap_old.metrics)
-        )  # type: ignore[arg-type]
-        return self._compute_delta_from_metrics(new_m, old_m)
+        return self._compute_delta_from_metrics(
+            self._as_metrics_dict(snap_new.metrics),
+            self._as_metrics_dict(snap_old.metrics),
+        )
 
     def _compute_delta_from_metrics(
         self, new_m: dict[str, Any], old_m: dict[str, Any]
@@ -532,13 +529,8 @@ class SnapshotManager(_BaseSnapshotManager):
         if not snap_a or not snap_b:
             return {"error": "One or both snapshots not found"}
 
-        # Resolve metrics to dicts for delta computation
-        m_a = (
-            snap_a.metrics if isinstance(snap_a.metrics, dict) else metrics_to_dict(snap_a.metrics)
-        )  # type: ignore[arg-type]
-        m_b = (
-            snap_b.metrics if isinstance(snap_b.metrics, dict) else metrics_to_dict(snap_b.metrics)
-        )  # type: ignore[arg-type]
+        m_a = self._as_metrics_dict(snap_a.metrics)
+        m_b = self._as_metrics_dict(snap_b.metrics)
 
         all_node_kinds = set(m_a.get("node_counts", {})) | set(m_b.get("node_counts", {}))
         all_edge_rels = set(m_a.get("edge_counts", {})) | set(m_b.get("edge_counts", {}))

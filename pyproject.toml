@@ -17,7 +17,7 @@
 # perform code analysis, or build AI-powered development tools.
 #
 # Author: Eric G. Suchanek, PhD
-# Last Revision: 2026-04-05 23:53:57
+# Last Revision: 2026-04-07 09:19:08
 #
 
 
@@ -33,7 +33,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "pycode-kg"
-version = "0.11.0"
+version = "0.12.0"
 description = "A tool to build a searchable knowledge graph from Python repositories"
 authors = ["Eric G. Suchanek, PhD <suchanek@mac.com>"]
 license = "Elastic-2.0"
@@ -93,9 +93,14 @@ param = ">=2.0.0"
 markdown = ">=3.6"
 trame-vtk = ">=2.0.0"
 
-[tool.poetry.group.dev.dependencies]
+[tool.poetry.group.kgdeps]
+optional = true
+
+[tool.poetry.group.kgdeps.dependencies]
 doc-kg = { git = "https://github.com/Flux-Frontiers/doc_kg.git" }
 agent-kg = { git = "https://github.com/Flux-Frontiers/agent_kg.git" }
+
+[tool.poetry.group.dev.dependencies]
 pytest = ">=8.0.0"
 pytest-cov = ">=5.0.0"
 ruff = ">=0.4.0"
