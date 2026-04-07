@@ -2314,7 +2314,7 @@ version = "0.3.0"
 description = "Shared snapshot infrastructure for KG modules — zero stdlib-only deps."
 optional = false
 python-versions = ">=3.12,<3.14"
-groups = ["kgdeps"]
+groups = ["main", "kgdeps"]
 files = []
 develop = false
 
@@ -7056,4 +7056,4 @@ viz3d = ["PyQt5", "markdown", "param", "pyvista", "pyvistaqt", "trame-vtk"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12,<3.14"
-content-hash = "a02d7e704ea3709db8cd487c85cfd94d2f1802c3da64a8af395f56b24346d53a"
+content-hash = "0e5ce18da01e8fe49458634dc630b3199124ec45711357aa887c39e53f03ad20"
