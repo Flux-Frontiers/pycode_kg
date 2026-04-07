@@ -45,6 +45,7 @@ from typing import Any
 # ---------------------------------------------------------------------------
 # Re-export shared data models
 # ---------------------------------------------------------------------------
+from kg_snapshot.snapshots import PruneResult as PruneResult  # noqa: F401 — re-export
 from kg_snapshot.snapshots import Snapshot as _BaseSnapshot
 from kg_snapshot.snapshots import SnapshotManager as _BaseSnapshotManager
 from kg_snapshot.snapshots import (  # noqa: F401 — re-export
@@ -603,6 +604,7 @@ __all__ = [
     "SnapshotManager",
     "SnapshotMetrics",
     "SnapshotDelta",
+    "PruneResult",
     "metrics_to_dict",
     "metrics_from_dict",
     "delta_to_dict",

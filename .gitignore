@@ -238,7 +238,7 @@ cython_debug/
 .agentkg/
 
 # Local MCP configuration (contains absolute paths)
-.mcp.json
+#.mcp.json
 
 # MacOS
 **/.DS_Store

@@ -2314,16 +2314,15 @@ version = "0.3.0"
 description = "Shared snapshot infrastructure for KG modules — zero stdlib-only deps."
 optional = false
 python-versions = ">=3.12,<3.14"
-groups = ["main"]
-files = [
-    {file = "kg_snapshot-0.3.0-py3-none-any.whl", hash = "sha256:46f5cb57eb7ac66e3d4c64b46c2a403268c65e7ffa2bd45766a871b06d5bd69b"},
-    {file = "kg_snapshot-0.3.0.tar.gz", hash = "sha256:5588e756fe6378a40577cf32f6b4a7416658aba9dff397623d5613a86f44a73f"},
-]
+groups = ["kgdeps"]
+files = []
+develop = false
 
 [package.source]
-type = "legacy"
-url = "https://test.pypi.org/simple"
-reference = "testpypi"
+type = "git"
+url = "https://github.com/Flux-Frontiers/kg_snapshot.git"
+reference = "HEAD"
+resolved_reference = "2fbdf488b55b382ae625300b1cbbfc4cf32296c2"
 
 [[package]]
 name = "kiwisolver"

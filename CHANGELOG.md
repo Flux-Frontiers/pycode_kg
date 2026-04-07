@@ -9,6 +9,8 @@ Note: older entries preserve the API names used at that release (for example com
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-04-07
+
 ### Added
 
 - **`_wrap_snapshot` helper on `SnapshotManager`** (`snapshots.py`) — Replaces the duplicated 9-field copy-constructor in `capture` and `load_snapshot` with a single static method, eliminating a fragile pattern that would silently break if the base `Snapshot` added fields.
@@ -40,6 +42,11 @@ Note: older entries preserve the API names used at that release (for example com
 - **Installation docs updated** (`README.md`) — Development setup instructions and the consumer note now reflect `poetry install --with dev` as the canonical install command, documenting that it includes `doc-kg`, `ftree-kg`, and `agent-kg`.
 
 ### Fixed
+
+### Added
+
+- **`snapshot prune` CLI subcommand** (`cli/cmd_snapshot.py`) — New `pycodekg snapshot prune` command wires through `SnapshotManager.prune_snapshots()` from `kg_snapshot`. Removes metric-duplicate interior snapshots, broken manifest entries (JSON file missing on disk), and orphaned JSON files not referenced by the manifest. Baseline (oldest) and latest snapshots are always preserved. Supports `--dry-run` to preview what would be removed. `PruneResult` re-exported from `snapshots.py` and added to `__all__`.
+- **Snapshot manifest pruned** (`.pycodekg/snapshots/`) — 57 vestigial snapshot files (56 metric-duplicates + 1 orphaned file) removed by running `pycodekg snapshot prune`.
 
 ### Removed
 

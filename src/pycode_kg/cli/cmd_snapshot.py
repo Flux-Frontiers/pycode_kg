@@ -286,6 +286,63 @@ def show_snapshot(key: str, snapshots_dir: str | None) -> None:
         click.echo(f"  Issues:      {delta.critical_issues_delta:+d}")
 
 
+@snapshot.command("prune")
+@click.option(
+    "--snapshots-dir",
+    default=None,
+    type=click.Path(),
+    help="Snapshots directory (default: .pycodekg/snapshots).",
+)
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    help="Show what would be removed without deleting anything.",
+)
+def prune_snapshots(snapshots_dir: str | None, dry_run: bool) -> None:
+    """
+    Remove vestigial snapshots that carry no new metric information.
+
+    Cleans up three categories:
+
+    \b
+    1. Metric-duplicates — interior snapshots with unchanged metrics.
+    2. Broken entries — manifest entries whose JSON file is missing.
+    3. Orphaned files — JSON files on disk not referenced by the manifest.
+
+    The oldest (baseline) and newest (latest) snapshots are always kept.
+
+    Example:
+        pycodekg snapshot prune --dry-run
+        pycodekg snapshot prune
+    """
+    snapshots_path = (
+        Path(snapshots_dir).resolve() if snapshots_dir else (Path.cwd() / ".pycodekg" / "snapshots")
+    )
+    mgr = SnapshotManager(snapshots_path)
+    result = mgr.prune_snapshots(dry_run=dry_run)
+
+    prefix = "[dry-run] " if dry_run else ""
+    if result.total_cleaned == 0:
+        click.echo("Nothing to prune.")
+        return
+
+    if result.removed:
+        click.echo(f"{prefix}Metric-duplicates removed: {len(result.removed)}")
+        for key in result.removed:
+            click.echo(f"  - {key}")
+    if result.broken_entries:
+        click.echo(f"{prefix}Broken manifest entries removed: {len(result.broken_entries)}")
+        for key in result.broken_entries:
+            click.echo(f"  - {key}")
+    if result.orphaned_files:
+        click.echo(f"{prefix}Orphaned JSON files removed: {len(result.orphaned_files)}")
+        for fname in result.orphaned_files:
+            click.echo(f"  - {fname}")
+
+    action = "would be" if dry_run else "were"
+    click.echo(f"\nTotal: {result.total_cleaned} item(s) {action} cleaned.")
+
+
 @snapshot.command("diff")
 @click.argument("key_a", metavar="KEY_A")
 @click.argument("key_b", metavar="KEY_B")
