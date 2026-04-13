@@ -51,6 +51,7 @@ Each command is available as a `pycodekg <subcommand>` **or** a dedicated `pycod
 
 | Subcommand / Script alias | Purpose |
 |---------------------------|---------|
+| `init` / `pycodekg-init` | One-command setup: download model, build graph, install hooks, snapshot |
 | `build-sqlite` / `pycodekg-build-sqlite` | Extract AST-based knowledge graph → SQLite |
 | `build-lancedb` / `pycodekg-build-lancedb` | Build semantic vector index for NL queries |
 | `build` / `pycodekg-build` | SQLite + LanceDB in one step |
@@ -65,6 +66,9 @@ Each command is available as a `pycodekg <subcommand>` **or** a dedicated `pycod
 ### Quick Examples
 
 ```bash
+# First-time setup (downloads model, builds graph, installs hooks, snapshots)
+pycodekg init --repo .
+
 # Build the knowledge graph (one-time setup)
 pycodekg build-sqlite --repo /path/to/repo
 pycodekg build-lancedb

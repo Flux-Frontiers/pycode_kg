@@ -33,7 +33,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "pycode-kg"
-version = "0.13.0"
+version = "0.14.0"
 description = "A tool to build a searchable knowledge graph from Python repositories"
 authors = ["Eric G. Suchanek, PhD <suchanek@mac.com>"]
 license = "Elastic-2.0"
@@ -127,6 +127,7 @@ pycodekg-viz-timeline     = "pycode_kg.cli.cmd_viz:viz_timeline"
 pycodekg-analyze          = "pycode_kg.cli.cmd_analyze:analyze"
 pycodekg-architecture     = "pycode_kg.cli.cmd_architecture:architecture"
 pycodekg-download-model   = "pycode_kg.cli.cmd_model:download_model"
+pycodekg-init             = "pycode_kg.cli.cmd_init:init"
 pycodekg-install-hooks    = "pycode_kg.cli.cmd_hooks:install_hooks"
 pycodekg-centrality       = "pycode_kg.cli.cmd_centrality:cmd_centrality"
 

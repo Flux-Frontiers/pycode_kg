@@ -17,6 +17,7 @@ from pycode_kg.cli import (  # noqa: F401  — registers snapshot (save, list, s
     cmd_centrality,  # noqa: F401  — registers centrality
     cmd_explain,  # noqa: F401  — registers explain
     cmd_hooks,  # noqa: F401  — registers install-hooks
+    cmd_init,  # noqa: F401  — registers init
     cmd_mcp,  # noqa: F401  — registers mcp
     cmd_model,  # noqa: F401  — registers download-model
     cmd_query,  # noqa: F401  — registers query, pack
