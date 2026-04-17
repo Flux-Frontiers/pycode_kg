@@ -3,8 +3,8 @@ cmd_build.py
 
 Click subcommands for building the PyCodeKG knowledge graph:
 
-    build-sqlite   - repo -> AST -> SQLite
-    build-lancedb  - SQLite -> LanceDB semantic index
+    build-sqlite   - repo -> AST -> graph store
+    build-lancedb  - graph store -> vector index
 """
 
 from __future__ import annotations

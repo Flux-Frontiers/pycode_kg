@@ -2676,7 +2676,7 @@ def main(
 
         console.print(f"[dim]Repo   : {root}[/dim]")
         console.print(f"[dim]DB     : {db}[/dim]")
-        console.print(f"[dim]LanceDB: {lancedb}[/dim]")
+        console.print(f"[dim]Index  : {lancedb}[/dim]")
         console.print(f"[dim]Report : {md_out}[/dim]")
         console.print()
 

@@ -3,8 +3,8 @@ cmd_build_full.py
 
 Click subcommand for building the full PyCodeKG pipeline in one step:
 
-    build   - repo -> AST -> SQLite -> LanceDB (full pipeline, always wipes)
-    update  - repo -> AST -> SQLite -> LanceDB (incremental upsert, no wipe)
+    build   - repo -> AST -> graph store -> vector index (full pipeline, always wipes)
+    update  - repo -> AST -> graph store -> vector index (incremental upsert, no wipe)
 """
 
 from __future__ import annotations
@@ -35,7 +35,7 @@ def _banner(repo_root: Path, label: str) -> None:
     """Print the build header banner."""
     click.echo()
     click.echo(f"  PyCodeKG  {label}")
-    click.echo("  repo - AST - SQLite - LanceDB")
+    click.echo("  repo - AST - graph store - vector index")
     click.echo(f"  repo  {repo_root}")
     click.echo()
 
@@ -124,7 +124,7 @@ def _run_pipeline(
     _banner(repo_root, label)
     t_total = time.monotonic()
 
-    # Step 1: Build SQLite graph
+    # Step 1: Build graph store
     t1 = time.monotonic()
     graph = CodeGraph(
         repo_root,
@@ -140,7 +140,7 @@ def _run_pipeline(
 
     _step_result(
         1,
-        "SQLite",
+        "graph store",
         [
             ("nodes", str(len(nodes))),
             ("edges", str(len(edges))),
@@ -149,7 +149,7 @@ def _run_pipeline(
         elapsed=time.monotonic() - t1,
     )
 
-    # Step 2: Build LanceDB semantic index
+    # Step 2: Build vector index
     if not verbose:
         suppress_ingestion_logging()
 
@@ -169,7 +169,7 @@ def _run_pipeline(
 
     _step_result(
         2,
-        "LanceDB",
+        "vector index",
         [
             ("indexed", str(stats["indexed_rows"])),
             ("model", Path(model).name),
@@ -194,7 +194,7 @@ def build(
     include_dir: tuple[str, ...],
     exclude_dir: tuple[str, ...],
 ) -> None:
-    """Build knowledge graph from scratch: wipes existing data, then extracts AST -> SQLite -> LanceDB."""
+    """Build knowledge graph from scratch: wipes existing data, then extracts AST -> graph store -> vector index."""
     _run_pipeline(
         repo,
         db,
