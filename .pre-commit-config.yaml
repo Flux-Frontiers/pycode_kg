@@ -9,7 +9,7 @@ repos:
       - id: check-merge-conflict
       - id: check-added-large-files
         args: [--maxkb=1000]
-        exclude: '^(src|docs|article)/.*\.(png|jpg|jpeg|gif|pdf)$|^\.pycodekg/'
+        exclude: '^(src|docs|article)/.*\.(png|jpg|jpeg|gif|pdf|html)$|^\.pycodekg/'
       - id: debug-statements
 
   # Pylint code quality checking

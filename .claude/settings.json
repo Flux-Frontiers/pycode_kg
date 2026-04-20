@@ -3,7 +3,9 @@
     "allow": [
       "Bash(git -C /Users/egs/repos/Metabo_kg status)",
       "Bash(git -C /Users/egs/repos/Metabo_kg diff --staged)",
-      "Bash(.venv/bin/python -c \"import metabokg\")"
+      "Bash(.venv/bin/python -c \"import metabokg\")",
+      "Bash(.venv/bin/dockg analyze *)",
+      "Bash(git tag *)"
     ]
   }
 }
