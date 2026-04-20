@@ -71,7 +71,7 @@ def mock_sentence_transformers():
     """
     mock_st = MagicMock()
     mock_model = MagicMock()
-    mock_model.get_sentence_embedding_dimension.return_value = 384
+    mock_model.get_embedding_dimension.return_value = 384
     mock_st.SentenceTransformer.return_value = mock_model
 
     mock_tf = MagicMock()

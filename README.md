@@ -225,18 +225,16 @@ pycode-kg = {git = "https://github.com/Flux-Frontiers/pycode_kg.git", extras = [
 All CLI entry points are available immediately — no changes to your own `pyproject.toml` required:
 
 ```bash
-# --db and --lancedb default to .pycodekg/ — flags are optional
-pycodekg build-sqlite  --repo .
-pycodekg build-lancedb --repo .
-pycodekg mcp           --repo .
+pycodekg build --repo .   # SQLite + LanceDB in one step; all paths default to .pycodekg/
+pycodekg mcp   --repo .
 ```
 
 Each subcommand also ships as a dedicated `pycodekg-<name>` script installed directly into the venv — no `poetry run` needed, useful for shell scripts, `Makefile` targets, and CI pipelines:
 
 ```bash
-pycodekg-build-sqlite  --repo .
-pycodekg-build-lancedb --repo .
 pycodekg-build         --repo .   # SQLite + LanceDB in one step
+pycodekg-build-sqlite  --repo .   # SQLite only
+pycodekg-build-lancedb            # LanceDB only (reads from .pycodekg/graph.sqlite)
 pycodekg-query         "database connection setup"
 pycodekg-pack          "authentication flow"
 pycodekg-analyze       .
@@ -365,41 +363,30 @@ When no `include` is configured, all directories are indexed (excluding the buil
 
 ### Advanced: Build Step-by-Step (Full Control)
 
-For granular control or to rebuild only a specific component, use the individual commands below.
+For granular control or to rebuild only a specific component, use the individual commands below. All paths default to `.pycodekg/` — pass `--db`, `--sqlite`, or `--lancedb` only when you need a non-default location.
 
 ### 1. Build the SQLite knowledge graph
 
 ```bash
-pycodekg build-sqlite --repo /path/to/repo --db .pycodekg/graph.sqlite [--wipe]
+pycodekg build-sqlite --repo /path/to/repo [--wipe]
 ```
 
 ### 2. Build the LanceDB semantic index
 
 ```bash
-pycodekg build-lancedb --sqlite .pycodekg/graph.sqlite [--model BAAI/bge-small-en-v1.5] [--wipe]
+pycodekg build-lancedb [--model BAAI/bge-small-en-v1.5] [--wipe]
 ```
 
 ### 3. Run a hybrid query
 
 ```bash
-pycodekg query \
-  --sqlite .pycodekg/graph.sqlite \
-  --q "database connection setup" \
-  --k 8 \
-  --hop 1
+pycodekg query --q "database connection setup" [--k 8] [--hop 1]
 ```
 
 ### 4. Generate a snippet pack
 
 ```bash
-pycodekg pack \
-  --repo-root /path/to/repo \
-  --sqlite .pycodekg/graph.sqlite \
-  --q "configuration loading" \
-  --k 8 \
-  --hop 1 \
-  --format md \
-  --out context_pack.md
+pycodekg pack --q "configuration loading" [--format md] [--out context_pack.md]
 ```
 
 **Key options for `pack`:**
@@ -418,7 +405,7 @@ pycodekg pack \
 ### 5. Launch the Streamlit visualizer
 
 ```bash
-pycodekg viz [--db .pycodekg/graph.sqlite] [--port 8500]
+pycodekg viz [--port 8500]
 ```
 
 ### 6. Start the MCP server
@@ -506,8 +493,7 @@ PyCodeKG ships a built-in **Model Context Protocol (MCP) server** that exposes t
 Build the knowledge graph first (the MCP server is read-only):
 
 ```bash
-pycodekg build-sqlite  --repo /path/to/repo
-pycodekg build-lancedb --repo /path/to/repo
+pycodekg build --repo /path/to/repo
 ```
 
 ### Available Tools

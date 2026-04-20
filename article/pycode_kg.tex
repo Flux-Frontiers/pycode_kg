@@ -12,6 +12,8 @@
 \usepackage{enumitem}
 \usepackage{microtype}
 \usepackage{cite}
+\usepackage{graphicx}
+\usepackage{float}
 \setlist{noitemsep, topsep=3pt, partopsep=0pt}
 
 \setstretch{1.15}
@@ -28,12 +30,12 @@
   rulecolor=\color{gray!40},
 }
 
-\title{CodeKG: Deterministic Code Navigation via Knowledge Graphs,
+\title{PyCodeKG: Deterministic Code Navigation via Knowledge Graphs,
 Semantic Indexing, and Grounded Context Packing}
 
 \author{Eric G. Suchanek, PhD\\
 Flux-Frontiers, Liberty Township OH\\[4pt]
-\small\url{https://github.com/Flux-Frontiers/code\_kg}}
+\small\url{https://github.com/Flux-Frontiers/pycode\_kg}}
 \date{}
 
 \begin{document}
@@ -41,35 +43,39 @@ Flux-Frontiers, Liberty Township OH\\[4pt]
 \maketitle
 
 \begin{abstract}
-CodeKG constructs a deterministic, auditable knowledge graph from a Python codebase
-using static analysis. Structural relationships---definitions, calls, imports,
-and inheritance---and data-flow relationships---variable reads, writes, and attribute
-accesses---are extracted directly from the Python abstract syntax tree and stored
-in SQLite. A vector index over the same nodes, built with sentence-transformer
-embeddings and stored in LanceDB, provides semantic retrieval without replacing or
-overriding the structural record.
+PyCodeKG is a \emph{knowledge compiler} for Python codebases. Rather than
+indexing source text for retrieval, it transforms source code into a
+progressively enriched knowledge graph through five deterministic, ontology-driven
+enrichment phases: structural extraction, call-graph construction, data-flow
+analysis, cross-module symbol resolution, and semantic indexing. Each phase adds
+a semantic layer that its predecessor cannot express; the ordering is determined
+by the semantic dependencies of the Python ontology, not by implementation
+convenience. The result is a compiled knowledge artifact---richer than any
+single-pass extraction could yield---that did not exist in the source and cannot
+be recovered by reading any individual file.
+
+Structural relationships---definitions, calls, imports, and inheritance---and
+data-flow relationships---variable reads, writes, and attribute accesses---are
+extracted directly from the Python abstract syntax tree and stored in SQLite,
+which is the authoritative record. A vector index over the same nodes, built
+with sentence-transformer embeddings and stored in LanceDB, provides
+natural-language entry points into the structurally complete graph without
+replacing or overriding it.
 
 The system is organized into four core layers---a pure AST extractor
 (\texttt{CodeGraph}), a relational graph store (\texttt{GraphStore}), a semantic
-vector index (\texttt{SemanticIndex}), and an orchestrator (\texttt{CodeKG})---plus a
+vector index (\texttt{SemanticIndex}), and an orchestrator (\texttt{PyCodeKG})---plus a
 \texttt{KGModule} extensibility SDK that abstracts the full build/query/pack pipeline
 behind a two-method interface so the infrastructure can be reused for any knowledge
 graph domain. A built-in CLI exposes the full pipeline directly; adapter layers (MCP server,
 Streamlit visualizer, 3-D PyVista graph) make the same capabilities available to
 IDE-integrated AI agents and interactive exploration workflows.
 
-The design treats program structure as ground truth and uses semantic embeddings
-strictly as an acceleration layer. The result is a searchable, traceable
-representation of a codebase that supports precise navigation, contextual snippet
-extraction, and downstream reasoning grounded against the source.
-
-CodeKG is independently useful without a language model: the built-in graph
-explorer and hybrid query tools provide direct structural navigation and
-visualization of any Python codebase. When coupled with a downstream language
-model for synthesis, CodeKG additionally constitutes a form of
+PyCodeKG is independently useful without a language model. When coupled with a
+downstream language model for synthesis, it constitutes a form of
 knowledge-graph-augmented generation (KG-RAG). It differs fundamentally
 from the LLM-constructed graph approach of Microsoft GraphRAG~\cite{edge2024graphrag}:
-the knowledge graph is \emph{derived} from formal syntax rather than \emph{inferred}
+the knowledge graph is \emph{compiled} from formal syntax rather than \emph{inferred}
 from natural language, making it structurally correct by construction rather than
 probabilistically approximate. We term this \emph{Structural KG-RAG}.
 \end{abstract}
@@ -88,7 +94,7 @@ substrate, they may confuse function signatures, misrepresent call relationships
 or describe code that does not exist. The problem is not intelligence; it is the
 absence of a reliable structural anchor.
 
-CodeKG addresses this by building that substrate first. The Python AST is parsed
+PyCodeKG addresses this by building that substrate first. The Python AST is parsed
 deterministically, producing a graph of nodes (modules, classes, functions, methods)
 and typed edges (CONTAINS, CALLS, IMPORTS, INHERITS). That graph is stored in
 SQLite, which is the authoritative record. Semantic embeddings are then built on top
@@ -101,14 +107,14 @@ and suitable for direct LLM consumption.
 
 This approach is deliberately inverted relative to systems such as Microsoft
 GraphRAG~\cite{edge2024graphrag}, which use an LLM to \emph{construct} a knowledge
-graph from unstructured text. In CodeKG, the LLM has no role in graph construction:
+graph from unstructured text. In PyCodeKG, the LLM has no role in graph construction:
 the graph is extracted from formal syntax, and the LLM's role is to \emph{reason
 against} the resulting source-grounded context. Section~\ref{sec:comparison} develops
 this contrast in detail.
 
 \section{Design Principles}
 
-Five principles govern the design:
+Six principles govern the design:
 
 \begin{enumerate}
 \item \textbf{Structure is authoritative.}
@@ -131,15 +137,36 @@ in the structural layer.
 \item \textbf{Composable artifacts.}
 SQLite, LanceDB, Markdown, and JSON are independent outputs. Any downstream
 consumer---a human, an agent, a CI pipeline---can use whichever format suits it.
+
+\item \textbf{Compilation over retrieval.}
+PyCodeKG does not retrieve from an existing corpus. It \emph{compiles} a new
+knowledge artifact from source through a sequence of enrichment passes, each
+adding a semantic layer that the previous pass could not express. The enrichment
+sequence is determined by the semantic dependencies of the Python ontology:
+structural containment must be established before call relationships can be
+recorded; call stubs must exist before cross-module resolution can proceed; the
+complete structural record must be stable before semantic embeddings can be
+meaningfully derived. The resulting graph encodes more about the codebase---and
+more reliably---than any single-pass extraction could yield.
 \end{enumerate}
 
 \section{Architecture}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\linewidth]{../assets/codeKG_arch_banana.png}
+\caption{PyCodeKG layered architecture and build pipeline. Phase~1 (left) performs
+static AST extraction into SQLite; Phase~2 (centre) builds the LanceDB semantic
+index; the hybrid query model (right) seeds from the vector index and expands
+structurally through the graph to produce ranked, source-grounded results.}
+\label{fig:architecture}
+\end{figure}
 
 The implementation is organized into six layers plus a companion data-flow
 extraction module. Each layer has a single responsibility and depends only on
 layers below it.
 
-\subsection{Layer 1 --- Primitives (\texttt{codekg.py})}
+\subsection{Layer 1 --- Primitives (\texttt{pycodekg.py})}
 
 Two frozen dataclasses and one extraction function form the foundation.
 
@@ -163,15 +190,15 @@ Structural edge relations: \texttt{CONTAINS}, \texttt{CALLS}, \texttt{IMPORTS},
 in a post-build step by \texttt{GraphStore.resolve\_symbols()} (see
 Section~\ref{sec:graphstore}).
 Data-flow edge relations: \texttt{READS}, \texttt{WRITES}, \texttt{ATTR\_ACCESS}
-(emitted by \texttt{CodeKGVisitor}; see Section~\ref{sec:visitor}).
+(emitted by \texttt{PyCodeKGVisitor}; see Section~\ref{sec:visitor}).
 
 \subsection{Data-Flow Visitor (\texttt{visitor.py})}
 \label{sec:visitor}
 
-\texttt{CodeKGVisitor} extends \texttt{ast.NodeVisitor} to capture intra-function
-data-flow relationships that the structural pass in \texttt{codekg.py} does not
+\texttt{PyCodeKGVisitor} extends \texttt{ast.NodeVisitor} to capture intra-function
+data-flow relationships that the structural pass in \texttt{pycodekg.py} does not
 record. Where \texttt{extract\_repo} answers \emph{what exists and how it is
-called}, \texttt{CodeKGVisitor} answers \emph{what each function reads and writes}.
+called}, \texttt{PyCodeKGVisitor} answers \emph{what each function reads and writes}.
 
 The visitor maintains a scope stack and a per-scope variable registry. On entering
 a function or method, all parameter names---positional, keyword-only, variadic, and
@@ -265,15 +292,15 @@ extraction protocol: \texttt{node\_kinds()}, \texttt{edge\_kinds()}, and an
 objects.  \texttt{NodeSpec}/\texttt{EdgeSpec} are thin, v0-locked intermediates that
 map cleanly onto the \texttt{Node}/\texttt{Edge} primitives.
 
-\texttt{CodeKGExtractor} is the Python-AST-backed implementation used by
-\texttt{CodeKG}.  Any other knowledge graph domain (\emph{e.g.}, TypeScript,
+\texttt{PyCodeKGExtractor} is the Python-AST-backed implementation used by
+\texttt{PyCodeKG}.  Any other knowledge graph domain (\emph{e.g.}, TypeScript,
 documentation corpora, metabolic pathways) can reuse the full infrastructure by
 subclassing \texttt{KGModule} and providing its own \texttt{KGExtractor}.
 
-\subsection{Orchestrator --- \texttt{CodeKG} (\texttt{kg.py})}
+\subsection{Orchestrator --- \texttt{PyCodeKG} (\texttt{kg.py})}
 
-\texttt{CodeKG} is a concrete \texttt{KGModule} subclass.  It provides the
-Python-AST-specific extraction layer via \texttt{CodeKGExtractor} and delegates
+\texttt{PyCodeKG} is a concrete \texttt{KGModule} subclass.  It provides the
+Python-AST-specific extraction layer via \texttt{PyCodeKGExtractor} and delegates
 all generic infrastructure to the base class.  The public API it inherits includes:
 
 \begin{itemize}
@@ -293,7 +320,7 @@ to \texttt{GraphStore.callers\_of()}.
 \end{itemize}
 
 Layer properties (\texttt{graph}, \texttt{store}, \texttt{embedder}, \texttt{index})
-are lazy. \texttt{CodeKG} supports the context manager protocol for clean resource
+are lazy. \texttt{PyCodeKG} supports the context manager protocol for clean resource
 management.  Result types (\texttt{BuildStats}, \texttt{QueryResult},
 \texttt{SnippetPack}) are defined in \texttt{module/types.py} and re-exported
 from \texttt{kg.py} for backwards compatibility.
@@ -334,10 +361,10 @@ available.  Both modes emit per-node \texttt{why} explanations.
 \texttt{SnapshotManager} captures a timestamped record of graph metrics---node
 and edge counts, docstring coverage, and critical-issue counts---keyed by the
 git tree hash at capture time.  Snapshots are stored as JSON under
-\texttt{.codekg/snapshots/} and indexed in a manifest.  The \texttt{diff\_snapshots()}
+\texttt{.pycodekg/snapshots/} and indexed in a manifest.  The \texttt{diff\_snapshots()}
 method computes $b - a$ deltas across any two snapshot keys, supporting temporal
 comparisons across builds and releases.  Snapshot capture is automated via the
-pre-commit git hook installed by \texttt{codekg install-hooks}.
+pre-commit git hook installed by \texttt{pycodekg install-hooks}.
 
 \section{Core Data Model}
 
@@ -364,7 +391,7 @@ module dependencies, and class lineage respectively. A fifth structural relation
 for an unresolved call target is linked to all matching first-party definitions,
 enabling cross-module fan-in queries (see Section~\ref{sec:fanin}).
 
-\textbf{Data-flow edges} are extracted by \texttt{CodeKGVisitor}: \texttt{READS}
+\textbf{Data-flow edges} are extracted by \texttt{PyCodeKGVisitor}: \texttt{READS}
 edges connect a per-scope variable node to the computation in which it is consumed;
 \texttt{WRITES} edges record assignment targets; \texttt{ATTR\_ACCESS} edges record
 attribute accesses on named objects. All three carry a source line number. Together
@@ -372,29 +399,79 @@ they capture how data moves through a function body without requiring execution 
 type inference.
 
 \section{Build Pipeline}
+\label{sec:pipeline}
 
-\subsection{Static Analysis}
+The build pipeline is a multi-pass \emph{knowledge compiler}. Each phase
+transforms Python source into a progressively richer knowledge graph by adding
+a semantic layer that its predecessor could not express. The ordering is not
+a convenience: it is determined by the semantic dependencies of the Python
+ontology. Structural containment must be established before call targets can
+be attributed; call stubs must exist before cross-module resolution can
+proceed; the full structural record must be stable before semantic embeddings
+can be meaningfully derived from it.
+
+This is what distinguishes PyCodeKG from retrieval augmentation. Standard RAG
+operates over a pre-existing text corpus. PyCodeKG instead \emph{produces}
+a new artifact---a richly annotated knowledge graph---that did not exist in
+the source and cannot be recovered by reading any single file. Each
+enrichment pass corresponds to a distinct semantic category that Python
+source code possesses. The pipeline is, in effect, a compiler whose output is
+not executable code but a queryable structural substrate grounded in the
+source.
+
+\subsection{Phase 1 --- Structural Extraction}
 
 \texttt{CodeGraph.extract()} invokes \texttt{extract\_repo()}, which performs
-two deterministic AST passes over all \texttt{.py} files. Pass~1 extracts the
-definition graph. Pass~2 extracts the call graph with evidence. The resulting
-nodes and edges are persisted to SQLite via \texttt{GraphStore.write()}.
-A post-build step, \texttt{Graph\-Store.resolve\_symbols()}, then name-matches
-every \texttt{sym:} stub against first-party definitions and writes
-\texttt{RESOLVES\_TO} edges (see Section~\ref{sec:fanin}). This phase uses no
-embeddings and no language models.
+a deterministic AST pass over all \texttt{.py} files, extracting modules,
+classes, functions, and methods and emitting \texttt{CONTAINS},
+\texttt{IMPORTS}, and \texttt{INHERITS} edges. This establishes the
+\emph{skeleton} of the codebase: the containment hierarchy and module
+dependency graph. Results are persisted to SQLite via
+\texttt{GraphStore.write()}. No embeddings and no language models are
+involved.
 
-\subsection{Semantic Indexing}
+\subsection{Phase 2 --- Call Graph Enrichment}
+
+A second deterministic AST pass extracts the call graph, emitting
+\texttt{CALLS} edges with call-site evidence (source line and expression
+text). Where a call target cannot be resolved statically---an imported name
+or an attribute access---a \texttt{sym:} stub node is emitted as a
+placeholder. This phase adds the \emph{nervous system}: which code drives
+which, and where each invocation originates.
+
+\subsection{Phase 3 --- Data-Flow Enrichment}
+
+\texttt{PyCodeKGVisitor} performs a third AST pass, capturing intra-function
+data movement that structural extraction cannot see. \texttt{READS} edges
+record where each variable enters a computation; \texttt{WRITES} edges record
+assignment targets; \texttt{ATTR\_ACCESS} edges record attribute accesses on
+named objects. This phase adds the \emph{metabolic layer}: how data flows
+through function bodies without requiring execution or type inference.
+
+\subsection{Phase 4 --- Symbol Resolution}
+
+\texttt{GraphStore.resolve\_symbols()} name-matches every \texttt{sym:} stub
+produced in Phase~2 against all first-party definitions and writes
+\texttt{RESOLVES\_TO} edges. This \emph{bridges the cross-module gap}: callers
+and definitions that appeared in disconnected subgraphs are unified into a
+single traversable structure, enabling precise fan-in queries across module
+boundaries (see Section~\ref{sec:fanin}). The step is idempotent and runs
+automatically after each build.
+
+\subsection{Phase 5 --- Semantic Indexing}
 
 \texttt{SemanticIndex.build(store)} reads \texttt{module}, \texttt{class},
-\texttt{function}, and \texttt{method} nodes from SQLite, constructs a canonical
-text document for each, embeds them in configurable batches, and upserts the
-vectors into LanceDB. Symbol nodes are excluded from the index by default.
+\texttt{function}, and \texttt{method} nodes from SQLite, constructs a
+canonical text document for each (name plus docstring), embeds them in
+batches, and upserts the vectors into LanceDB. This adds the
+\emph{cognitive layer}: natural-language entry points into the structurally
+complete graph. The vector index is fully derived from SQLite and disposable;
+deleting and rebuilding it does not affect the structural record.
 
-Both phases are idempotent. \texttt{codekg build} wipes existing data by default;
-pass \texttt{--no-wipe} to perform an upsert instead.  The lower-level
-\texttt{build-sqlite} and \texttt{build-lancedb} subcommands default to upsert and
-accept \texttt{--wipe} to clear first.
+All phases are idempotent. \texttt{pycodekg build} wipes existing data by
+default; pass \texttt{--no-wipe} to upsert instead. The lower-level
+\texttt{pycodekg build-sqlite} and \texttt{pycodekg build-lancedb}
+subcommands default to upsert and accept \texttt{--wipe} to clear first.
 
 \section{Hybrid Query Model}
 
@@ -438,7 +515,7 @@ same file are retrieved.
 
 \section{Snippet Packing}
 
-For retained nodes, \texttt{CodeKG.pack()} extracts source-grounded snippets using
+For retained nodes, \texttt{PyCodeKG.pack()} extracts source-grounded snippets using
 the recorded \texttt{module\_path}, \texttt{lineno}, and \texttt{end\_lineno}.
 A configurable context window (\texttt{context} lines, default 5) is added around
 each definition span. A per-snippet line cap (\texttt{max\_lines}, default 160)
@@ -477,7 +554,7 @@ edge targeting \texttt{node\_id}.
 \texttt{node\_id}, plus all nodes with a \texttt{CALLS} edge to each such stub.
 \end{enumerate}
 
-Results are deduplicated and returned as node dicts. \texttt{CodeKG.callers()}
+Results are deduplicated and returned as node dicts. \texttt{PyCodeKG.callers()}
 delegates to this method, and the \texttt{callers} MCP tool exposes it to agents:
 
 \begin{lstlisting}
@@ -506,10 +583,10 @@ query result with source snippets attached to each node. Provides
 
 \section{MCP Server}
 
-\texttt{mcp\_server.py} wraps \texttt{CodeKG} as a Model Context Protocol server.
+\texttt{mcp\_server.py} wraps \texttt{PyCodeKG} as a Model Context Protocol server.
 It is one of several agent adapters; because the CLI covers the same capabilities,
 the MCP server is not architecturally necessary---an agent with shell access can
-invoke \texttt{codekg} subcommands directly.  It is included for integrations that
+invoke \texttt{pycodekg} subcommands directly.  It is included for integrations that
 prefer a structured tool interface (Claude Desktop, Cursor, Kilo Code, GitHub
 Copilot).  The server is strictly read-only; no tool modifies the graph.
 
@@ -552,13 +629,13 @@ centrality and graph proximity; supports hybrid and personalized-PageRank modes.
 order.  \texttt{snapshot\_show(key)} returns full metrics for one snapshot.
 \texttt{snapshot\_diff(key\_a, key\_b)} returns $b - a$ deltas across two snapshots.
 
-The server is started via the \texttt{codekg-mcp} entry point and communicates
+The server is started via the \texttt{pycodekg-mcp} entry point and communicates
 over \texttt{stdio} or \texttt{sse}.
 
 \section{CLI Entry Points}
 
-All commands are available as \texttt{codekg \textit{subcommand}} via the main
-dispatcher or as standalone \texttt{codekg-\textit{name}} entry points.  Both
+All commands are available as \texttt{pycodekg \textit{subcommand}} via the main
+dispatcher or as standalone \texttt{pycodekg-\textit{name}} entry points.  Both
 forms are equivalent.
 
 \begin{center}
@@ -566,21 +643,21 @@ forms are equivalent.
 \toprule
 Command & Purpose \\
 \midrule
-\texttt{codekg build} & AST extraction $\to$ SQLite + LanceDB (wipes by default; \texttt{--no-wipe} to preserve) \\
-\texttt{codekg build-sqlite} & AST extraction $\to$ SQLite only \\
-\texttt{codekg build-lancedb} & SQLite $\to$ LanceDB vector index \\
-\texttt{codekg update} & Incremental update (add/remove changed files) \\
-\texttt{codekg query} & Hybrid query (JSON output) \\
-\texttt{codekg pack} & Hybrid query + snippet pack (Markdown or JSON) \\
-\texttt{codekg analyze} & Full architectural analysis (Markdown report) \\
-\texttt{codekg centrality} & Structural Importance Ranking (SIR) \\
-\texttt{codekg architecture} & Architecture summary \\
-\texttt{codekg snapshot save|list|show|diff} & Temporal snapshot management \\
-\texttt{codekg viz} & Launch the Streamlit graph explorer \\
-\texttt{codekg viz3d} & Launch the 3-D PyVista knowledge-graph visualizer \\
-\texttt{codekg viz-timeline} & Interactive temporal metrics visualization \\
-\texttt{codekg install-hooks} & Install pre-commit git hook for auto-snapshots \\
-\texttt{codekg mcp} & Start the MCP server \\
+\texttt{pycodekg build} & AST extraction $\to$ SQLite + LanceDB (wipes by default; \texttt{--no-wipe} to preserve) \\
+\texttt{pycodekg build-sqlite} & AST extraction $\to$ SQLite only \\
+\texttt{pycodekg build-lancedb} & SQLite $\to$ LanceDB vector index \\
+\texttt{pycodekg update} & Incremental update (add/remove changed files) \\
+\texttt{pycodekg query} & Hybrid query (JSON output) \\
+\texttt{pycodekg pack} & Hybrid query + snippet pack (Markdown or JSON) \\
+\texttt{pycodekg analyze} & Full architectural analysis (Markdown report) \\
+\texttt{pycodekg centrality} & Structural Importance Ranking (SIR) \\
+\texttt{pycodekg architecture} & Architecture summary \\
+\texttt{pycodekg snapshot save|list|show|diff} & Temporal snapshot management \\
+\texttt{pycodekg viz} & Launch the Streamlit graph explorer \\
+\texttt{pycodekg viz3d} & Launch the 3-D PyVista knowledge-graph visualizer \\
+\texttt{pycodekg viz-timeline} & Interactive temporal metrics visualization \\
+\texttt{pycodekg install-hooks} & Install pre-commit git hook for auto-snapshots \\
+\texttt{pycodekg mcp} & Start the MCP server \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -612,7 +689,7 @@ and relationships from unstructured text documents, those entities are organized
 a community hierarchy using graph partitioning, and community-level summaries are
 pregenerated to support downstream question answering over large corpora.
 
-CodeKG and GraphRAG share a surface resemblance---both augment retrieval with a
+PyCodeKG and GraphRAG share a surface resemblance---both augment retrieval with a
 knowledge graph---but differ in the origin, correctness guarantees, and intended
 use of that graph.
 
@@ -624,7 +701,7 @@ similar ones, hallucinate relationships, or produce inconsistent descriptions ac
 documents. The graph is only as reliable as the extraction prompt and the LLM's
 comprehension of each text unit.
 
-In CodeKG, the knowledge graph is \emph{derived} from the Python abstract syntax
+In PyCodeKG, the knowledge graph is \emph{derived} from the Python abstract syntax
 tree. Every node corresponds to a syntactically verified program element; every edge
 corresponds to a verified syntactic relationship. A \texttt{CALLS} edge from
 function~$A$ to function~$B$ exists because a call expression to~$B$ was found in
@@ -640,14 +717,14 @@ This distinction reverses the role of the language model in the overall pipeline
 \item In GraphRAG, the LLM \emph{constructs} the knowledge graph. The graph is a
 product of LLM inference; its correctness is bounded by LLM accuracy and is not
 independently verifiable.
-\item In CodeKG, the LLM \emph{consumes} the knowledge graph. The graph is a
+\item In PyCodeKG, the LLM \emph{consumes} the knowledge graph. The graph is a
 product of static analysis; the LLM receives source-grounded snippets with exact
 file paths and line numbers and reasons against them.
 \end{itemize}
 
 The consequence is a hard boundary on hallucination. In GraphRAG, errors introduced
 during graph construction propagate silently into query results---the system has no
-mechanism to detect that an extracted relationship is wrong. In CodeKG, every
+mechanism to detect that an extracted relationship is wrong. In PyCodeKG, every
 structural claim is verifiably correct by construction: each node ID encodes its
 file path and qualified name, and each snippet is extracted from the actual source
 at the recorded line span.
@@ -656,7 +733,7 @@ at the recorded line span.
 
 GraphRAG edges carry natural-language descriptions of relationships (e.g.,
 ``Entity~A collaborates with Entity~B in the context of\ldots''), generated by the
-LLM and approximate. CodeKG \texttt{CALLS} edges carry machine-verifiable evidence:
+LLM and approximate. PyCodeKG \texttt{CALLS} edges carry machine-verifiable evidence:
 the exact line number and expression text of the call site, extracted directly from
 the AST. This enables a class of query that GraphRAG cannot support: \emph{where
 exactly is this function called, and in what syntactic context?}
@@ -670,16 +747,51 @@ design optimizes for questions like ``What are the main themes in this document
 collection?'' and scales to corpora exceeding one million tokens. It is appropriate
 when the input is natural language and the goal is synthesis across many documents.
 
-CodeKG targets \emph{structural navigation} of a formal, syntax-governed artifact.
+PyCodeKG targets \emph{structural navigation} of a formal, syntax-governed artifact.
 It is designed for questions like ``Which functions participate in the authentication
 flow?'', ``Where is this configuration value read, and which callers depend on it?'',
 and ``What is the call graph rooted at this entry point?'' It is precise where
 GraphRAG is approximate, because the input is code---a deterministic, machine-readable
 artifact---not prose.
 
+\subsection{Knowledge Compilation vs.\ Retrieval Augmentation}
+
+A deeper distinction separates PyCodeKG from retrieval augmentation in general,
+not only from GraphRAG. Standard RAG operates over a pre-existing corpus: chunks
+are indexed, queries arrive, relevant chunks are returned. The corpus is unchanged
+by the process; it is merely searched. PyCodeKG does not search a pre-existing
+corpus. It \emph{compiles} one from source.
+
+The five-phase build pipeline (Section~\ref{sec:pipeline}) is a knowledge compiler.
+It transforms Python source code into a new artifact---the enriched knowledge
+graph---that did not exist before the build and cannot be recovered by reading any
+individual source file. Each enrichment phase adds a semantic layer determined by
+the Python ontology: structural containment (Phase~1), call relationships
+(Phase~2), data-flow dependencies (Phase~3), cross-module symbol resolution
+(Phase~4), and semantic proximity (Phase~5). The sequence is determined by semantic
+dependency, not by implementation convenience: each phase presupposes the output of
+its predecessor.
+
+This is analogous to the stages of a language compiler---lexical analysis,
+parsing, name resolution, type checking, code generation---except that the output
+is a queryable structural substrate rather than executable code. The analogy is
+precise: both compilers and PyCodeKG apply semantics-driven, ordered enrichment
+passes over a formal artifact to produce a representation richer than the source.
+The enrichment is defined by the ontology of the input language; in PyCodeKG's
+case, that ontology is the Python semantic model.
+
+This compilation framing is what makes PyCodeKG's retrieval stage qualitatively
+different from standard RAG. When a query arrives, it does not search raw text
+or LLM-inferred summaries. It searches a compiled, ontology-grounded knowledge
+structure in which every relationship has deterministic provenance. The semantic
+embeddings that seed the query are derived from this structure, not from the source
+text directly. The graph traversal that expands the result set follows edges that
+were verified at compile time. The retrieved snippets are extracted from exact,
+recorded line spans in the source.
+
 \subsection{Structural KG-RAG}
 
-When CodeKG is coupled with a downstream language model for synthesis, the combined
+When PyCodeKG is coupled with a downstream language model for synthesis, the combined
 system constitutes knowledge-graph-augmented generation~(KG-RAG). The specific
 flavor, however, is stronger than the general case. Because the knowledge graph is
 formally derived rather than LLM-inferred, the synthesis stage operates against a
@@ -696,11 +808,11 @@ traceable to the source. Table~\ref{tab:comparison} summarizes the key distincti
 
 \begin{table}[h]
 \centering
-\caption{GraphRAG vs.\ CodeKG (Structural KG-RAG)}
+\caption{GraphRAG vs.\ PyCodeKG (Structural KG-RAG)}
 \label{tab:comparison}
 \begin{tabular}{lll}
 \toprule
-Property & GraphRAG~\cite{edge2024graphrag} & CodeKG \\
+Property & GraphRAG~\cite{edge2024graphrag} & PyCodeKG \\
 \midrule
 Graph source        & LLM extraction from text     & AST (formal syntax)         \\
 Graph correctness   & Probabilistic                & Deterministic                \\
@@ -718,14 +830,24 @@ LLM required to build? & Yes                      & No                          
 
 \section{Conclusion}
 
-CodeKG shows that useful, auditable code understanding does not require a language
-model in the loop for graph construction. Static analysis produces a precise
-structural record; semantic embeddings make that record navigable with natural
-language. Keeping the two layers explicit and separable means each can be evaluated,
-debugged, and improved independently.
+PyCodeKG demonstrates that useful, auditable code understanding does not require a
+language model in the construction loop. The key insight is that a codebase is a
+formal artifact with a well-defined semantic ontology---and that ontology can drive
+a multi-pass compilation process that produces a knowledge graph far richer than
+any single extraction pass could yield.
+
+The five enrichment phases (structural extraction, call-graph construction,
+data-flow analysis, symbol resolution, semantic indexing) are not arbitrary
+pipeline stages. They are ordered by semantic dependency: each phase presupposes
+the output of its predecessor because the Python ontology demands it. Call
+relationships presuppose structural existence; cross-module resolution
+presupposes call stubs; semantic proximity presupposes a complete structural
+record. This is knowledge compilation, not retrieval augmentation, and the
+distinction matters: queries operate against a compiled, ontology-grounded
+artifact whose every relationship was verified at build time.
 
 The layered architecture---\texttt{CodeGraph}, \texttt{GraphStore},
-\texttt{SemanticIndex}, \texttt{KGModule}, \texttt{CodeKG}---cleanly separates
+\texttt{SemanticIndex}, \texttt{KGModule}, \texttt{PyCodeKG}---cleanly separates
 concerns and makes the system straightforward to extend.  The \texttt{KGModule}
 SDK reduces the cost of building a new domain knowledge graph to implementing
 two abstract methods; the DocKG documentation corpus analyzer and the
@@ -742,12 +864,12 @@ to integration environments that prefer a structured tool interface.
 The broader lesson is about where to place trust in an AI-assisted development
 workflow. Systems that use an LLM to construct the knowledge substrate introduce
 probabilistic error at the foundation, which propagates unchecked into every
-downstream reasoning step. CodeKG inverts this: the structural substrate is built
-from a deterministic formal process, and the LLM is positioned where it is most
-effective---synthesizing and explaining a context pack whose every line is verified
-against the source. The result is a form of Structural KG-RAG that combines the
-navigability of natural-language queries with the correctness guarantees of static
-analysis.
+downstream reasoning step. PyCodeKG inverts this: the structural substrate is
+\emph{compiled} from a deterministic, ontology-driven formal process, and the LLM
+is positioned where it is most effective---synthesizing and explaining a context
+pack whose every line is verified against the source. The result is Structural
+KG-RAG: the navigability of natural-language queries grounded on the correctness
+guarantees of a compiled knowledge artifact.
 
 \begin{thebibliography}{9}
 

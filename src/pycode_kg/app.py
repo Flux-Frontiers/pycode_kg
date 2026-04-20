@@ -74,25 +74,6 @@ st.set_page_config(
 # Minimal CSS tweaks
 # ---------------------------------------------------------------------------
 
-st.markdown(
-    """
-    <style>
-    .stTabs [data-baseweb="tab-list"] { gap: 12px; }
-    .stTabs [data-baseweb="tab"] { font-size: 1rem; padding: 6px 18px; }
-    .node-card {
-        background: #1e1e2e;
-        border-left: 4px solid #4A90D9;
-        border-radius: 6px;
-        padding: 10px 14px;
-        margin-bottom: 8px;
-        font-family: monospace;
-        font-size: 0.85rem;
-    }
-    .edge-row { font-family: monospace; font-size: 0.82rem; color: #aaa; }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
 
 # ---------------------------------------------------------------------------
 # Session-state initialisation
@@ -961,7 +942,7 @@ def _tab_graph(cfg: dict) -> None:
         height=cfg["graph_height"],
         physics=cfg["physics_on"],
     )
-    st.components.v1.html(html, height=int(cfg["graph_height"].replace("px", "")), scrolling=False)
+    st.iframe(html, height=int(cfg["graph_height"].replace("px", "")))
 
     with st.expander("📋 Node table"):
         import pandas as pd  # pylint: disable=import-outside-toplevel
@@ -1066,11 +1047,7 @@ def _tab_query(cfg: dict) -> None:
                 height=cfg["graph_height"],
                 physics=cfg["physics_on"],
             )
-            st.components.v1.html(
-                html,
-                height=int(cfg["graph_height"].replace("px", "")),
-                scrolling=False,
-            )
+            st.iframe(html, height=int(cfg["graph_height"].replace("px", "")))
         else:
             st.info("No nodes to display.")
 
@@ -1231,7 +1208,7 @@ def _tab_snippets(cfg: dict) -> None:
             height="500px",
             physics=cfg["physics_on"],
         )
-        st.components.v1.html(html, height=500, scrolling=False)
+        st.iframe(html, height=500)
 
     # Node cards with snippets
     st.subheader(f"Nodes ({len(pack.nodes)})")
@@ -1288,6 +1265,36 @@ def _tab_snippets(cfg: dict) -> None:
 # ---------------------------------------------------------------------------
 
 
+def _inject_css() -> None:
+    """Inject CSS that matches Streamlit's active theme (light or dark)."""
+    is_dark = st.get_option("theme.base") == "dark"
+    card_bg = "rgba(255,255,255,0.06)" if is_dark else "rgba(0,0,0,0.04)"
+    card_color = "#e0e0e0" if is_dark else "#111"
+    small_color = "#aaa" if is_dark else "#555"
+    edge_color = "#aaa" if is_dark else "#444"
+    st.markdown(
+        f"""
+        <style>
+        .stTabs [data-baseweb="tab-list"] {{ gap: 12px; }}
+        .stTabs [data-baseweb="tab"] {{ font-size: 1rem; padding: 6px 18px; }}
+        .node-card {{
+            background: {card_bg};
+            color: {card_color};
+            border-left: 4px solid #4A90D9;
+            border-radius: 6px;
+            padding: 10px 14px;
+            margin-bottom: 8px;
+            font-family: monospace;
+            font-size: 0.85rem;
+        }}
+        .node-card small {{ color: {small_color}; }}
+        .edge-row {{ font-family: monospace; font-size: 0.82rem; color: {edge_color}; }}
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 def main() -> None:
     """
     Application entry point for the PyCodeKG Streamlit visualizer.
@@ -1296,6 +1303,7 @@ def main() -> None:
     three tab renderers: Graph Browser, Hybrid Query, and Snippet Pack.
     """
     _init_state()
+    _inject_css()
     cfg = _render_sidebar()
 
     st.title("🕸️ PyCodeKG Explorer")

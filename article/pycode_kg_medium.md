@@ -24,7 +24,7 @@ Do that across an entire repository and you have a graph. Not a fuzzy, probabili
 
 That graph goes into SQLite. SQLite is the authoritative record. It doesn't drift, it doesn't hallucinate, and it doesn't require a GPU.
 
-Then — and only then — PyCodeKG builds a semantic layer on top. Each node gets embedded using a sentence-transformer model (`all-MiniLM-L6-v2` by default, 384 dimensions). Those vectors go into LanceDB. The vector index is derived from SQLite and is fully disposable: delete it, rebuild it, swap the embedding model. The structural record doesn't change.
+Then — and only then — PyCodeKG builds a semantic layer on top. Each node gets embedded using a sentence-transformer model (`BAAI/bge-small-en-v1.5` by default, 384 dimensions). Those vectors go into LanceDB. The vector index is derived from SQLite and is fully disposable: delete it, rebuild it, swap the embedding model. The structural record doesn't change.
 
 This separation is the whole point. Structure is ground truth. Semantics are an acceleration layer.
 
@@ -70,12 +70,18 @@ This is what you hand to an LLM when you want it to reason about implementation 
 
 ## The MCP Server
 
-PyCodeKG ships a built-in Model Context Protocol server. Four tools:
+PyCodeKG ships a built-in Model Context Protocol server. Ten tools:
 
-- `graph_stats()` — how many nodes and edges, broken down by kind
-- `query_codebase(q)` — the hybrid query, returns JSON
-- `pack_snippets(q)` — the hybrid query plus snippets, returns Markdown
-- `get_node(node_id)` — fetch a single node by its stable ID
+- `graph_stats()` — node and edge counts, broken down by kind
+- `query_codebase(q)` — hybrid semantic + structural query, returns JSON
+- `pack_snippets(q)` — hybrid query plus source-grounded snippets, returns Markdown
+- `get_node(node_id, include_edges)` — fetch a single node; `include_edges=True` also returns outgoing edges and callers
+- `callers(node_id)` — precise fan-in lookup resolving cross-module call chains
+- `explain(node_id)` — natural-language summary: kind, location, callers, callees, docstring
+- `analyze_repo()` — full nine-phase architectural analysis, returns Markdown
+- `snapshot_list(limit)` — list saved codebase metric snapshots newest-first
+- `snapshot_show(key)` — full metrics for a specific snapshot
+- `snapshot_diff(key_a, key_b)` — delta between two snapshots
 
 Configure it in `.mcp.json` (Claude Code, Kilo Code), `.vscode/mcp.json` (GitHub Copilot), or `claude_desktop_config.json` (Claude Desktop), and any MCP-compatible agent gets direct, grounded access to the codebase graph.
 
@@ -96,6 +102,10 @@ The other issue is auditability. When an LLM tells you "the authentication flow 
 ---
 
 ## The Architecture in Brief
+
+![PyCodeKG layered architecture and build pipeline](../assets/codeKG_arch_banana.png)
+
+*Phase 1 (left): static AST extraction into SQLite. Phase 2 (centre): LanceDB semantic indexing. Right: hybrid query model — vector seeding followed by structural graph expansion into ranked, source-grounded results.*
 
 Four layers, each with a single job:
 
@@ -161,4 +171,4 @@ The goal isn't to replace LLMs in the development workflow. It's to give them so
 
 ---
 
-*PyCodeKG is open source. Source, documentation, and installation instructions at [github.com/suchanek/pycode_kg](https://github.com/suchanek/pycode_kg).*
+*PyCodeKG is open source. Source, documentation, and installation instructions at [github.com/Flux-Frontiers/pycode_kg](https://github.com/Flux-Frontiers/pycode_kg).*

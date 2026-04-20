@@ -163,7 +163,7 @@ class SentenceTransformerEmbedder(Embedder):
             else:
                 os.environ["TQDM_DISABLE"] = _prev_tqdm
         self.model_name = model_name
-        self.dim: int = self.model.get_sentence_embedding_dimension() or 384
+        self.dim: int = self.model.get_embedding_dimension() or 384
 
     def embed_texts(self, texts: list[str]) -> list[list[float]]:
         """Embed a list of strings into float32 vectors.
