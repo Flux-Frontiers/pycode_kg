@@ -1,0 +1,545 @@
+{
+  "started_utc": "2026-04-21T12:18:14.568404+00:00",
+  "repo_root": "/Users/egs/repos/pycode_kg",
+  "sqlite": "/Users/egs/repos/pycode_kg/.pycodekg/graph.sqlite",
+  "lancedb_root": "/Users/egs/repos/pycode_kg/.pycodekg/lancedb-benchmark",
+  "models": [
+    "nomic-ai/nomic-embed-text-v1.5"
+  ],
+  "modes": [
+    "hybrid",
+    "semantic"
+  ],
+  "top_n": 5,
+  "hybrid_weights": {
+    "semantic": 0.7,
+    "lexical": 0.3
+  },
+  "query_cases": [
+    {
+      "name": "snapshot freshness comparison",
+      "text": "snapshot freshness comparison",
+      "k": 8,
+      "hop": 1,
+      "max_nodes": 10
+    },
+    {
+      "name": "missing lineno fallback",
+      "text": "missing_lineno_policy cap_or_skip fallback",
+      "k": 6,
+      "hop": 0,
+      "max_nodes": 6
+    },
+    {
+      "name": "graph build from source",
+      "text": "how does the graph get built from source code",
+      "k": 8,
+      "hop": 1,
+      "max_nodes": 8
+    }
+  ],
+  "results": [
+    {
+      "model": "nomic-ai/nomic-embed-text-v1.5",
+      "model_slug": "nomic-ai_nomic-embed-text-v1.5",
+      "lancedb_dir": "/Users/egs/repos/pycode_kg/.pycodekg/lancedb-benchmark/nomic-ai_nomic-embed-text-v1.5",
+      "build_index": {
+        "seconds": 41.90940566698555,
+        "indexed_rows": 476,
+        "index_dim": 768
+      },
+      "queries": [
+        {
+          "name": "snapshot freshness comparison",
+          "query": "snapshot freshness comparison",
+          "k": 8,
+          "hop": 1,
+          "max_nodes": 10,
+          "modes": [
+            {
+              "mode": "hybrid",
+              "seconds": 0.14557037499616854,
+              "seeds": 8,
+              "expanded_nodes": 49,
+              "returned_nodes": 10,
+              "summary": {
+                "returned": 10,
+                "mean_score": 0.9216668,
+                "mean_semantic": 0.6188501077805559,
+                "mean_lexical": 0.5333333333333333,
+                "mean_docstring_signal": 0.8395003360323032,
+                "mean_hop": 0.6
+              },
+              "top_nodes": [
+                {
+                  "rank": 1,
+                  "id": "fn:src/pycode_kg/mcp_server.py:_snapshot_freshness",
+                  "kind": "function",
+                  "qualname": "_snapshot_freshness",
+                  "module_path": "src/pycode_kg/mcp_server.py",
+                  "score": 1.0,
+                  "semantic": 0.6337303379733265,
+                  "lexical": 0.6666666666666666,
+                  "docstring_signal": 0.7266666666666667,
+                  "hop": 0
+                },
+                {
+                  "rank": 2,
+                  "id": "mod:src/pycode_kg/mcp_server.py",
+                  "kind": "module",
+                  "qualname": "mcp_server",
+                  "module_path": "src/pycode_kg/mcp_server.py",
+                  "score": 1.0,
+                  "semantic": 0.6337303379733265,
+                  "lexical": 0.6666666666666666,
+                  "docstring_signal": 0.7952314165497896,
+                  "hop": 1
+                },
+                {
+                  "rank": 3,
+                  "id": "m:src/pycode_kg/pycodekg_thorough_analysis.py:PyCodeKGAnalyzer._analyze_snapshots",
+                  "kind": "method",
+                  "qualname": "PyCodeKGAnalyzer._analyze_snapshots",
+                  "module_path": "src/pycode_kg/pycodekg_thorough_analysis.py",
+                  "score": 0.91908,
+                  "semantic": 0.5593291870094743,
+                  "lexical": 0.6666666666666666,
+                  "docstring_signal": 0.9454545454545454,
+                  "hop": 0
+                },
+                {
+                  "rank": 4,
+                  "id": "fn:src/pycode_kg/mcp_server.py:snapshot_diff",
+                  "kind": "function",
+                  "qualname": "snapshot_diff",
+                  "module_path": "src/pycode_kg/mcp_server.py",
+                  "score": 0.844627,
+                  "semantic": 0.6337303379733265,
+                  "lexical": 0.3333333333333333,
+                  "docstring_signal": 0.8472222222222222,
+                  "hop": 1
+                },
+                {
+                  "rank": 5,
+                  "id": "fn:src/pycode_kg/mcp_server.py:snapshot_list",
+                  "kind": "function",
+                  "qualname": "snapshot_list",
+                  "module_path": "src/pycode_kg/mcp_server.py",
+                  "score": 0.844627,
+                  "semantic": 0.6337303379733265,
+                  "lexical": 0.3333333333333333,
+                  "docstring_signal": 0.8829268292682926,
+                  "hop": 1
+                }
+              ]
+            },
+            {
+              "mode": "semantic",
+              "seconds": 0.012182000005850568,
+              "seeds": 8,
+              "expanded_nodes": 49,
+              "returned_nodes": 10,
+              "summary": {
+                "returned": 10,
+                "mean_score": 1.0,
+                "mean_semantic": 0.6337303379733265,
+                "mean_lexical": 0.3333333333333333,
+                "mean_docstring_signal": 0.8038010441502035,
+                "mean_hop": 0.8
+              },
+              "top_nodes": [
+                {
+                  "rank": 1,
+                  "id": "fn:src/pycode_kg/mcp_server.py:_snapshot_freshness",
+                  "kind": "function",
+                  "qualname": "_snapshot_freshness",
+                  "module_path": "src/pycode_kg/mcp_server.py",
+                  "score": 1.0,
+                  "semantic": 0.6337303379733265,
+                  "lexical": 0.6666666666666666,
+                  "docstring_signal": 0.7266666666666667,
+                  "hop": 0
+                },
+                {
+                  "rank": 2,
+                  "id": "fn:src/pycode_kg/mcp_server.py:_get_kg",
+                  "kind": "function",
+                  "qualname": "_get_kg",
+                  "module_path": "src/pycode_kg/mcp_server.py",
+                  "score": 1.0,
+                  "semantic": 0.6337303379733265,
+                  "lexical": 0.0,
+                  "docstring_signal": 0.7108620689655173,
+                  "hop": 1
+                },
+                {
+                  "rank": 3,
+                  "id": "fn:src/pycode_kg/mcp_server.py:snapshot_diff",
+                  "kind": "function",
+                  "qualname": "snapshot_diff",
+                  "module_path": "src/pycode_kg/mcp_server.py",
+                  "score": 1.0,
+                  "semantic": 0.6337303379733265,
+                  "lexical": 0.3333333333333333,
+                  "docstring_signal": 0.8472222222222222,
+                  "hop": 1
+                },
+                {
+                  "rank": 4,
+                  "id": "fn:src/pycode_kg/mcp_server.py:snapshot_list",
+                  "kind": "function",
+                  "qualname": "snapshot_list",
+                  "module_path": "src/pycode_kg/mcp_server.py",
+                  "score": 1.0,
+                  "semantic": 0.6337303379733265,
+                  "lexical": 0.3333333333333333,
+                  "docstring_signal": 0.8829268292682926,
+                  "hop": 1
+                },
+                {
+                  "rank": 5,
+                  "id": "fn:src/pycode_kg/mcp_server.py:snapshot_show",
+                  "kind": "function",
+                  "qualname": "snapshot_show",
+                  "module_path": "src/pycode_kg/mcp_server.py",
+                  "score": 1.0,
+                  "semantic": 0.6337303379733265,
+                  "lexical": 0.3333333333333333,
+                  "docstring_signal": 0.8513274336283185,
+                  "hop": 1
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "missing lineno fallback",
+          "query": "missing_lineno_policy cap_or_skip fallback",
+          "k": 6,
+          "hop": 0,
+          "max_nodes": 6,
+          "modes": [
+            {
+              "mode": "hybrid",
+              "seconds": 0.03779945897986181,
+              "seeds": 6,
+              "expanded_nodes": 6,
+              "returned_nodes": 6,
+              "summary": {
+                "returned": 6,
+                "mean_score": 0.989187,
+                "mean_semantic": 0.49328542961549643,
+                "mean_lexical": 0.0,
+                "mean_docstring_signal": 0.6703856472166331,
+                "mean_hop": 0.0
+              },
+              "top_nodes": [
+                {
+                  "rank": 1,
+                  "id": "m:src/pycode_kg/viz3d.py:MainWindow.reset_picking_state",
+                  "kind": "method",
+                  "qualname": "MainWindow.reset_picking_state",
+                  "module_path": "src/pycode_kg/viz3d.py",
+                  "score": 1.0,
+                  "semantic": 0.4986776014275841,
+                  "lexical": 0.0,
+                  "docstring_signal": 0.505,
+                  "hop": 0
+                },
+                {
+                  "rank": 2,
+                  "id": "m:src/pycode_kg/viz3d.py:MainWindow._build_render_options",
+                  "kind": "method",
+                  "qualname": "MainWindow._build_render_options",
+                  "module_path": "src/pycode_kg/viz3d.py",
+                  "score": 0.989482,
+                  "semantic": 0.4934326393562359,
+                  "lexical": 0.0,
+                  "docstring_signal": 0.7833333333333333,
+                  "hop": 0
+                },
+                {
+                  "rank": 3,
+                  "id": "fn:src/pycode_kg/config.py:load_exclude_dirs",
+                  "kind": "function",
+                  "qualname": "load_exclude_dirs",
+                  "module_path": "src/pycode_kg/config.py",
+                  "score": 0.988774,
+                  "semantic": 0.49307946009713927,
+                  "lexical": 0.0,
+                  "docstring_signal": 0.8816901408450704,
+                  "hop": 0
+                },
+                {
+                  "rank": 4,
+                  "id": "m:src/pycode_kg/viz3d.py:MainWindow.reset_actor_appearances",
+                  "kind": "method",
+                  "qualname": "MainWindow.reset_actor_appearances",
+                  "module_path": "src/pycode_kg/viz3d.py",
+                  "score": 0.98558,
+                  "semantic": 0.4914867862445233,
+                  "lexical": 0.0,
+                  "docstring_signal": 0.505,
+                  "hop": 0
+                },
+                {
+                  "rank": 5,
+                  "id": "fn:src/pycode_kg/pycodekg_thorough_analysis.py:_default_report_name",
+                  "kind": "function",
+                  "qualname": "_default_report_name",
+                  "module_path": "src/pycode_kg/pycodekg_thorough_analysis.py",
+                  "score": 0.982099,
+                  "semantic": 0.48975066095199976,
+                  "lexical": 0.0,
+                  "docstring_signal": 0.6769047619047619,
+                  "hop": 0
+                }
+              ]
+            },
+            {
+              "mode": "semantic",
+              "seconds": 0.010654874989995733,
+              "seeds": 6,
+              "expanded_nodes": 6,
+              "returned_nodes": 6,
+              "summary": {
+                "returned": 6,
+                "mean_score": 0.989187,
+                "mean_semantic": 0.49328542961549643,
+                "mean_lexical": 0.0,
+                "mean_docstring_signal": 0.6703856472166331,
+                "mean_hop": 0.0
+              },
+              "top_nodes": [
+                {
+                  "rank": 1,
+                  "id": "m:src/pycode_kg/viz3d.py:MainWindow.reset_picking_state",
+                  "kind": "method",
+                  "qualname": "MainWindow.reset_picking_state",
+                  "module_path": "src/pycode_kg/viz3d.py",
+                  "score": 1.0,
+                  "semantic": 0.4986776014275841,
+                  "lexical": 0.0,
+                  "docstring_signal": 0.505,
+                  "hop": 0
+                },
+                {
+                  "rank": 2,
+                  "id": "m:src/pycode_kg/viz3d.py:MainWindow._build_render_options",
+                  "kind": "method",
+                  "qualname": "MainWindow._build_render_options",
+                  "module_path": "src/pycode_kg/viz3d.py",
+                  "score": 0.989482,
+                  "semantic": 0.4934326393562359,
+                  "lexical": 0.0,
+                  "docstring_signal": 0.7833333333333333,
+                  "hop": 0
+                },
+                {
+                  "rank": 3,
+                  "id": "fn:src/pycode_kg/config.py:load_exclude_dirs",
+                  "kind": "function",
+                  "qualname": "load_exclude_dirs",
+                  "module_path": "src/pycode_kg/config.py",
+                  "score": 0.988774,
+                  "semantic": 0.49307946009713927,
+                  "lexical": 0.0,
+                  "docstring_signal": 0.8816901408450704,
+                  "hop": 0
+                },
+                {
+                  "rank": 4,
+                  "id": "m:src/pycode_kg/viz3d.py:MainWindow.reset_actor_appearances",
+                  "kind": "method",
+                  "qualname": "MainWindow.reset_actor_appearances",
+                  "module_path": "src/pycode_kg/viz3d.py",
+                  "score": 0.98558,
+                  "semantic": 0.4914867862445233,
+                  "lexical": 0.0,
+                  "docstring_signal": 0.505,
+                  "hop": 0
+                },
+                {
+                  "rank": 5,
+                  "id": "fn:src/pycode_kg/pycodekg_thorough_analysis.py:_default_report_name",
+                  "kind": "function",
+                  "qualname": "_default_report_name",
+                  "module_path": "src/pycode_kg/pycodekg_thorough_analysis.py",
+                  "score": 0.982099,
+                  "semantic": 0.48975066095199976,
+                  "lexical": 0.0,
+                  "docstring_signal": 0.6769047619047619,
+                  "hop": 0
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "graph build from source",
+          "query": "how does the graph get built from source code",
+          "k": 8,
+          "hop": 1,
+          "max_nodes": 8,
+          "modes": [
+            {
+              "mode": "hybrid",
+              "seconds": 0.01066654099849984,
+              "seeds": 8,
+              "expanded_nodes": 63,
+              "returned_nodes": 8,
+              "summary": {
+                "returned": 8,
+                "mean_score": 0.9639932,
+                "mean_semantic": 0.5986939351156825,
+                "mean_lexical": 0.37777777777777777,
+                "mean_docstring_signal": 0.8667379629682971,
+                "mean_hop": 0.8
+              },
+              "top_nodes": [
+                {
+                  "rank": 1,
+                  "id": "cls:src/pycode_kg/kg.py:PyCodeKG",
+                  "kind": "class",
+                  "qualname": "PyCodeKG",
+                  "module_path": "src/pycode_kg/kg.py",
+                  "score": 1.0,
+                  "semantic": 0.5985322396094525,
+                  "lexical": 0.4444444444444444,
+                  "docstring_signal": 0.8578512396694215,
+                  "hop": 1
+                },
+                {
+                  "rank": 2,
+                  "id": "fn:src/pycode_kg/ranking/coderank.py:build_code_graph",
+                  "kind": "function",
+                  "qualname": "build_code_graph",
+                  "module_path": "src/pycode_kg/ranking/coderank.py",
+                  "score": 0.995116,
+                  "semantic": 0.5946787903913452,
+                  "lexical": 0.4444444444444444,
+                  "docstring_signal": 0.8929577464788732,
+                  "hop": 0
+                },
+                {
+                  "rank": 3,
+                  "id": "m:src/pycode_kg/module/base.py:KGModule.make_extractor",
+                  "kind": "method",
+                  "qualname": "KGModule.make_extractor",
+                  "module_path": "src/pycode_kg/module/base.py",
+                  "score": 0.942393,
+                  "semantic": 0.6006988669147079,
+                  "lexical": 0.3333333333333333,
+                  "docstring_signal": 0.8394117647058823,
+                  "hop": 1
+                },
+                {
+                  "rank": 4,
+                  "id": "cls:src/pycode_kg/module/base.py:KGModule",
+                  "kind": "class",
+                  "qualname": "KGModule",
+                  "module_path": "src/pycode_kg/module/base.py",
+                  "score": 0.942393,
+                  "semantic": 0.6006988669147079,
+                  "lexical": 0.3333333333333333,
+                  "docstring_signal": 0.8483870967741935,
+                  "hop": 1
+                },
+                {
+                  "rank": 5,
+                  "id": "cls:src/pycode_kg/graph.py:CodeGraph",
+                  "kind": "class",
+                  "qualname": "CodeGraph",
+                  "module_path": "src/pycode_kg/graph.py",
+                  "score": 0.940064,
+                  "semantic": 0.5988609117481991,
+                  "lexical": 0.3333333333333333,
+                  "docstring_signal": 0.8950819672131147,
+                  "hop": 1
+                }
+              ]
+            },
+            {
+              "mode": "semantic",
+              "seconds": 0.009106833022087812,
+              "seeds": 8,
+              "expanded_nodes": 63,
+              "returned_nodes": 8,
+              "summary": {
+                "returned": 8,
+                "mean_score": 1.0,
+                "mean_semantic": 0.6006988669147079,
+                "mean_lexical": 0.15555555555555553,
+                "mean_docstring_signal": 0.7423854636591478,
+                "mean_hop": 0.8
+              },
+              "top_nodes": [
+                {
+                  "rank": 1,
+                  "id": "m:src/pycode_kg/module/base.py:KGModule.build_graph",
+                  "kind": "method",
+                  "qualname": "KGModule.build_graph",
+                  "module_path": "src/pycode_kg/module/base.py",
+                  "score": 1.0,
+                  "semantic": 0.6006988669147079,
+                  "lexical": 0.2222222222222222,
+                  "docstring_signal": 0.9093333333333333,
+                  "hop": 0
+                },
+                {
+                  "rank": 2,
+                  "id": "fn:src/pycode_kg/module/base.py:_edgespec_to_edge",
+                  "kind": "function",
+                  "qualname": "_edgespec_to_edge",
+                  "module_path": "src/pycode_kg/module/base.py",
+                  "score": 1.0,
+                  "semantic": 0.6006988669147079,
+                  "lexical": 0.2222222222222222,
+                  "docstring_signal": 0.6428947368421052,
+                  "hop": 1
+                },
+                {
+                  "rank": 3,
+                  "id": "fn:src/pycode_kg/module/base.py:_nodespec_to_node",
+                  "kind": "function",
+                  "qualname": "_nodespec_to_node",
+                  "module_path": "src/pycode_kg/module/base.py",
+                  "score": 1.0,
+                  "semantic": 0.6006988669147079,
+                  "lexical": 0.2222222222222222,
+                  "docstring_signal": 0.6218421052631579,
+                  "hop": 1
+                },
+                {
+                  "rank": 4,
+                  "id": "m:src/pycode_kg/module/base.py:KGModule._post_build_hook",
+                  "kind": "method",
+                  "qualname": "KGModule._post_build_hook",
+                  "module_path": "src/pycode_kg/module/base.py",
+                  "score": 1.0,
+                  "semantic": 0.6006988669147079,
+                  "lexical": 0.1111111111111111,
+                  "docstring_signal": 0.8678571428571429,
+                  "hop": 1
+                },
+                {
+                  "rank": 5,
+                  "id": "m:src/pycode_kg/module/base.py:KGModule.build",
+                  "kind": "method",
+                  "qualname": "KGModule.build",
+                  "module_path": "src/pycode_kg/module/base.py",
+                  "score": 1.0,
+                  "semantic": 0.6006988669147079,
+                  "lexical": 0.0,
+                  "docstring_signal": 0.67,
+                  "hop": 1
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "completed_utc": "2026-04-21T12:18:56.703881+00:00"
+}

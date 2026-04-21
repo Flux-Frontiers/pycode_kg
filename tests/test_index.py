@@ -96,7 +96,9 @@ def test_ste_init(mock_sentence_transformers):
     emb = SentenceTransformerEmbedder("test-model")
     assert emb.model_name == "test-model"
     assert emb.dim == 384
-    mock_st.SentenceTransformer.assert_called_once_with("test-model", local_files_only=True)
+    mock_st.SentenceTransformer.assert_called_once_with(
+        "test-model", local_files_only=True, trust_remote_code=True
+    )
 
 
 def test_ste_embed_texts(mock_sentence_transformers):

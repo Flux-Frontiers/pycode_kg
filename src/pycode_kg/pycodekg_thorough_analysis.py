@@ -1439,6 +1439,29 @@ class PyCodeKGAnalyzer:
                 "-- potential orchestrators or god objects"
             )
 
+        # Module size checks — flag modules with >30 functions/methods/classes
+        try:
+            large_modules = self.kg.store.con.execute(
+                """
+                SELECT module_path, COUNT(*) AS cnt
+                FROM nodes
+                WHERE kind IN ('function', 'method', 'class')
+                  AND module_path IS NOT NULL
+                GROUP BY module_path
+                HAVING cnt > 30
+                ORDER BY cnt DESC
+                LIMIT 5
+                """
+            ).fetchall()
+            for mod_path, cnt in large_modules:
+                mod_name = mod_path.split("/")[-1] if mod_path else "?"
+                self.issues.append(
+                    f"[WARN] `{mod_name}` has {cnt} functions/methods/classes "
+                    "-- consider splitting into focused submodules"
+                )
+        except (AttributeError, ValueError, RuntimeError):
+            pass
+
         # Inheritance insights
         inh = self.inheritance_analysis
         if inh:

@@ -351,7 +351,8 @@ def _parse_args() -> argparse.Namespace:
         "--models",
         default=(
             "all-MiniLM-L6-v2,all-MiniLM-L12-v2,"
-            "BAAI/bge-small-en-v1.5,all-mpnet-base-v2,microsoft/codebert-base"
+            "BAAI/bge-small-en-v1.5,all-mpnet-base-v2,microsoft/codebert-base,"
+            "nomic-ai/nomic-embed-text-v1.5"
         ),
         help="Comma-separated model ids.",
     )

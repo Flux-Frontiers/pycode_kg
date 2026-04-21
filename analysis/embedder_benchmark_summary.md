@@ -9,9 +9,11 @@
 | **HEAD commit** | `9b6218c` — fix: pass snapshot_mgr to PyCodeKGAnalyzer in analyze_repo() |
 | **Run 1** | 2026-03-11T00:00:46 UTC — `embedder_benchmark_20260311_000046.md/.json` |
 | **Run 2** | 2026-03-11T00:50:14 UTC — `embedder_benchmark_20260311_005014.md/.json` |
+| **Run 3** | 2026-04-21T12:18:14 UTC — `embedder_benchmark_20260421_121814.md/.json` (nomic, no task prompts) |
+| **Run 4** | 2026-04-21T12:23:59 UTC — `embedder_benchmark_20260421_122359.md/.json` (nomic, with task prompts) |
 | **Repo indexed** | `/Users/egs/repos/pycode_kg` |
 | **SQLite DB** | `.pycodekg/graph.sqlite` |
-| **Indexed rows** | 349–350 nodes |
+| **Indexed rows** | 349–476 nodes (graph grew between runs) |
 | **Hybrid weights** | semantic=0.7, lexical=0.3 |
 | **Benchmark script** | `scripts/benchmark_embedders.py` |
 
@@ -26,6 +28,7 @@
 | `BAAI/bge-small-en-v1.5` | 384 | ~1.2 |
 | `all-mpnet-base-v2` | 768 | ~2.4 |
 | `microsoft/codebert-base` | 768 | ~3.2 |
+| `nomic-ai/nomic-embed-text-v1.5` | 768 | ~8.5 (warm cache; ~42s first run) |
 
 ---
 
@@ -48,8 +51,10 @@
 | **`BAAI/bge-small-en-v1.5`** | **~0.648** | **~0.444** | **~0.564** |
 | `all-mpnet-base-v2` | ~0.538 | ~0.317 | ~0.481 |
 | `microsoft/codebert-base` | ~0.709* | ~0.659* | ~0.771* |
+| `nomic-ai/nomic-embed-text-v1.5` | **0.922** | 0.989† | **0.964** |
 
 \* Inflated and meaningless — see CodeBERT section below.
+† Degenerate — near-uniform scores, top results are irrelevant GUI methods. See nomic section below.
 
 ---
 
@@ -93,7 +98,40 @@ It *would* be appropriate if PyCodeKG embedded the actual source code text (the 
 
 ---
 
-### 4. Hybrid mode: helpful for natural language queries, noisy for identifier queries
+### 4. `nomic-ai/nomic-embed-text-v1.5` — strong on NL, degenerate on identifiers
+
+Nomic was tested in two configurations:
+
+- **Run 3** (no task prompts): 41.91s build — model downloaded and encoded without prefix instructions
+- **Run 4** (with task prompts via `prompt_name="search_query"` / `"search_document"`): 8.53s build — cached model + task-aware encoding
+
+The task prompt implementation auto-detects the model's `prompts` dict at load time and applies `search_query:` prefix at query time and `search_document:` prefix at index time. This is the correct way to use nomic as specified by its authors.
+
+**Results:**
+
+| Query | Nomic hybrid | BGE-small hybrid | Winner |
+|---|---:|---:|---|
+| Q1 NL domain ("snapshot freshness") | **0.922** | 0.648 | Nomic by large margin |
+| Q2 identifiers ("missing_lineno_policy") | 0.989† | **0.444** | BGE-small — nomic score is degenerate |
+| Q3 NL general ("graph built from source") | **0.964** | 0.564 | Nomic by large margin |
+
+† Q2 top results for nomic: `MainWindow.reset_picking_state`, `MainWindow._build_render_options`, `load_exclude_dirs` — all unrelated GUI/config code, identical failure to CodeBERT. Task prompts made no difference to Q2 discrimination.
+
+#### Why nomic fails identifier queries
+
+Nomic's 768-dim space is optimized for retrieval in natural-language and passage-level semantics. Compound Python identifiers like `missing_lineno_policy` and `cap_or_skip` are out-of-vocabulary morphologically; nomic encodes them into a near-flat region of the embedding space where all short-docstring nodes cluster at ~0.493 cosine similarity. This is a vocabulary-coverage problem, not a prompt problem — task prefixes cannot compensate for absent subword signal.
+
+BGE-small (384-dim) handles compound identifiers better because its pre-training distribution includes more identifier-like tokenization patterns from diverse NLP corpora.
+
+#### Build time
+
+Nomic's first-run build (41.91s) is due to model download. Subsequent warm-cache builds (8.53s) are still 7× slower than BGE-small (~1.2s) for the same index size (476 nodes). At production scale this gap will widen.
+
+**Verdict:** Do not use nomic as the default. Its NL query quality advantage (Q1/Q3) is real, but identifier query failure (Q2) is a hard blocker for a code retrieval system where function/method name lookups are common. BGE-small wins on the criterion that matters most: reliable retrieval across both NL and identifier query styles.
+
+---
+
+### 5. Hybrid mode: helpful for natural language queries, noisy for identifier queries
 
 | Query type | Hybrid vs. Semantic |
 |---|---|
@@ -118,6 +156,7 @@ The `DEFAULT_MODEL` constant in `src/pycode_kg/pycodekg.py` is set correctly. No
 | **Canonical model** | `BAAI/bge-small-en-v1.5` |
 | **Dimension** | 384 |
 | **Build time** | ~1.2s |
-| **Do not use** | `microsoft/codebert-base` for metadata retrieval |
+| **Do not use** | `microsoft/codebert-base` — degenerate for metadata retrieval |
 | **Do not use** | `all-mpnet-base-v2` — higher cost, lower quality |
+| **Do not use** | `nomic-ai/nomic-embed-text-v1.5` — fails identifier queries; 7× slower |
 | **Identifier queries** | Prefer `rerank_semantic_weight=1.0` or `hop=0` |

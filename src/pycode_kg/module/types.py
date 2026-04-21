@@ -269,6 +269,12 @@ class SnippetPack:
                 )
             sn = n.get("snippet")
             if sn:
+                end_lineno = n.get("end_lineno")
+                if end_lineno is not None and sn["end"] < end_lineno:
+                    out.append(
+                        f"*(truncated: showing lines {sn['start']}–{sn['end']} "
+                        f"of {n.get('lineno', sn['start'])}–{end_lineno})*"
+                    )
                 out.append("")
                 out.append(f"```\n{sn['text']}\n```")
             out.append("")

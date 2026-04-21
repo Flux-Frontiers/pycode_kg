@@ -17,11 +17,11 @@ Operational notes:
 
 Tools
 -----
-query_codebase(q, k, hop, rels, include_symbols, max_nodes, min_score, max_per_module, paths, rerank_mode, rerank_semantic_weight, rerank_lexical_weight, include_edge_provenance)
-    Hybrid semantic + structural query.  Returns ranked nodes and edges
-    as a JSON string.  Default rerank_mode='hybrid' (70% semantic +
-    30% lexical overlap); pass rerank_mode='legacy' to restore hop-first
-    ordering.
+query_codebase(q, k, hop, rels, include_symbols, max_nodes, min_score, max_per_module, paths, rerank_mode, rerank_semantic_weight, rerank_lexical_weight, include_edge_provenance, format)
+    Hybrid semantic + structural query.  Returns ranked nodes and edges.
+    Default rerank_mode='hybrid' (70% semantic + 30% lexical overlap).
+    Default format='json'; pass format='markdown' for a ranked Markdown
+    table instead of raw JSON.
 
 pack_snippets(q, k, hop, rels, include_symbols, context, max_lines, max_nodes, min_score, max_per_module, rerank_mode, rerank_semantic_weight, rerank_lexical_weight, missing_lineno_policy, include_edge_provenance)
     Hybrid query + source-grounded snippet extraction.  Returns a
@@ -46,6 +46,11 @@ callers(node_id, rel)
     with import-aware filtering for ambiguous same-name targets.
     Returns JSON.  Use get_node(include_edges=True) for a combined
     node + callers view without a separate round-trip.
+
+find_definition_at(file, line)
+    Reverse-resolve a (file, line) pair to the innermost graph node that
+    spans it, then return the same Markdown report as explain().  Useful
+    when reading a file in the IDE without knowing the node ID.
 
 analyze_repo()
     Run the full nine-phase architectural analysis pipeline and return
@@ -75,6 +80,12 @@ list_nodes(module_path, kind)
     List nodes filtered by module path prefix and/or kind.  Returns a
     JSON array of matching node dicts.  Useful for enumerating classes
     or functions in a specific module.
+
+find_node(name, kind)
+    Find nodes by plain name or qualname substring without knowing the
+    full stable ID.  Returns a JSON array of matching node dicts.
+    Use when you know a function name from a traceback or reading code
+    and need to obtain its stable ID for explain(), callers(), etc.
 
 centrality(top, kinds, group_by)
     Compute Structural Importance Ranking (SIR): a deterministic weighted
@@ -295,6 +306,13 @@ mcp = FastMCP(
         "and/or kind (e.g. 'function', 'class'). Returns a JSON array of matching nodes. "
         "Use this to enumerate the contents of a specific module before inspecting "
         "individual nodes with get_node().\n\n"
+        "**find_node(name, kind)** — Find nodes by plain name or qualname when the stable "
+        "ID is unknown. Case-insensitive match against name and qualname columns; sym: stubs "
+        "are excluded. Optional kind filter narrows to 'function', 'class', 'method', or "
+        "'module'. Returns a JSON array of matching node dicts including id, kind, "
+        "module_path, lineno, and docstring. Use this as the first step when you see a "
+        "function name in a traceback or file and need its stable ID for explain() or "
+        "callers().\n\n"
         "**centrality(top, kinds, group_by)** — Compute Structural Importance Ranking (SIR): "
         "a deterministic weighted PageRank over the sym-stub-resolved call graph. Edge weights "
         "favour CALLS > INHERITS > IMPORTS > CONTAINS; cross-module edges receive a boost and "
@@ -340,6 +358,7 @@ mcp = FastMCP(
         "## Recommended Workflows\n\n"
         "- **Explore unfamiliar code**: graph_stats → query_codebase → list_nodes (to enumerate a module) → explain → pack_snippets\n"
         "- **Understand a specific function**: get_node(include_edges=True) → pack_snippets\n"
+        "- **Look up by name (no ID known)**: find_node(name) → explain or callers\n"
         "- **Impact analysis before a change**: explain → callers (with paths='src/')\n"
         "- **Architecture review**: analyze_repo\n"
         "- **Answer 'how does X work?'**: pack_snippets with a descriptive query\n"
@@ -383,12 +402,13 @@ def query_codebase(
     include_symbols: bool = False,
     max_nodes: int = 25,
     min_score: float = 0.0,
-    max_per_module: int = 0,
+    max_per_module: int = 3,
     paths: str = "",
     rerank_mode: str = "hybrid",
     rerank_semantic_weight: float = 0.7,
     rerank_lexical_weight: float = 0.3,
     include_edge_provenance: bool = False,
+    format: str = "json",
 ) -> str:
     """
     Hybrid semantic + structural query over the codebase knowledge graph.
@@ -417,6 +437,13 @@ def query_codebase(
       pre-reranking behavior; use only if you need stable ordering for
       comparisons against older results.
 
+    **format** controls the output representation:
+
+    - ``json`` (default) — structured JSON with full relevance metadata.
+      Best for programmatic consumption or when scores matter.
+    - ``markdown`` — compact ranked Markdown table.  Easier to read in
+      conversation context; omits raw score fields.
+
     :param q: Natural-language query, e.g. "database connection setup".
     :param k: Number of semantic seed nodes (default 8).
     :param hop: Graph expansion hops from each seed (default 1).
@@ -425,7 +452,9 @@ def query_codebase(
     :param include_symbols: Include low-level symbol nodes (default False).
     :param max_nodes: Maximum nodes to return (default 25).
     :param min_score: Minimum semantic score for seed inclusion in ``[0, 1]``.
-    :param max_per_module: Maximum nodes per module (0 disables this cap).
+    :param max_per_module: Maximum nodes per module (default 3; 0 disables).
+        Prevents a single popular module from dominating hop-1 expansion results.
+        Lower for precision (e.g. 2), raise or disable for broad coverage queries.
     :param paths: Comma-separated module path prefixes to include, e.g.
                   ``"src/pycode_kg"`` to exclude tests and scripts.
                   Empty string (default) returns all paths.
@@ -437,8 +466,8 @@ def query_codebase(
         mode (default 0.3).
     :param include_edge_provenance: When ``True``, inferred edges include
         confidence/provenance fields when available.
-    :return: JSON string with keys: query, seeds, expanded_nodes,
-             returned_nodes, hop, rels, nodes, edges.
+    :param format: Output format: ``json`` (default) or ``markdown``.
+    :return: JSON string (format='json') or Markdown table (format='markdown').
     """
     rel_tuple = tuple(r.strip() for r in rels.split(",") if r.strip())
     result = _get_kg().query(
@@ -457,20 +486,42 @@ def query_codebase(
     data = json.loads(result.to_json())
     if include_edge_provenance:
         data["edges"] = _enrich_edges_with_provenance(data.get("edges", []))
-    if not paths:
-        return json.dumps(data, indent=2, ensure_ascii=False)
 
-    path_prefixes = [p.strip() for p in paths.split(",") if p.strip()]
-    included_ids = {
-        n["id"]
-        for n in data["nodes"]
-        if any((n.get("module_path") or "").startswith(pfx) for pfx in path_prefixes)
-    }
-    data["nodes"] = [n for n in data["nodes"] if n["id"] in included_ids]
-    data["edges"] = [
-        e for e in data["edges"] if e["src"] in included_ids and e["dst"] in included_ids
-    ]
-    data["returned_nodes"] = len(data["nodes"])
+    if paths:
+        path_prefixes = [p.strip() for p in paths.split(",") if p.strip()]
+        included_ids = {
+            n["id"]
+            for n in data["nodes"]
+            if any((n.get("module_path") or "").startswith(pfx) for pfx in path_prefixes)
+        }
+        data["nodes"] = [n for n in data["nodes"] if n["id"] in included_ids]
+        data["edges"] = [
+            e for e in data["edges"] if e["src"] in included_ids and e["dst"] in included_ids
+        ]
+        data["returned_nodes"] = len(data["nodes"])
+
+    if format == "markdown":
+        out: list[str] = [
+            f"## Query Results: `{q}`\n",
+            f"**Seeds:** {data['seeds']}  |  "
+            f"**Expanded:** {data['expanded_nodes']}  |  "
+            f"**Returned:** {data['returned_nodes']}  |  "
+            f"**hop:** {data['hop']}\n",
+            "| Rank | Score | Kind | Name | Module |",
+            "|-----:|------:|------|------|--------|",
+        ]
+        for rank_idx, node in enumerate(data["nodes"], start=1):
+            score = node.get("relevance", {}).get("score", 0.0)
+            kind = node.get("kind", "?")
+            name = node.get("qualname") or node.get("name", "?")
+            module = node.get("module_path", "")
+            out.append(f"| {rank_idx} | {score:.3f} | {kind} | `{name}` | `{module}` |")
+        if data.get("edges"):
+            out.append("\n### Edges\n")
+            for e in data["edges"][:20]:
+                out.append(f"- `{e['src']}` -[{e['rel']}]-> `{e['dst']}`")
+        return "\n".join(out)
+
     return json.dumps(data, indent=2, ensure_ascii=False)
 
 
@@ -485,7 +536,7 @@ def pack_snippets(
     max_lines: int = 60,
     max_nodes: int = 15,
     min_score: float = 0.0,
-    max_per_module: int = 0,
+    max_per_module: int = 3,
     rerank_mode: str = "hybrid",
     rerank_semantic_weight: float = 0.7,
     rerank_lexical_weight: float = 0.3,
@@ -518,7 +569,8 @@ def pack_snippets(
     :param max_lines: Maximum lines per snippet block (default 60).
     :param max_nodes: Maximum nodes to include in the pack (default 15).
     :param min_score: Minimum semantic score for seed inclusion in ``[0, 1]``.
-    :param max_per_module: Maximum nodes per module (0 disables this cap).
+    :param max_per_module: Maximum nodes per module (default 3; 0 disables).
+        Prevents a single popular module from dominating hop-1 expansion results.
     :param rerank_mode: Ranking strategy: ``hybrid`` (default), ``semantic``,
         or ``legacy``.
     :param rerank_semantic_weight: Semantic component weight for ``hybrid``
@@ -804,6 +856,75 @@ def list_nodes(module_path: str = "", kind: str = "") -> str:
 
 
 @mcp.tool()
+def find_node(name: str, kind: str = "") -> str:
+    """
+    Find graph nodes by name without knowing their full stable ID.
+
+    Performs a case-insensitive search against both the ``name`` and
+    ``qualname`` columns.  Use this when you know (or partially know) a
+    function, class, or method name but do not yet have its stable ID
+    (``<kind>:<module_path>:<qualname>``).  Once you have the ID, pass
+    it to ``get_node()``, ``explain()``, or ``callers()``.
+
+    Example workflow::
+
+        # 1. Look up a name you saw in a traceback
+        find_node("_get_kg")
+
+        # 2. Use the returned id with explain or get_node
+        explain("fn:src/pycode_kg/mcp_server.py:_get_kg")
+
+    :param name: Function, method, or class name to search for.
+                 Matched case-insensitively against ``name`` and ``qualname``.
+    :param kind: Optional kind filter: ``module`` | ``class`` | ``function``
+                 | ``method``.  Empty string (default) searches all kinds.
+    :return: JSON array of matching node dicts with ``id``, ``name``,
+             ``qualname``, ``kind``, ``module_path``, ``lineno``, and a
+             truncated ``docstring``.  Returns an empty array when no match
+             is found.
+    """
+    kg = _get_kg()
+    store = getattr(kg, "_store", None)
+    if not store:
+        return json.dumps({"error": "No database store available."}, indent=2)
+
+    name_lower = name.lower()
+    query = (
+        "SELECT id, name, qualname, kind, module_path, lineno, docstring "
+        "FROM nodes WHERE (LOWER(name) = ? OR LOWER(qualname) LIKE ?)"
+    )
+    params: list = [name_lower, f"%{name_lower}%"]
+
+    if kind:
+        query += " AND kind = ?"
+        params.append(kind)
+
+    query += " AND id NOT LIKE 'sym:%' ORDER BY module_path, lineno"
+
+    try:
+        rows = store.con.execute(query, params).fetchall()
+        result = []
+        for r in rows:
+            doc = r[6]
+            if doc and len(doc) > 120:
+                doc = doc[:120] + "..."
+            result.append(
+                {
+                    "id": r[0],
+                    "name": r[1],
+                    "qualname": r[2],
+                    "kind": r[3],
+                    "module_path": r[4],
+                    "lineno": r[5],
+                    "docstring": doc,
+                }
+            )
+        return json.dumps(result, indent=2, ensure_ascii=False)
+    except Exception as e:  # pylint: disable=broad-except
+        return json.dumps({"error": str(e)}, indent=2)
+
+
+@mcp.tool()
 def centrality(
     top: int = 20,
     kinds: str = "",
@@ -1001,6 +1122,69 @@ def framework_nodes(top: int = 20) -> str:
 
 
 @mcp.tool()
+def find_definition_at(file: str, line: int) -> str:
+    """
+    Find the code node whose definition spans a given file location.
+
+    Reverse-resolves a ``(file, line)`` pair to a graph node ID and returns the
+    same Markdown report as ``explain()``.  Useful when reading a file in an IDE
+    and wanting to understand the symbol at a specific line without constructing
+    a node ID manually.
+
+    Matches the innermost (most-specific) function, method, or class whose
+    ``lineno ≤ line ≤ end_lineno``.  Falls back to the module node when no
+    narrower match exists.
+
+    :param file: Module path as stored in the graph, e.g. ``src/pycode_kg/store.py``.
+                 Leading ``./`` is stripped automatically.
+    :param line: Line number (1-indexed) within the file.
+    :return: Markdown explanation from ``explain()``, or an informative error
+             message if no node spans that location.
+    """
+    kg = _get_kg()
+    store = getattr(kg, "_store", None) or getattr(kg, "store", None)
+    if store is None:
+        return "## Error\n\nNo graph store available."
+
+    norm_file = file.lstrip("./")
+
+    # Innermost span: smallest (end_lineno - lineno) that still contains `line`.
+    rows = store.con.execute(
+        """
+        SELECT id
+        FROM nodes
+        WHERE (module_path = :f OR module_path LIKE :like)
+          AND kind IN ('function', 'method', 'class')
+          AND lineno IS NOT NULL
+          AND lineno <= :ln
+          AND (end_lineno IS NULL OR end_lineno >= :ln)
+        ORDER BY (COALESCE(end_lineno, lineno) - lineno) ASC
+        LIMIT 1
+        """,
+        {"f": norm_file, "like": f"%{norm_file}", "ln": line},
+    ).fetchall()
+
+    if not rows:
+        # Fall back to the module node itself
+        mod_rows = store.con.execute(
+            "SELECT id FROM nodes WHERE kind = 'module' AND (module_path = ? OR module_path LIKE ?)",
+            (norm_file, f"%{norm_file}"),
+        ).fetchall()
+        if not mod_rows:
+            return (
+                f"## No Definition Found\n\n"
+                f"No function, method, or class spans `{file}:{line}` in the graph.\n\n"
+                "Check that the file path matches the module path stored in the graph "
+                "(use `graph_stats()` or `list_nodes()` to browse available modules)."
+            )
+        node_id = mod_rows[0][0]
+    else:
+        node_id = rows[0][0]
+
+    return explain(node_id)
+
+
+@mcp.tool()
 def analyze_repo() -> str:
     """
     Run a full architectural analysis of the indexed repository.
@@ -1184,10 +1368,24 @@ def explain(node_id: str, limit: int = 10) -> str:
                 "the high fan-out indicates a coordination hub, not a utility."
             )
         elif caller_count > 0:
-            out.append(
-                f"**Utility function**: Called {caller_count} time(s). "
-                "Specific to particular use cases."
-            )
+            try:
+                _callers_for_role = kg.callers(node_id, rel="CALLS")
+                _caller_mods = sorted(
+                    {
+                        c.get("module_path", "").split("/")[-1].replace(".py", "")
+                        for c in _callers_for_role
+                        if c.get("module_path")
+                    }
+                )
+                _mod_summary = (
+                    ", ".join(f"`{m}`" for m in _caller_mods[:4])
+                    + (" and more" if len(_caller_mods) > 4 else "")
+                    if _caller_mods
+                    else "various callers"
+                )
+            except (AttributeError, ValueError, RuntimeError):
+                _mod_summary = "various callers"
+            out.append(f"**Utility function**: Called {caller_count} time(s) from {_mod_summary}.")
         else:
             module = node.get("module_path", "")
             name = node.get("name", "")

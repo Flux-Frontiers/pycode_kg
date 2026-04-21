@@ -422,6 +422,14 @@ class KGModule(ABC):
             kept_ids.add(nid)
             nodes.append(n)
 
+        # Normalize composite scores so the top hit approaches 1.0, making
+        # min_score thresholds consistent across queries with different embedding distances.
+        if nodes:
+            max_score = max(n["relevance"]["score"] for n in nodes) or 1.0
+            if max_score > 0.0:
+                for n in nodes:
+                    n["relevance"]["score"] = round(n["relevance"]["score"] / max_score, 6)
+
         edges = self.store.edges_within(kept_ids)
         return QueryResult(
             query=q,

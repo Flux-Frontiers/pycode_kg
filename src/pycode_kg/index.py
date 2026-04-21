@@ -151,12 +151,14 @@ class SentenceTransformerEmbedder(Embedder):
         os.environ["TQDM_DISABLE"] = "1"
         try:
             if local_path.exists():
-                self.model = SentenceTransformer(str(local_path))
+                self.model = SentenceTransformer(str(local_path), trust_remote_code=True)
             else:
                 try:
-                    self.model = SentenceTransformer(model_name, local_files_only=True)
+                    self.model = SentenceTransformer(
+                        model_name, local_files_only=True, trust_remote_code=True
+                    )
                 except OSError:
-                    self.model = SentenceTransformer(model_name)
+                    self.model = SentenceTransformer(model_name, trust_remote_code=True)
         finally:
             if _prev_tqdm is None:
                 os.environ.pop("TQDM_DISABLE", None)
@@ -164,23 +166,40 @@ class SentenceTransformerEmbedder(Embedder):
                 os.environ["TQDM_DISABLE"] = _prev_tqdm
         self.model_name = model_name
         self.dim: int = self.model.get_embedding_dimension() or 384
+        # Detect task-prompt support (e.g. nomic-embed-text-v1.5).
+        # sentence-transformers exposes model.prompts as a dict of name→prefix.
+        _prompts: dict = getattr(self.model, "prompts", {}) or {}
+        self._query_prompt: str | None = "search_query" if "search_query" in _prompts else None
+        self._doc_prompt: str | None = "search_document" if "search_document" in _prompts else None
 
     def embed_texts(self, texts: list[str]) -> list[list[float]]:
         """Embed a list of strings into float32 vectors.
 
+        Uses ``search_document`` task prompt when the model supports it
+        (e.g. ``nomic-ai/nomic-embed-text-v1.5``).
+
         :param texts: Input strings to embed.
         :return: List of float32 vectors, one per input string.
         """
-        vecs = self.model.encode(texts, normalize_embeddings=True, show_progress_bar=False)
+        kwargs: dict = {"normalize_embeddings": True, "show_progress_bar": False}
+        if self._doc_prompt:
+            kwargs["prompt_name"] = self._doc_prompt
+        vecs = self.model.encode(texts, **kwargs)
         return [np.asarray(v, dtype="float32").tolist() for v in vecs]
 
     def embed_query(self, query: str) -> list[float]:
         """Embed a single query string into a float32 vector.
 
+        Uses ``search_query`` task prompt when the model supports it
+        (e.g. ``nomic-ai/nomic-embed-text-v1.5``).
+
         :param query: Query string to embed.
         :return: Float32 vector representation of the query.
         """
-        vec = self.model.encode([query], normalize_embeddings=True)[0]
+        kwargs: dict = {"normalize_embeddings": True}
+        if self._query_prompt:
+            kwargs["prompt_name"] = self._query_prompt
+        vec = self.model.encode([query], **kwargs)[0]
         return np.asarray(vec, dtype="float32").tolist()
 
     def __repr__(self) -> str:

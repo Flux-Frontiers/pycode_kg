@@ -5,7 +5,18 @@
       "Bash(git -C /Users/egs/repos/Metabo_kg diff --staged)",
       "Bash(.venv/bin/python -c \"import metabokg\")",
       "Bash(.venv/bin/dockg analyze *)",
-      "Bash(git tag *)"
+      "Bash(git tag *)",
+      "mcp__pycodekg__graph_stats",
+      "mcp__pycodekg__analyze_repo",
+      "mcp__pycodekg__get_node",
+      "mcp__pycodekg__explain",
+      "mcp__pycodekg__callers",
+      "mcp__pycodekg__snapshot_list",
+      "mcp__pycodekg__snapshot_diff",
+      "mcp__pycodekg__centrality",
+      "mcp__pycodekg__framework_nodes",
+      "Bash(pycodekg build *)",
+      "Bash(python scripts/benchmark_embedders.py --repo-root . --sqlite .pycodekg/graph.sqlite --models nomic-ai/nomic-embed-text-v1.5 --modes hybrid,semantic --top-n 5)"
     ]
   }
 }
