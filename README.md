@@ -4,7 +4,7 @@
 [![Version](https://img.shields.io/badge/version-0.15.0-blue.svg)](https://github.com/Flux-Frontiers/pycode_kg/releases)
 [![CI](https://github.com/Flux-Frontiers/pycode_kg/actions/workflows/ci.yml/badge.svg)](https://github.com/Flux-Frontiers/pycode_kg/actions/workflows/ci.yml)
 [![Poetry](https://img.shields.io/endpoint?url=https://python-poetry.org/badge/v0.json)](https://python-poetry.org/)
-[![DOI](https://zenodo.org/badge/PLACEHOLDER.svg)](https://zenodo.org/badge/latestdoi/PLACEHOLDER)
+[![DOI](https://zenodo.org/badge/1202379010.svg)](https://zenodo.org/badge/latestdoi/1202379010)
 
 <p align="center">
   <img src="assets/logo-md-256x256.png" alt="PyCodeKG logo" width="256"/>
@@ -200,8 +200,32 @@ When changing MCP tools in `src/pycode_kg/mcp_server.py` (signature, params, def
 
 ---
 
+## Citation
+
+If you use PyCodeKG in your research or project, please cite it:
+
+[![DOI](https://zenodo.org/badge/1202379010.svg)](https://zenodo.org/badge/latestdoi/1202379010)
+
+**APA**
+
+> Suchanek, E. G. (2026). *PyCodeKG: Semantic Knowledge Graph for Python Codebases* (Version 0.15.0) [Software]. Flux-Frontiers. https://doi.org/10.5281/zenodo.PLACEHOLDER
+
+**BibTeX**
+
+```bibtex
+@software{suchanek_pycode_kg,
+  author    = {Suchanek, Eric G.},
+  title     = {{PyCodeKG}: Semantic Knowledge Graph for Python Codebases},
+  version   = {0.15.0},
+  year      = {2026},
+  publisher = {Flux-Frontiers},
+  url       = {https://github.com/Flux-Frontiers/pycode_kg},
+  doi       = {10.5281/zenodo.PLACEHOLDER},
+}
+```
+
+---
+
 ## License
 
 [Elastic License 2.0](https://www.elastic.co/licensing/elastic-license) — see [LICENSE](LICENSE).
-
-Free to use, modify, and distribute. You may not offer the software as a hosted or managed service to third parties. Commercial use internally is permitted.
