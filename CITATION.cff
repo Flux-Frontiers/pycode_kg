@@ -15,7 +15,7 @@ authors:
     orcid: "https://orcid.org/0009-0009-0891-1507"
     email: suchanek@flux-frontiers.com
     affiliation: "Flux-Frontiers"
-version: "0.15.0"
+version: "0.15.1"
 date-released: "2026-04-24"
 license: "Elastic-2.0"
 repository-code: "https://github.com/Flux-Frontiers/pycode_kg"
