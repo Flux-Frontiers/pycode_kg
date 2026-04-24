@@ -6,6 +6,7 @@ Tests for GraphStore — SQLite persistence and graph traversal.
 
 from __future__ import annotations
 
+import json
 import textwrap
 from pathlib import Path
 
@@ -255,6 +256,109 @@ def test_store_expand_non_seed_hop_positive(tmp_path):
     meta = store.expand(seed, hop=2)
     non_seeds = {nid: p for nid, p in meta.items() if nid not in seed}
     assert all(p.best_hop > 0 for p in non_seeds.values())
+    store.close()
+
+
+# ---------------------------------------------------------------------------
+# stats() — domain-specific fields
+# ---------------------------------------------------------------------------
+
+
+def test_stats_kind_counts(tmp_path):
+    """module_count, class_count, function_count, method_count match actual nodes."""
+    store = _make_store(
+        tmp_path,
+        {
+            "mod.py": (
+                "class Foo:\n"
+                "    def run(self): pass\n"
+                "    def stop(self): pass\n"
+                "def helper(): pass\n"
+            )
+        },
+    )
+    s = store.stats()
+    assert s["module_count"] == 1
+    assert s["class_count"] == 1
+    assert s["function_count"] == 1
+    assert s["method_count"] == 2
+    store.close()
+
+
+def test_stats_docstring_coverage_full(tmp_path):
+    """All functions/methods have docstrings → coverage == 1.0."""
+    store = _make_store(
+        tmp_path,
+        {
+            "mod.py": (
+                "def alpha():\n"
+                '    """Does alpha."""\n'
+                "    pass\n"
+                "def beta():\n"
+                '    """Does beta."""\n'
+                "    pass\n"
+            )
+        },
+    )
+    s = store.stats()
+    assert s["docstring_coverage"] == 1.0
+    store.close()
+
+
+def test_stats_docstring_coverage_partial(tmp_path):
+    """Half with docstrings → coverage == 0.5."""
+    store = _make_store(
+        tmp_path,
+        {
+            "mod.py": (
+                'def with_doc():\n    """Has a docstring."""\n    pass\ndef no_doc():\n    pass\n'
+            )
+        },
+    )
+    s = store.stats()
+    assert s["docstring_coverage"] == 0.5
+    store.close()
+
+
+def test_stats_docstring_coverage_none(tmp_path):
+    """No functions/methods → coverage == 0.0 (not a division error)."""
+    store = _make_store(tmp_path, {"mod.py": "X = 1\n"})
+    s = store.stats()
+    assert s["docstring_coverage"] == 0.0
+    store.close()
+
+
+def test_stats_snapshot_count_no_manifest(tmp_path):
+    """snapshot_count is 0 when no manifest exists adjacent to the DB."""
+    store = _make_store(tmp_path, {"mod.py": "def foo(): pass\n"})
+    assert store.stats()["snapshot_count"] == 0
+    store.close()
+
+
+def test_stats_snapshot_count_with_manifest(tmp_path):
+    """snapshot_count reflects the number of entries in the manifest."""
+    store = _make_store(tmp_path, {"mod.py": "def foo(): pass\n"})
+    snapshots_dir = store.db_path.parent / "snapshots"
+    snapshots_dir.mkdir()
+    manifest = {
+        "snapshots": [
+            {"key": "abc123", "timestamp": "2025-01-01T00:00:00Z"},
+            {"key": "def456", "timestamp": "2025-01-02T00:00:00Z"},
+            {"key": "ghi789", "timestamp": "2025-01-03T00:00:00Z"},
+        ]
+    }
+    (snapshots_dir / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    assert store.stats()["snapshot_count"] == 3
+    store.close()
+
+
+def test_stats_snapshot_count_corrupt_manifest(tmp_path):
+    """snapshot_count is 0 when the manifest is unreadable; no exception raised."""
+    store = _make_store(tmp_path, {"mod.py": "def foo(): pass\n"})
+    snapshots_dir = store.db_path.parent / "snapshots"
+    snapshots_dir.mkdir()
+    (snapshots_dir / "manifest.json").write_text("not json {{", encoding="utf-8")
+    assert store.stats()["snapshot_count"] == 0
     store.close()
 
 

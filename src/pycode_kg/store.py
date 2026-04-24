@@ -660,29 +660,63 @@ class GraphStore:
 
     def stats(self) -> dict:
         """
-        Return node and edge counts by kind/relation.
+        Return node and edge counts by kind/relation, plus domain-specific metrics.
 
         ``meaningful_nodes`` excludes ``sym:`` infrastructure stubs so callers
         get an accurate count of real code entities (modules, classes,
         functions, methods).
 
+        ``docstring_coverage`` is the fraction of ``fn`` and ``method`` nodes
+        that carry a non-empty docstring (0.0–1.0).
+
+        ``snapshot_count`` is the number of entries in the snapshot manifest
+        adjacent to the database file (``<db_dir>/snapshots/manifest.json``);
+        returns 0 when no manifest exists.
+
         :return: dict with ``total_nodes``, ``meaningful_nodes``,
-                 ``total_edges``, ``node_counts``, ``edge_counts``.
+                 ``total_edges``, ``node_counts``, ``edge_counts``,
+                 ``module_count``, ``class_count``, ``function_count``,
+                 ``method_count``, ``docstring_coverage``, ``snapshot_count``.
         """
         node_rows = self.con.execute("SELECT kind, COUNT(*) FROM nodes GROUP BY kind").fetchall()
         edge_rows = self.con.execute("SELECT rel, COUNT(*) FROM edges GROUP BY rel").fetchall()
         total_nodes = self.con.execute("SELECT COUNT(*) FROM nodes").fetchone()[0]
         total_edges = self.con.execute("SELECT COUNT(*) FROM edges").fetchone()[0]
-        symbol_count = self.con.execute(
-            "SELECT COUNT(*) FROM nodes WHERE kind = 'symbol'"
+
+        node_counts: dict[str, int] = {r[0]: r[1] for r in node_rows}
+        symbol_count = node_counts.get("symbol", 0)
+
+        fn_count = node_counts.get("function", 0)
+        method_count = node_counts.get("method", 0)
+        fn_method_total = fn_count + method_count
+        with_doc = self.con.execute(
+            "SELECT COUNT(*) FROM nodes"
+            " WHERE kind IN ('function','method')"
+            " AND docstring IS NOT NULL AND docstring != ''"
         ).fetchone()[0]
+
+        snapshot_count = 0
+        manifest_path = self.db_path.parent / "snapshots" / "manifest.json"
+        if manifest_path.exists():
+            try:
+                manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+                snapshot_count = len(manifest.get("snapshots", []))
+            except (OSError, ValueError, KeyError):
+                pass
+
         return {
             "db_path": str(self.db_path),
             "total_nodes": total_nodes,
             "meaningful_nodes": total_nodes - symbol_count,
             "total_edges": total_edges,
-            "node_counts": {r[0]: r[1] for r in node_rows},
+            "node_counts": node_counts,
             "edge_counts": {r[0]: r[1] for r in edge_rows},
+            "module_count": node_counts.get("module", 0),
+            "class_count": node_counts.get("class", 0),
+            "function_count": fn_count,
+            "method_count": method_count,
+            "docstring_coverage": round(with_doc / fn_method_total, 3) if fn_method_total else 0.0,
+            "snapshot_count": snapshot_count,
         }
 
     def __repr__(self) -> str:

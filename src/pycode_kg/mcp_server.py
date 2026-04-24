@@ -38,8 +38,9 @@ get_node(node_id, include_edges)
 
 graph_stats()
     Return node and edge counts by kind/relation as a Markdown summary
-    with tables.  Call this first to understand graph scale before
-    issuing query_codebase() or pack_snippets().
+    with tables, plus docstring_coverage and snapshot_count.  Call this
+    first to understand graph scale before issuing query_codebase() or
+    pack_snippets().
 
 callers(node_id, rel)
     Find all callers of a node, resolving through ``sym:`` import stubs
@@ -768,8 +769,11 @@ def graph_stats() -> str:
     infrastructure stubs so the count reflects real code entities (modules,
     classes, functions, methods).
 
-    :return: Markdown-formatted summary with total counts, a nodes-by-kind
-             table, and an edges-by-relation table.
+    Also reports ``docstring_coverage`` (fraction of functions/methods with
+    docstrings) and ``snapshot_count`` (number of saved temporal snapshots).
+
+    :return: Markdown-formatted summary with total counts, domain metrics,
+             a nodes-by-kind table, and an edges-by-relation table.
     """
     stats = _get_kg().stats()
     out: list[str] = ["## PyCodeKG Graph Statistics\n"]
@@ -779,6 +783,12 @@ def graph_stats() -> str:
         f"- **Meaningful nodes:** {stats.get('meaningful_nodes', 0):,} *(excludes sym: stubs)*"
     )
     out.append(f"- **Total edges:** {stats.get('total_edges', 0):,}")
+    cov = stats.get("docstring_coverage")
+    if cov is not None:
+        out.append(f"- **Docstring coverage:** {cov:.1%} *(functions + methods)*")
+    snap = stats.get("snapshot_count")
+    if snap is not None:
+        out.append(f"- **Snapshots:** {snap:,}")
     out.append("")
 
     node_counts: dict = stats.get("node_counts", {})

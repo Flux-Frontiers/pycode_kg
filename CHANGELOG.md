@@ -11,6 +11,15 @@ Note: older entries preserve the API names used at that release (for example com
 
 ### Added
 
+- **Domain metrics in `GraphStore.stats()`** (`src/pycode_kg/store.py`) — `stats()` now returns `module_count`, `class_count`, `function_count`, `method_count`, `docstring_coverage` (fraction of functions/methods with non-empty docstrings), and `snapshot_count` (entries in the adjacent snapshot manifest). Avoids a redundant SQL round-trip by reusing the already-fetched `node_counts` dict.
+- **`graph_stats` MCP tool enriched with domain metrics** (`src/pycode_kg/mcp_server.py`) — Output now includes `Docstring coverage` and `Snapshots` lines when present, giving agents a quick health signal without a separate `analyze` call. Tool description and `FastMCP` instructions block updated to match.
+- **Architecture description document** (`assets/architecture_description.md`) — Canonical source-of-truth document describing every layer, component, data flow, and output surface; used to regenerate the architecture diagram without reading source files.
+- **`stats()` test suite** (`tests/test_store.py`) — Seven new parametric tests covering kind counts, full/partial/zero docstring coverage, missing manifest, valid manifest, and corrupt manifest; guard against division-by-zero and silent JSON-parse failures.
+
+### Changed
+
+- **Version bumped to 0.15.0** (`pyproject.toml`, `src/pycode_kg/__init__.py`).
+
 - **`find_node(name, kind)` MCP tool** (`src/pycode_kg/mcp_server.py`) — New tool that resolves a function or class name to its stable node ID via case-insensitive SQL search against `name` and `qualname` columns. Sym: stubs excluded. Accepts optional `kind` filter (`function`, `class`, `method`, `module`). Eliminates the need to know a node's full stable ID before calling `explain()` or `callers()`. MCP instructions and recommended workflows updated accordingly.
 - **`format` parameter for `query_codebase`** (`src/pycode_kg/mcp_server.py`) — Pass `format='markdown'` to receive a compact ranked Markdown table instead of raw JSON. Default `'json'` unchanged.
 - **Task-prompt auto-detection in `SentenceTransformerEmbedder`** (`src/pycode_kg/index.py`) — On load, inspects `model.prompts` dict and stores `_query_prompt` / `_doc_prompt`. When present, `embed_query()` passes `prompt_name='search_query'` and `embed_texts()` passes `prompt_name='search_document'`, enabling correct behaviour for models like `nomic-ai/nomic-embed-text-v1.5` that require task-instruction prefixes.
