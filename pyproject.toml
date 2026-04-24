@@ -1,138 +1,173 @@
-# PyCodeKG - Knowledge Graph Builder for Python Codebases
-#
-# PyCodeKG is a tool that builds searchable knowledge graphs from Python repositories.
-# It analyzes Python code to extract semantic relationships between modules, classes,
-# functions, and methods, creating a comprehensive graph representation that can be
-# queried using natural language.
-#
-# Key Features:
-# - AST-based code analysis with semantic understanding
-# - Support for multiple storage backends (SQLite, LanceDB)
-# - Natural language querying capabilities
-# - Code snippet extraction and visualization
-# - MCP (Model Context Protocol) server integration
-# - Streamlit-based web interface for exploration
-#
-# The tool is designed for developers who want to understand large codebases,
-# perform code analysis, or build AI-powered development tools.
+# pyproject.toml — PyCodeKG package configuration (PEP 621)
 #
 # Author: Eric G. Suchanek, PhD
-# Last Revision: 2026-04-07 09:19:08
+# Last Revision: 2026-04-24
 #
+# Build system : Poetry 2.x with PEP 621 [project] table
+#
+# Quick install (pip)
+# -------------------
+#   pip install -e ".[dev]"             core + dev tools (pytest, ruff, mypy, etc.)
+#   pip install -e ".[viz]"             core + Streamlit/Plotly/PyVis visualizer
+#   pip install -e ".[viz3d]"           core + PyVista 3D visualizer
+#   pip install -e ".[kgdeps]"          core + KG integrations (doc-kg, agent-kg)
+#   pip install -e ".[all]"             everything above
+#   pip install -e "."                  core runtime only
+#
+# Quick install (poetry)
+# ----------------------
+#   poetry install --all-extras         everything
+#   poetry install --extras "dev"       core + dev tools only
+#   poetry install --extras "viz"       core + Streamlit/Plotly visualizer only
+#   poetry install --extras "viz3d"     core + 3D visualizer only
+#   poetry install --extras "kgdeps"    core + KG integrations only
+#   poetry install                      core runtime only
+#
+# First-time setup
+# ----------------
+#   python -m venv .venv
+#   source .venv/bin/activate       # Windows: .venv\Scripts\activate
+#   pip install -e ".[dev]"
+#
+# Run tests
+# ---------
+#   pytest                          uses pytest.ini (testpaths = tests/)
+#   pytest -m "not slow"            skip slow tests
+#   pytest --cov=pycode_kg          with coverage
+#
+# Build KG indices (after code changes)
+# --------------------------------------
+#   pycodekg build --repo .
 
-
+[build-system]
+requires = ["poetry-core>=2.0.0"]
+build-backend = "poetry.core.masonry.api"
 
 [[tool.poetry.source]]
 name = "testpypi"
 url = "https://test.pypi.org/simple/"
 priority = "supplemental"
 
-[build-system]
-requires = ["poetry-core>=2.0.0"]
-build-backend = "poetry.core.masonry.api"
-
 [tool.poetry]
+packages = [{ include = "pycode_kg", from = "src" }]
+
+# ---------------------------------------------------------------------------
+# PEP 621 project metadata
+# ---------------------------------------------------------------------------
+[project]
 name = "pycode-kg"
-version = "0.15.2"
+version = "0.16.0"
 description = "A tool to build a searchable knowledge graph from Python repositories"
-authors = ["Eric G. Suchanek, PhD <suchanek@mac.com>"]
-license = "Elastic-2.0"
 readme = "README.md"
-homepage = "https://github.com/Flux-Frontiers/pycode_kg"
-repository = "https://github.com/Flux-Frontiers/pycode_kg"
+license = "Elastic-2.0"
+authors = [
+    { name = "Eric G. Suchanek, PhD", email = "suchanek@mac.com" }
+]
 keywords = ["knowledge-graph", "code-analysis", "ast", "lancedb", "sqlite", "semantic-search"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
 ]
-packages = [{ include = "pycode_kg", from = "src" }]
+requires-python = ">=3.12,<3.14"
+dependencies = [
+    "click>=8.1.0,<9",
+    "lancedb>=0.29.0",
+    "mcp>=1.0.0",
+    "numpy>=1.24.0",
+    "pandas>=2.0.0",
+    "rich>=14.3.3,<15",
+    "safetensors>=0.5.0",
+    "sentence-transformers>=5.4.1",
+    "torch>=2.5.1",
+    "transformers>=4.57.6",
+    "kg-snapshot>=0.3.0",
+]
 
-[tool.poetry.dependencies]
-python = ">=3.12,<3.14"
-lancedb = ">=0.29.0"
-numpy = ">=1.24.0"
+[project.optional-dependencies]
+dev = [
+    "detect-secrets>=1.5.0",
+    "mypy>=1.10.0",
+    "pdoc>=14.0.0",
+    "pre-commit>=4.5.1",
+    "pylint>=4.0.5",
+    "pytest>=8.0.0",
+    "pytest-cov>=5.0.0",
+    "ruff>=0.4.0",
+    "agent-kg @ git+https://github.com/Flux-Frontiers/agent_kg.git",
+    "doc-kg>=0.11.0",
+]
+viz = [
+    "plotly>=5.14.0",
+    "pyvis>=0.3.2",
+    "streamlit>=1.35.0",
+]
+viz3d = [
+    "markdown>=3.6",
+    "param>=2.0.0",
+    "PyQt5>=5.15.0",
+    "pyvista[jupyter]>=0.44.0",
+    "pyvistaqt>=0.11.0",
+    "trame-vtk>=2.0.0",
+]
 
-# from personal_agent
-transformers = "^4.57.6"
-sentence-transformers = "^5.4.1"
-safetensors = "^0.5.0"
+# note that dockg is on pypi 
+kgdeps = [
+    "agent-kg @ git+https://github.com/Flux-Frontiers/agent_kg.git",
+    "doc-kg>=0.11.0",
+]
+all = [
+    "detect-secrets>=1.5.0",
+    "markdown>=3.6",
+    "mypy>=1.10.0",
+    "param>=2.0.0",
+    "pdoc>=14.0.0",
+    "plotly>=5.14.0",
+    "pre-commit>=4.5.1",
+    "pylint>=4.0.5",
+    "PyQt5>=5.15.0",
+    "pytest>=8.0.0",
+    "pytest-cov>=5.0.0",
+    "pyvista[jupyter]>=0.44.0",
+    "pyvistaqt>=0.11.0",
+    "pyvis>=0.3.2",
+    "ruff>=0.4.0",
+    "streamlit>=1.35.0",
+    "trame-vtk>=2.0.0",
+]
 
-# sentence-transformers = "==4.1.0"
-# transformers = "<5.0.0"
-torch = ">=2.5.1"
-streamlit = { version = ">=1.35.0", optional = true }
-pyvis = { version = ">=0.3.2", optional = true }
-pandas = ">=2.0.0"
-rich = "^14.3.3"
-click = ">=8.1.0"
-mcp = ">=1.0.0"
-plotly = { version = ">=5.14.0", optional = true }
-pyvista = { version = ">=0.44.0", extras = ["jupyter"], optional = true }
-pyvistaqt = { version = ">=0.11.0", optional = true }
-PyQt5 = { version = ">=5.15.0", optional = true }
-param = { version = ">=2.0.0", optional = true }
-markdown = { version = ">=3.6", optional = true }
-trame-vtk = { version = ">=2.0.0", optional = true }
+[project.urls]
+Homepage = "https://github.com/Flux-Frontiers/pycode_kg"
+Repository = "https://github.com/Flux-Frontiers/pycode_kg"
 
-kg-snapshot = { git = "https://github.com/Flux-Frontiers/kg_snapshot.git" }
+[project.scripts]
+pycodekg                = "pycode_kg.cli.main:cli"
+pycodekg-analyze        = "pycode_kg.cli.cmd_analyze:analyze"
+pycodekg-architecture   = "pycode_kg.cli.cmd_architecture:architecture"
+pycodekg-build          = "pycode_kg.cli.cmd_build_full:build"
+pycodekg-build-lancedb  = "pycode_kg.cli.cmd_build:build_lancedb"
+pycodekg-build-sqlite   = "pycode_kg.cli.cmd_build:build_sqlite"
+pycodekg-centrality     = "pycode_kg.cli.cmd_centrality:cmd_centrality"
+pycodekg-download-model = "pycode_kg.cli.cmd_model:download_model"
+pycodekg-init           = "pycode_kg.cli.cmd_init:init"
+pycodekg-install-hooks  = "pycode_kg.cli.cmd_hooks:install_hooks"
+pycodekg-mcp            = "pycode_kg.mcp_server:main"
+pycodekg-pack           = "pycode_kg.cli.cmd_query:pack"
+pycodekg-query          = "pycode_kg.cli.cmd_query:query"
+pycodekg-update         = "pycode_kg.cli.cmd_build_full:update"
+pycodekg-viz            = "pycode_kg.cli.cmd_viz:viz"
+pycodekg-viz-timeline   = "pycode_kg.cli.cmd_viz:viz_timeline"
+pycodekg-viz3d          = "pycode_kg.cli.cmd_viz:viz3d"
 
-[tool.poetry.extras]
-viz = ["streamlit", "pyvis", "plotly"]
-viz3d = ["pyvista", "pyvistaqt", "PyQt5", "param", "markdown", "trame-vtk"]
-
-[tool.poetry.group.viz3d]
-optional = true
-
-[tool.poetry.group.viz3d.dependencies]
-pyvista = { version = ">=0.44.0", extras = ["jupyter"] }
-pyvistaqt = ">=0.11.0"
-PyQt5 = ">=5.15.0"
-param = ">=2.0.0"
-markdown = ">=3.6"
-trame-vtk = ">=2.0.0"
-
-[tool.poetry.group.kgdeps]
-optional = true
-
-[tool.poetry.group.kgdeps.dependencies]
-doc-kg = { git = "https://github.com/Flux-Frontiers/doc_kg.git" }
-agent-kg = { git = "https://github.com/Flux-Frontiers/agent_kg.git" }
-
-[tool.poetry.group.dev.dependencies]
-pytest = ">=8.0.0"
-pytest-cov = ">=5.0.0"
-ruff = ">=0.4.0"
-mypy = ">=1.10.0"
-pre-commit = "^4.5.1"
-detect-secrets = "^1.5.0"
-pylint = "^4.0.5"
-pdoc = ">=14.0.0"
-
-
-
-[tool.poetry.scripts]
-pycodekg              = "pycode_kg.cli.main:cli"
-pycodekg-mcp          = "pycode_kg.mcp_server:main"
-pycodekg-build-sqlite = "pycode_kg.cli.cmd_build:build_sqlite"
-pycodekg-build-lancedb = "pycode_kg.cli.cmd_build:build_lancedb"
-pycodekg-build        = "pycode_kg.cli.cmd_build_full:build"
-pycodekg-update       = "pycode_kg.cli.cmd_build_full:update"
-pycodekg-query        = "pycode_kg.cli.cmd_query:query"
-pycodekg-pack         = "pycode_kg.cli.cmd_query:pack"
-pycodekg-viz              = "pycode_kg.cli.cmd_viz:viz"
-pycodekg-viz3d            = "pycode_kg.cli.cmd_viz:viz3d"
-pycodekg-viz-timeline     = "pycode_kg.cli.cmd_viz:viz_timeline"
-pycodekg-analyze          = "pycode_kg.cli.cmd_analyze:analyze"
-pycodekg-architecture     = "pycode_kg.cli.cmd_architecture:architecture"
-pycodekg-download-model   = "pycode_kg.cli.cmd_model:download_model"
-pycodekg-init             = "pycode_kg.cli.cmd_init:init"
-pycodekg-install-hooks    = "pycode_kg.cli.cmd_hooks:install_hooks"
-pycodekg-centrality       = "pycode_kg.cli.cmd_centrality:cmd_centrality"
-
+# ---------------------------------------------------------------------------
+# Tool configuration
+# ---------------------------------------------------------------------------
 [tool.ruff]
-line-length = 100
+line-length    = 100
 target-version = "py312"
 
 [tool.ruff.lint]
@@ -140,24 +175,24 @@ select = ["E", "F", "W", "I", "UP"]
 ignore = ["E501"]
 
 [tool.mypy]
-python_version = "3.13"
-strict = false
+python_version        = "3.12"
+strict                = false
 ignore_missing_imports = true
-mypy_path = "src"
+mypy_path             = "src"
 explicit_package_bases = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-v --tb=short"
+addopts   = "-v --tb=short"
 
 [tool.pylint.messages_control]
 disable = ["all"]
 enable = [
-    "cyclic-import",           # R0401
-    "broad-exception-caught",  # W0718
-    "cell-var-from-loop",      # W0640
-    "undefined-variable",      # E0602
-    "import-outside-toplevel", # C0415
+    "broad-exception-caught",   # W0718
+    "cell-var-from-loop",       # W0640
+    "cyclic-import",            # R0401
+    "import-outside-toplevel",  # C0415
+    "undefined-variable",       # E0602
 ]
 
 [tool.pylint.imports]
@@ -165,29 +200,31 @@ enable = [
 # import inside PyCodeKG.analyze().  Pylint's static analysis can't see that.
 ignored-modules = ["pycode_kg.pycodekg_thorough_analysis"]
 
+# ---------------------------------------------------------------------------
+# PyCodeKG / DocKG index configuration
+# ---------------------------------------------------------------------------
 [tool.pycodekg]
-# Directories to include in the knowledge graph build and analysis.
-# When unset, all directories are indexed.
 include = ["src"]
-# Directories to exclude at every depth during the file walk.
-# Combined with the built-in SKIP_DIRS (.git, .venv, __pycache__, etc.).
-# exclude = ["tests", "benchmarks"]
 
 [tool.dockg]
-# Exclude directories from the knowledge graph by default.
-exclude = [".dockg", ".pycodekg", "src", ".git", ".venv", "venv", "__pycache__",
-".mypy_cache", ".pytest_cache", "bundles", "dist"]
+exclude = [
+    ".dockg", ".pycodekg", ".git", ".mypy_cache", ".pytest_cache", ".venv",
+    "__pycache__", "bundles", "dist", "src", "venv",
+]
 
+# ---------------------------------------------------------------------------
+# Poe tasks
+# ---------------------------------------------------------------------------
 [tool.poe.tasks.docs]
-help = "Generate project documentation and user guide PDFs"
+help     = "Generate project documentation and user guide PDFs"
 sequence = [
-  { shell = "cd src && pdoc --o ../docs --logo ./logo.png pycode_kg" },
+    { shell = "cd src && pdoc --o ../docs --logo ./logo.png pycode_kg" },
 ]
 
 [tool.poe.tasks.wiki]
 help = "Generate and publish GitHub wiki from docs/"
-cmd = "python scripts/generate_wiki.py"
+cmd  = "python scripts/generate_wiki.py"
 
 [tool.poe.tasks.wiki-preview]
 help = "Preview wiki generation without publishing"
-cmd = "python scripts/generate_wiki.py --dry-run"
+cmd  = "python scripts/generate_wiki.py --dry-run"
