@@ -11,6 +11,18 @@ Note: older entries preserve the API names used at that release (for example com
 
 ### Added
 
+### Changed
+
+### Removed
+
+### Fixed
+
+## [0.15.0] - 2026-04-24
+
+### Added
+
+- **`CITATION.cff` added** (`CITATION.cff`) — Zenodo/software citation metadata for the project; enables "Cite this repository" on GitHub and automatic Zenodo archival on tagged releases.
+
 - **Domain metrics in `GraphStore.stats()`** (`src/pycode_kg/store.py`) — `stats()` now returns `module_count`, `class_count`, `function_count`, `method_count`, `docstring_coverage` (fraction of functions/methods with non-empty docstrings), and `snapshot_count` (entries in the adjacent snapshot manifest). Avoids a redundant SQL round-trip by reusing the already-fetched `node_counts` dict.
 - **`graph_stats` MCP tool enriched with domain metrics** (`src/pycode_kg/mcp_server.py`) — Output now includes `Docstring coverage` and `Snapshots` lines when present, giving agents a quick health signal without a separate `analyze` call. Tool description and `FastMCP` instructions block updated to match.
 - **Architecture description document** (`assets/architecture_description.md`) — Canonical source-of-truth document describing every layer, component, data flow, and output surface; used to regenerate the architecture diagram without reading source files.

@@ -1,0 +1,28 @@
+cff-version: "1.2.0"
+message: "If you use this software, please cite it using the metadata below."
+type: software
+title: "PyCodeKG: Semantic Knowledge Graph for Python Codebases"
+abstract: >
+  PyCodeKG builds a hybrid semantic + structural knowledge graph from Python
+  repositories. It indexes every module, class, function, and method as a node,
+  with typed edges (CALLS, IMPORTS, CONTAINS, INHERITS) connecting them, enabling
+  natural-language querying, call-chain analysis, architectural introspection,
+  and MCP-based AI integration.
+authors:
+  - family-names: Suchanek
+    given-names: "Eric G."
+    name-suffix: PhD
+    email: suchanek@flux-frontiers.com
+    affiliation: "Flux-Frontiers"
+version: "0.15.0"
+license: "Elastic-2.0"
+repository-code: "https://github.com/Flux-Frontiers/pycode_kg"
+url: "https://github.com/Flux-Frontiers/pycode_kg"
+keywords:
+  - knowledge-graph
+  - code-analysis
+  - python
+  - ast
+  - semantic-search
+  - lancedb
+  - mcp
