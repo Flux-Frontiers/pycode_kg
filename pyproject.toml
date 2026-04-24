@@ -33,7 +33,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "pycode-kg"
-version = "0.15.1"
+version = "0.15.2"
 description = "A tool to build a searchable knowledge graph from Python repositories"
 authors = ["Eric G. Suchanek, PhD <suchanek@mac.com>"]
 license = "Elastic-2.0"

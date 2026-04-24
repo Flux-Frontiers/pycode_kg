@@ -1,11 +1,10 @@
-# Release Notes — v0.15.1
+# Release Notes — v0.15.2
 
 > Released: 2026-04-24
 
-### Added
+### Fixed
 
-- **`CITATION.cff` enriched with ORCID and release date** — Added `orcid: "https://orcid.org/0009-0009-0891-1507"` and `date-released: "2026-04-24"` to satisfy Zenodo archival requirements and enable DOI minting on tagged releases.
-- **`## Citation` section in `README.md`** — Added APA and BibTeX citation blocks, Zenodo DOI badge, and link to `CITATION.cff` so users and downstream projects can cite PyCodeKG correctly.
+- **`CITATION.cff` Zenodo compatibility** — Replaced `license: "Elastic-2.0"` with `license-url:` (Zenodo's license allowlist does not include `Elastic-2.0`); removed `name-suffix: PhD` which some CFF validators reject; moved PhD credential into `given-names`.
 
 ---
 
