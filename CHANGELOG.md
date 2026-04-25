@@ -11,16 +11,25 @@ Note: older entries preserve the API names used at that release (for example com
 
 ### Added
 
+### Changed
+
+### Removed
+
+### Fixed
+
+## [0.16.1] - 2026-04-25
+
+### Added
+
 - **`workflow_dispatch` trigger in CI** — GitHub Actions workflow can now be triggered manually from the Actions UI.
+- **Integration test suite** (`tests/test_integration.py`) — 14 end-to-end tests covering `SentenceTransformerEmbedder`, `SemanticIndex`, and `PyCodeKG` with the real embedding model. Tests are marked `@pytest.mark.integration` and `@pytest.mark.slow`; excluded from CI via `pytest -m "not integration"`.
+- **`slow` and `integration` pytest markers** registered in `[tool.pytest.ini_options]` to prevent unknown-mark warnings.
 
 ### Changed
 
 - **Pre-commit hook reordered and enhanced** — Ruff now runs before detect-secrets and local hooks; ruff hooks gain `exclude: '^\.claude/'`, `pass_filenames: false`, and `always_run: true` for consistent behaviour. Pylint moved from the upstream PyCQA repo hook to a local `poetry run pylint src/` hook. `poetry-check` hook removed.
 - **`cmd_init.py` imports moved to module level** — Lazy function-level imports of `_run_pipeline`, `_PRE_COMMIT_HOOK`, `PyCodeKG`, `PyCodeKGAnalyzer`, `SnapshotManager`, `GraphStore`, and `importlib.metadata` promoted to top-level to resolve pylint `C0415` warnings.
-
-### Removed
-
-### Fixed
+- **CI test step excludes integration tests** — `poetry run pytest` now runs as `poetry run pytest -m "not integration"` to avoid pulling the embedding model in GitHub Actions.
 
 ## [0.16.0] - 2026-04-24
 
