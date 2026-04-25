@@ -11,7 +11,12 @@ Note: older entries preserve the API names used at that release (for example com
 
 ### Added
 
+- **`workflow_dispatch` trigger in CI** — GitHub Actions workflow can now be triggered manually from the Actions UI.
+
 ### Changed
+
+- **Pre-commit hook reordered and enhanced** — Ruff now runs before detect-secrets and local hooks; ruff hooks gain `exclude: '^\.claude/'`, `pass_filenames: false`, and `always_run: true` for consistent behaviour. Pylint moved from the upstream PyCQA repo hook to a local `poetry run pylint src/` hook. `poetry-check` hook removed.
+- **`cmd_init.py` imports moved to module level** — Lazy function-level imports of `_run_pipeline`, `_PRE_COMMIT_HOOK`, `PyCodeKG`, `PyCodeKGAnalyzer`, `SnapshotManager`, `GraphStore`, and `importlib.metadata` promoted to top-level to resolve pylint `C0415` warnings.
 
 ### Removed
 

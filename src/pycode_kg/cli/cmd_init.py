@@ -10,6 +10,7 @@ CLI command for initializing PyCodeKG in a repository:
 
 from __future__ import annotations
 
+import importlib.metadata
 import stat
 import subprocess
 import time
@@ -18,6 +19,8 @@ from pathlib import Path
 
 import click
 
+from pycode_kg.cli.cmd_build_full import _run_pipeline
+from pycode_kg.cli.cmd_hooks import _PRE_COMMIT_HOOK
 from pycode_kg.cli.main import cli
 from pycode_kg.cli.options import (
     exclude_option,
@@ -26,6 +29,10 @@ from pycode_kg.cli.options import (
     repo_option,
 )
 from pycode_kg.index import _local_model_path
+from pycode_kg.kg import PyCodeKG
+from pycode_kg.pycodekg_thorough_analysis import PyCodeKGAnalyzer
+from pycode_kg.snapshots import SnapshotManager
+from pycode_kg.store import GraphStore
 
 
 def _has_pycodekg_config(repo_root: Path) -> bool:
@@ -109,13 +116,6 @@ def init(
 
         pycodekg init --repo .
     """
-    from pycode_kg.cli.cmd_build_full import (
-        _run_pipeline,  # noqa: PLC0415  # pylint: disable=import-outside-toplevel
-    )
-    from pycode_kg.cli.cmd_hooks import (
-        _PRE_COMMIT_HOOK,  # noqa: PLC0415  # pylint: disable=import-outside-toplevel
-    )
-
     repo_root = Path(repo).resolve()
     t_total = time.monotonic()
 
@@ -229,21 +229,6 @@ def init(
             branch = "unknown"
 
         try:
-            import importlib.metadata  # noqa: PLC0415  # pylint: disable=import-outside-toplevel
-
-            from pycode_kg.kg import (
-                PyCodeKG,  # noqa: PLC0415  # pylint: disable=import-outside-toplevel
-            )
-            from pycode_kg.pycodekg_thorough_analysis import (
-                PyCodeKGAnalyzer,  # noqa: PLC0415  # pylint: disable=import-outside-toplevel
-            )
-            from pycode_kg.snapshots import (
-                SnapshotManager,  # noqa: PLC0415  # pylint: disable=import-outside-toplevel
-            )
-            from pycode_kg.store import (
-                GraphStore,  # noqa: PLC0415  # pylint: disable=import-outside-toplevel
-            )
-
             db_path = repo_root / ".pycodekg" / "graph.sqlite"
             snapshots_path = repo_root / ".pycodekg" / "snapshots"
             lancedb_dir = repo_root / ".pycodekg" / "lancedb"
