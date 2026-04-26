@@ -7,6 +7,7 @@ and the private utility functions in index.py.
 
 from __future__ import annotations
 
+import os
 import textwrap
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -21,6 +22,7 @@ from pycode_kg.index import (
     _build_index_text,
     _escape,
     _extract_distance,
+    _local_model_path,
 )
 
 # ---------------------------------------------------------------------------
@@ -129,6 +131,300 @@ def test_ste_repr(mock_sentence_transformers):
     r = repr(emb)
     assert "SentenceTransformerEmbedder" in r
     assert "my-model" in r
+
+
+# ---------------------------------------------------------------------------
+# _local_model_path — cache resolution
+# ---------------------------------------------------------------------------
+
+
+def test_local_model_path_uses_kgrag_model_dir_when_set(tmp_path, monkeypatch):
+    monkeypatch.setenv("KGRAG_MODEL_DIR", str(tmp_path))
+    result = _local_model_path("BAAI/bge-small-en-v1.5")
+    assert result == tmp_path / "BAAI" / "bge-small-en-v1.5"
+
+
+def test_local_model_path_fallback_under_pycodekg_models(tmp_path, monkeypatch):
+    monkeypatch.delenv("KGRAG_MODEL_DIR", raising=False)
+    monkeypatch.chdir(tmp_path)
+    result = _local_model_path("BAAI/bge-small-en-v1.5")
+    assert result == tmp_path / ".pycodekg" / "models" / "BAAI--bge-small-en-v1.5"
+
+
+def test_local_model_path_known_alias_resolved(tmp_path, monkeypatch):
+    monkeypatch.setenv("KGRAG_MODEL_DIR", str(tmp_path))
+    result = _local_model_path("bge-small")
+    assert "bge-small-en-v1.5" in str(result)
+
+
+def test_local_model_path_kgrag_model_dir_overrides_fallback(tmp_path, monkeypatch):
+    override = tmp_path / "override"
+    monkeypatch.setenv("KGRAG_MODEL_DIR", str(override))
+    result = _local_model_path("BAAI/bge-small-en-v1.5")
+    assert str(result).startswith(str(override))
+
+
+# ---------------------------------------------------------------------------
+# SentenceTransformerEmbedder — loading path selection (mocked)
+# ---------------------------------------------------------------------------
+
+
+def _make_ste_mocks():
+    """Return (mock_st_module, mock_model, mock_tf, mock_tf_logging)."""
+    mock_model = MagicMock()
+    mock_model.get_embedding_dimension.return_value = 384
+    mock_model.prompts = {}
+    mock_st = MagicMock()
+    mock_st.SentenceTransformer.return_value = mock_model
+    mock_tf_logging = MagicMock()
+    mock_tf = MagicMock()
+    mock_tf.logging = mock_tf_logging
+    return mock_st, mock_model, mock_tf, mock_tf_logging
+
+
+def test_ste_loads_from_local_cache_when_exists(tmp_path, monkeypatch):
+    """When local_path.exists(), SentenceTransformer is called with str(local_path)."""
+    mock_st, _, mock_tf, _ = _make_ste_mocks()
+    fake_local = tmp_path / "model"
+    fake_local.mkdir()
+
+    with (
+        patch("pycode_kg.index._local_model_path", return_value=fake_local),
+        patch.dict(
+            "sys.modules",
+            {
+                "sentence_transformers": mock_st,
+                "transformers": mock_tf,
+                "transformers.logging": mock_tf.logging,
+            },
+        ),
+    ):
+        from pycode_kg.index import SentenceTransformerEmbedder  # noqa: PLC0415
+
+        SentenceTransformerEmbedder("any-model")
+
+    mock_st.SentenceTransformer.assert_called_once_with(str(fake_local), trust_remote_code=True)
+
+
+def test_ste_uses_local_files_only_when_no_local_cache(tmp_path, monkeypatch):
+    """When local_path doesn't exist, tries local_files_only=True first."""
+    mock_st, _, mock_tf, _ = _make_ste_mocks()
+    fake_local = tmp_path / "nonexistent"
+
+    with (
+        patch("pycode_kg.index._local_model_path", return_value=fake_local),
+        patch.dict(
+            "sys.modules",
+            {
+                "sentence_transformers": mock_st,
+                "transformers": mock_tf,
+                "transformers.logging": mock_tf.logging,
+            },
+        ),
+    ):
+        from pycode_kg.index import SentenceTransformerEmbedder  # noqa: PLC0415
+
+        SentenceTransformerEmbedder("my-model")
+
+    mock_st.SentenceTransformer.assert_called_once_with(
+        "my-model", local_files_only=True, trust_remote_code=True
+    )
+
+
+def test_ste_downloads_when_hf_cache_misses(tmp_path):
+    """OSError from local_files_only=True triggers a full download call."""
+    mock_st, mock_model, mock_tf, _ = _make_ste_mocks()
+    fake_local = tmp_path / "nonexistent"
+    mock_st.SentenceTransformer.side_effect = [OSError("no cache"), mock_model]
+
+    with (
+        patch("pycode_kg.index._local_model_path", return_value=fake_local),
+        patch.dict(
+            "sys.modules",
+            {
+                "sentence_transformers": mock_st,
+                "transformers": mock_tf,
+                "transformers.logging": mock_tf.logging,
+            },
+        ),
+    ):
+        from pycode_kg.index import SentenceTransformerEmbedder  # noqa: PLC0415
+
+        SentenceTransformerEmbedder("my-model")
+
+    assert mock_st.SentenceTransformer.call_count == 2
+    _, second_call_kwargs = mock_st.SentenceTransformer.call_args
+    assert "local_files_only" not in second_call_kwargs
+
+
+# ---------------------------------------------------------------------------
+# SentenceTransformerEmbedder — TQDM_DISABLE and progress bar suppression
+# ---------------------------------------------------------------------------
+
+
+def test_ste_tqdm_disable_set_during_loading(tmp_path):
+    """TQDM_DISABLE=1 must be active when SentenceTransformer() is called."""
+    mock_st, mock_model, mock_tf, _ = _make_ste_mocks()
+    fake_local = tmp_path / "nonexistent"
+    observed = {}
+
+    def capture_env(*args, **kwargs):
+        observed["TQDM_DISABLE"] = os.environ.get("TQDM_DISABLE")
+        return mock_model
+
+    mock_st.SentenceTransformer.side_effect = capture_env
+
+    with (
+        patch("pycode_kg.index._local_model_path", return_value=fake_local),
+        patch.dict(
+            "sys.modules",
+            {
+                "sentence_transformers": mock_st,
+                "transformers": mock_tf,
+                "transformers.logging": mock_tf.logging,
+            },
+        ),
+        patch.dict("os.environ", {}, clear=False),
+    ):
+        import os as _os  # noqa: PLC0415
+
+        _os.environ.pop("TQDM_DISABLE", None)
+        from pycode_kg.index import SentenceTransformerEmbedder  # noqa: PLC0415
+
+        SentenceTransformerEmbedder("my-model")
+
+    assert observed["TQDM_DISABLE"] == "1"
+
+
+def test_ste_tqdm_disable_restored_after_loading(tmp_path):
+    """TQDM_DISABLE must be restored to its original value after loading."""
+    import os as _os  # noqa: PLC0415
+
+    mock_st, _, mock_tf, _ = _make_ste_mocks()
+    fake_local = tmp_path / "nonexistent"
+
+    original = _os.environ.get("TQDM_DISABLE")
+
+    with (
+        patch("pycode_kg.index._local_model_path", return_value=fake_local),
+        patch.dict(
+            "sys.modules",
+            {
+                "sentence_transformers": mock_st,
+                "transformers": mock_tf,
+                "transformers.logging": mock_tf.logging,
+            },
+        ),
+    ):
+        from pycode_kg.index import SentenceTransformerEmbedder  # noqa: PLC0415
+
+        SentenceTransformerEmbedder("my-model")
+
+    assert _os.environ.get("TQDM_DISABLE") == original
+
+
+def test_ste_tqdm_disable_restored_on_load_failure(tmp_path):
+    """TQDM_DISABLE is restored even if all SentenceTransformer() calls raise."""
+    import os as _os  # noqa: PLC0415
+
+    mock_st, _, mock_tf, _ = _make_ste_mocks()
+    fake_local = tmp_path / "nonexistent"
+    mock_st.SentenceTransformer.side_effect = OSError("always fails")
+    _os.environ.pop("TQDM_DISABLE", None)
+
+    with (
+        patch("pycode_kg.index._local_model_path", return_value=fake_local),
+        patch.dict(
+            "sys.modules",
+            {
+                "sentence_transformers": mock_st,
+                "transformers": mock_tf,
+                "transformers.logging": mock_tf.logging,
+            },
+        ),
+        pytest.raises(OSError),
+    ):
+        from pycode_kg.index import SentenceTransformerEmbedder  # noqa: PLC0415
+
+        SentenceTransformerEmbedder("my-model")
+
+    assert "TQDM_DISABLE" not in _os.environ
+
+
+def test_ste_calls_disable_progress_bar(tmp_path):
+    """disable_progress_bar() must be called to silence weight-loading bars."""
+    mock_st, _, mock_tf, mock_tf_logging = _make_ste_mocks()
+    fake_local = tmp_path / "nonexistent"
+
+    with (
+        patch("pycode_kg.index._local_model_path", return_value=fake_local),
+        patch.dict(
+            "sys.modules",
+            {
+                "sentence_transformers": mock_st,
+                "transformers": mock_tf,
+                "transformers.logging": mock_tf_logging,
+            },
+        ),
+    ):
+        from pycode_kg.index import SentenceTransformerEmbedder  # noqa: PLC0415
+
+        SentenceTransformerEmbedder("my-model")
+
+    mock_tf_logging.disable_progress_bar.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# SentenceTransformerEmbedder — task prompt detection
+# ---------------------------------------------------------------------------
+
+
+def test_ste_task_prompts_detected_when_present(tmp_path):
+    mock_st, mock_model, mock_tf, _ = _make_ste_mocks()
+    mock_model.prompts = {"search_query": "query: ", "search_document": "passage: "}
+    fake_local = tmp_path / "nonexistent"
+
+    with (
+        patch("pycode_kg.index._local_model_path", return_value=fake_local),
+        patch.dict(
+            "sys.modules",
+            {
+                "sentence_transformers": mock_st,
+                "transformers": mock_tf,
+                "transformers.logging": mock_tf.logging,
+            },
+        ),
+    ):
+        from pycode_kg.index import SentenceTransformerEmbedder  # noqa: PLC0415
+
+        emb = SentenceTransformerEmbedder("nomic")
+
+    assert emb._query_prompt == "search_query"
+    assert emb._doc_prompt == "search_document"
+
+
+def test_ste_task_prompts_none_when_absent(tmp_path):
+    mock_st, mock_model, mock_tf, _ = _make_ste_mocks()
+    mock_model.prompts = {}
+    fake_local = tmp_path / "nonexistent"
+
+    with (
+        patch("pycode_kg.index._local_model_path", return_value=fake_local),
+        patch.dict(
+            "sys.modules",
+            {
+                "sentence_transformers": mock_st,
+                "transformers": mock_tf,
+                "transformers.logging": mock_tf.logging,
+            },
+        ),
+    ):
+        from pycode_kg.index import SentenceTransformerEmbedder  # noqa: PLC0415
+
+        emb = SentenceTransformerEmbedder("bge-small")
+
+    assert emb._query_prompt is None
+    assert emb._doc_prompt is None
 
 
 # ---------------------------------------------------------------------------

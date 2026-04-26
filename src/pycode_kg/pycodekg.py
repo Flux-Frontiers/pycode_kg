@@ -34,16 +34,13 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
-from pycode_kg.utils import node_id, rel_module_path
-from pycode_kg.visitor import PyCodeKGVisitor
-
 # ============================================================================
 # Configuration
 # ============================================================================
+from kg_utils.embed import DEFAULT_MODEL as DEFAULT_MODEL  # noqa: F401 — re-exported
 
-#: Default sentence-transformer model.  Override via the ``PYCODEKG_MODEL``
-#: environment variable, e.g. ``export PYCODEKG_MODEL=BAAI/bge-small-en-v1.5``.
-DEFAULT_MODEL: str = os.environ.get("PYCODEKG_MODEL", "BAAI/bge-small-en-v1.5")
+from pycode_kg.utils import node_id, rel_module_path
+from pycode_kg.visitor import PyCodeKGVisitor
 
 # ============================================================================
 # Graph primitives (LOCKED v0 CONTRACT)

@@ -22,8 +22,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import numpy as np
-
-from pycode_kg.pycodekg import DEFAULT_MODEL
+from kg_utils.embed import DEFAULT_MODEL, resolve_model_path
 
 # ---------------------------------------------------------------------------
 # Local model cache
@@ -33,22 +32,13 @@ from pycode_kg.pycodekg import DEFAULT_MODEL
 def _local_model_path(model_name: str) -> Path:
     """Return the local cache path for *model_name*.
 
-    Defaults to ``.pycodekg/models/<model>`` under the current working directory
-    so the cache lives alongside the rest of the PyCodeKG artefacts.
-    Override via the ``PYCODEKG_MODEL_DIR`` environment variable.
+    Checks ``KGRAG_MODEL_DIR`` first (system-wide override), then falls back
+    to ``.pycodekg/models/`` under the current working directory.
 
-    Slashes in the model name (e.g. ``org/model``) are replaced with ``--``
-    so the path is always a single directory level under the cache root.
-
-    :param model_name: HuggingFace model identifier or short name.
+    :param model_name: HuggingFace model identifier or short alias.
     :return: Absolute :class:`~pathlib.Path` to the cached model directory.
     """
-    import os  # pylint: disable=import-outside-toplevel
-
-    default = str(Path.cwd() / ".pycodekg" / "models")
-    cache_root = Path(os.environ.get("PYCODEKG_MODEL_DIR", default))
-    safe_name = model_name.replace("/", "--")
-    return cache_root / safe_name
+    return resolve_model_path(model_name, local_fallback=Path.cwd() / ".pycodekg" / "models")
 
 
 if TYPE_CHECKING:
@@ -79,6 +69,7 @@ def suppress_ingestion_logging() -> None:
         import transformers  # pylint: disable=import-outside-toplevel
 
         transformers.logging.set_verbosity_error()
+        transformers.logging.disable_progress_bar()
     except (ImportError, AttributeError):
         pass
 
@@ -145,6 +136,7 @@ class SentenceTransformerEmbedder(Embedder):
         from transformers import logging as hf_logging  # pylint: disable=import-outside-toplevel
 
         hf_logging.set_verbosity_error()
+        hf_logging.disable_progress_bar()
 
         local_path = _local_model_path(model_name)
         _prev_tqdm = os.environ.get("TQDM_DISABLE")

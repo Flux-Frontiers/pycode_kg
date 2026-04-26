@@ -17,6 +17,20 @@ Note: older entries preserve the API names used at that release (for example com
 
 ### Fixed
 
+## [0.17.0] - 2026-04-25
+
+### Added
+
+- **`kg-utils` dependency** — `kg_utils.embed.resolve_model_path` and `DEFAULT_MODEL` are now sourced from the shared `kg-utils` library (git source: `Flux-Frontiers/KG_utils`), unifying model-path resolution logic across all KG projects.
+- **`tests/conftest.py`** — `pytest_configure` hook sets `TQDM_DISABLE=1` before any tqdm instance is created, silencing all progress bars across the entire test session.
+- **13 new unit tests in `tests/test_index.py`** — Cover all three `SentenceTransformerEmbedder` loading paths (local cache hit, HF `local_files_only`, download fallback), `KGRAG_MODEL_DIR` override, `cwd` fallback, model alias resolution, `TQDM_DISABLE` set/restore behavior (including failure path), `disable_progress_bar()` call verification, and task-prompt detection.
+
+### Changed
+
+- **`_local_model_path` migrated to `kg_utils.embed.resolve_model_path`** — Removed duplicated path-resolution logic in `index.py`; now delegates to the shared utility which handles `KGRAG_MODEL_DIR`, alias expansion (`bge-small` → `BAAI/bge-small-en-v1.5`), and local fallback.
+- **`DEFAULT_MODEL` re-exported from `kg_utils.embed`** — `pycodekg.py` re-exports the canonical default model name from `kg_utils` to maintain the public API contract.
+- **`disable_progress_bar()` added to `suppress_ingestion_logging()` and `SentenceTransformerEmbedder.__init__`** — Suppresses the "loading weights" tqdm bar emitted by `transformers` during model loading, in addition to the existing verbosity-error log suppression.
+
 ## [0.16.1] - 2026-04-25
 
 ### Added
