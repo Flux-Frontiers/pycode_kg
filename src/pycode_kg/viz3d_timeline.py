@@ -49,12 +49,12 @@ def load_snapshots_timeline(snapshots_dir: Path) -> dict[str, Any]:
     }
 
     for snap in snapshots:
-        timeline["commits"].append(snap["commit"][:7])  # Short hash
+        timeline["commits"].append(snap["key"][:7])  # Short hash
         timeline["versions"].append(snap["version"])
         timeline["timestamps"].append(snap["timestamp"])
-        timeline["nodes"].append(snap["metrics"]["nodes"])
-        timeline["edges"].append(snap["metrics"]["edges"])
-        timeline["coverage"].append(snap["metrics"]["coverage"] * 100)  # Percentage
+        timeline["nodes"].append(snap["metrics"]["total_nodes"])
+        timeline["edges"].append(snap["metrics"]["total_edges"])
+        timeline["coverage"].append(snap["metrics"]["docstring_coverage"] * 100)  # Percentage
         timeline["critical_issues"].append(snap["metrics"]["critical_issues"])
         timeline["complexity_median"].append(snap.get("metrics", {}).get("complexity_median", 0))
 
