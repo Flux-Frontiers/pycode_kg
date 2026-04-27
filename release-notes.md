@@ -1,18 +1,10 @@
-# Release Notes — v0.16.0
+# Release Notes — v0.17.2
 
-> Released: 2026-04-24
+> Released: 2026-04-27
 
-### Changed
+### Fixed
 
-- **`pyproject.toml` migrated to PEP 621 `[project]` table format** — Replaced `[tool.poetry.dependencies]` with the standard `[project]` metadata block; dependency specs, extras, and classifiers restructured for full PEP 621 compliance and compatibility with modern build tooling.
-- **`kg-snapshot` dependency switched from git source to PyPI** — Was `{ git = "https://github.com/Flux-Frontiers/kg_snapshot.git" }`; now `kg-snapshot>=0.3.0`. Required for publishing to PyPI (git-source deps are rejected by the PyPI index).
-- **`poetry.lock` regenerated** — Fresh resolution after pyproject.toml restructure and git-dep removal.
-
-### Removed
-
-- **`SNAPSHOT_PRUNE_SUMMARY.md`** — Stale one-off summary file; no longer relevant.
-- **`architecture.md`** — Replaced by `assets/architecture_description.md` introduced in v0.15.0.
-- **`scripts/rebuild-pycodekg.sh`** — Superseded by `pycodekg build` CLI command.
+- **`viz-timeline` snapshot field names** — `viz3d_timeline.py` was reading stale `kg_snapshot`-era manifest keys (`snap["commit"]`, `metrics["nodes"]`, `metrics["edges"]`, `metrics["coverage"]`). Updated to the `kg_utils` field names (`snap["key"]`, `metrics["total_nodes"]`, `metrics["total_edges"]`, `metrics["docstring_coverage"]`). The `viz-timeline` command now loads all snapshots correctly.
 
 ---
 
