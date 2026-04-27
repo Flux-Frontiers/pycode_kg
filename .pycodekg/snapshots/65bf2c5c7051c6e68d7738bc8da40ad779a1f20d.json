@@ -1,0 +1,167 @@
+{
+  "key": "65bf2c5c7051c6e68d7738bc8da40ad779a1f20d",
+  "branch": "main",
+  "timestamp": "2026-04-27T14:15:11.427148+00:00",
+  "version": "0.16.1",
+  "metrics": {
+    "db_path": ".pycodekg/graph.sqlite",
+    "total_nodes": 7240,
+    "meaningful_nodes": 479,
+    "total_edges": 7196,
+    "node_counts": {
+      "class": 46,
+      "function": 163,
+      "method": 214,
+      "module": 56,
+      "symbol": 6761
+    },
+    "edge_counts": {
+      "ATTR_ACCESS": 2332,
+      "CALLS": 2550,
+      "CONTAINS": 423,
+      "IMPORTS": 430,
+      "INHERITS": 14,
+      "RESOLVES_TO": 1447
+    },
+    "module_count": 56,
+    "class_count": 46,
+    "function_count": 163,
+    "method_count": 214,
+    "docstring_coverage": 0.9209999999999999,
+    "snapshot_count": 53,
+    "critical_issues": 3,
+    "complexity_median": 6,
+    "module_node_counts": {
+      "src/pycode_kg/__init__.py": 4,
+      "src/pycode_kg/__main__.py": 1,
+      "src/pycode_kg/analysis/__init__.py": 2,
+      "src/pycode_kg/analysis/bridge.py": 36,
+      "src/pycode_kg/analysis/centrality.py": 171,
+      "src/pycode_kg/analysis/framework_detector.py": 38,
+      "src/pycode_kg/analysis/hybrid_rank.py": 40,
+      "src/pycode_kg/app.py": 372,
+      "src/pycode_kg/architecture.py": 202,
+      "src/pycode_kg/build_pycodekg_lancedb.py": 2,
+      "src/pycode_kg/build_pycodekg_sqlite.py": 2,
+      "src/pycode_kg/cli/__init__.py": 2,
+      "src/pycode_kg/cli/cmd_analyze.py": 18,
+      "src/pycode_kg/cli/cmd_architecture.py": 42,
+      "src/pycode_kg/cli/cmd_bridges.py": 16,
+      "src/pycode_kg/cli/cmd_build.py": 55,
+      "src/pycode_kg/cli/cmd_build_full.py": 103,
+      "src/pycode_kg/cli/cmd_centrality.py": 72,
+      "src/pycode_kg/cli/cmd_explain.py": 47,
+      "src/pycode_kg/cli/cmd_framework_nodes.py": 16,
+      "src/pycode_kg/cli/cmd_hooks.py": 22,
+      "src/pycode_kg/cli/cmd_init.py": 101,
+      "src/pycode_kg/cli/cmd_mcp.py": 10,
+      "src/pycode_kg/cli/cmd_model.py": 13,
+      "src/pycode_kg/cli/cmd_query.py": 54,
+      "src/pycode_kg/cli/cmd_snapshot.py": 162,
+      "src/pycode_kg/cli/cmd_viz.py": 51,
+      "src/pycode_kg/cli/main.py": 2,
+      "src/pycode_kg/cli/options.py": 11,
+      "src/pycode_kg/config.py": 21,
+      "src/pycode_kg/graph.py": 45,
+      "src/pycode_kg/index.py": 208,
+      "src/pycode_kg/kg.py": 43,
+      "src/pycode_kg/layout3d.py": 183,
+      "src/pycode_kg/mcp/bridge_tools.py": 7,
+      "src/pycode_kg/mcp/framework_tools.py": 4,
+      "src/pycode_kg/mcp_server.py": 549,
+      "src/pycode_kg/module/__init__.py": 2,
+      "src/pycode_kg/module/base.py": 264,
+      "src/pycode_kg/module/extractor.py": 58,
+      "src/pycode_kg/module/types.py": 215,
+      "src/pycode_kg/pycodekg.py": 139,
+      "src/pycode_kg/pycodekg_query.py": 1,
+      "src/pycode_kg/pycodekg_snippet_packer.py": 1,
+      "src/pycode_kg/pycodekg_thorough_analysis.py": 963,
+      "src/pycode_kg/pycodekg_viz.py": 1,
+      "src/pycode_kg/pycodekg_viz3d.py": 1,
+      "src/pycode_kg/ranking/__init__.py": 1,
+      "src/pycode_kg/ranking/cli_rank.py": 46,
+      "src/pycode_kg/ranking/coderank.py": 255,
+      "src/pycode_kg/snapshots.py": 163,
+      "src/pycode_kg/store.py": 241,
+      "src/pycode_kg/utils.py": 8,
+      "src/pycode_kg/visitor.py": 263,
+      "src/pycode_kg/viz3d.py": 677,
+      "src/pycode_kg/viz3d_timeline.py": 70
+    }
+  },
+  "hotspots": [
+    {
+      "name": "fn:src/pycode_kg/mcp_server.py:_get_kg",
+      "callers": 17,
+      "callees": 1,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/pycode_kg/module/base.py:KGModule.close",
+      "callers": 16,
+      "callees": 1,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/pycode_kg/store.py:GraphStore.close",
+      "callers": 16,
+      "callees": 1,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/pycode_kg/store.py:GraphStore.node",
+      "callers": 14,
+      "callees": 4,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/pycode_kg/store.py:GraphStore.con",
+      "callers": 12,
+      "callees": 4,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/pycode_kg/module/base.py:KGModule.store",
+      "callers": 8,
+      "callees": 1,
+      "risk_level": "low"
+    },
+    {
+      "name": "fn:src/pycode_kg/ranking/coderank.py:compute_coderank",
+      "callers": 7,
+      "callees": 2,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/pycode_kg/module/types.py:SnippetPack.to_json",
+      "callers": 6,
+      "callees": 2,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/pycode_kg/module/types.py:SnippetPack.to_markdown",
+      "callers": 6,
+      "callees": 6,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/pycode_kg/graph.py:CodeGraph.extract",
+      "callers": 5,
+      "callees": 1,
+      "risk_level": "low"
+    }
+  ],
+  "issues": [
+    "[WARN] 1 functions with high fan-out -- potential orchestrators or god objects",
+    "[WARN] `viz3d.py` has 47 functions/methods/classes -- consider splitting into focused submodules",
+    "[WARN] `pycodekg_thorough_analysis.py` has 36 functions/methods/classes -- consider splitting into focused submodules"
+  ],
+  "vs_previous": null,
+  "vs_baseline": {
+    "nodes": 2259,
+    "edges": 2265,
+    "coverage_delta": -0.04500000000000004,
+    "critical_issues_delta": 2
+  }
+}

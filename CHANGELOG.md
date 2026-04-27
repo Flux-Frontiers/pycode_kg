@@ -17,6 +17,15 @@ Note: older entries preserve the API names used at that release (for example com
 
 ### Fixed
 
+## [0.17.1] - 2026-04-27
+
+### Changed
+
+- **`snapshots.py` migrated to `kg_utils.snapshots`** — Imports now come from `kgmodule-utils` (`kg_utils.snapshots`) instead of the old `kg_snapshot` package. The `Snapshot` subclass was simplified to use `__dict__`-based property accessors (matching the `doc_kg` pattern) rather than private `_metrics_raw` backing fields. `SnapshotManager._wrap_snapshot` replaced by a module-level `_rewrap` helper; `save_snapshot` now normalises typed properties to raw dicts before delegating to the base class.
+- **`resolve_model_path` and `DEFAULT_MODEL` vendored into `index.py`** — No longer imported from `kg_utils.embed`; the logic is now inlined directly in `index.py` to remove the runtime dependency on the `kg_utils.embed` module. `pycodekg.py` updated to re-export `DEFAULT_MODEL` from `pycode_kg.index`.
+- **`kgmodule-utils>=0.2.1` replaces `kg-snapshot>=0.3.0`** — `pyproject.toml` dependency updated to `kgmodule-utils>=0.2.1` (PyPI), which bundles the shared snapshot infrastructure previously split across `kg-snapshot` and the git-sourced `kg-utils`. `0.2.1` includes the `get_baseline` / `get_previous` `KeyError: 'key'` fix for legacy manifest entries.
+- **KG snapshots updated** — `.pycodekg/snapshots/` and `.dockg/snapshots/` refreshed to capture metrics at this release.
+
 ## [0.17.0] - 2026-04-25
 
 ### Added

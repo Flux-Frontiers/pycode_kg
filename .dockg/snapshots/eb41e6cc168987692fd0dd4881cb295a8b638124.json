@@ -1,0 +1,125 @@
+{
+  "key": "eb41e6cc168987692fd0dd4881cb295a8b638124",
+  "branch": "main",
+  "timestamp": "2026-04-27T15:26:42.271845+00:00",
+  "version": "test",
+  "metrics": {
+    "db_path": "/Users/egs/repos/pycode_kg/.dockg/graph.sqlite",
+    "total_nodes": 6240,
+    "total_edges": 74454,
+    "node_counts": {
+      "chunk": 1690,
+      "document": 48,
+      "entity": 1417,
+      "keyword": 1241,
+      "section": 928,
+      "topic": 916
+    },
+    "edge_counts": {
+      "CONTAINS": 2618,
+      "CO_OCCURS_WITH": 34096,
+      "HAS_KEYWORD": 6527,
+      "HAS_TOPIC": 1724,
+      "MENTIONS_ENTITY": 7444,
+      "NEXT": 556,
+      "REFERENCES": 16,
+      "SIMILAR_TO": 21473
+    },
+    "meaningful_nodes": 6192,
+    "coverage_score": 0.9597633136094674,
+    "issues_count": 1,
+    "complexity_median": 130.0
+  },
+  "hotspots": [
+    {
+      "id": "chunk:analysis/embedder_benchmark_20260311_000046.md:0000",
+      "file_path": "analysis/embedder_benchmark_20260311_000046.md",
+      "label": "Embedder Benchmark Report",
+      "references": 0,
+      "semantic_links": 138,
+      "total_links": 138
+    },
+    {
+      "id": "chunk:analysis/embedder_benchmark_20260311_000046.md:0008",
+      "file_path": "analysis/embedder_benchmark_20260311_000046.md",
+      "label": "Top nodes (semantic)",
+      "references": 0,
+      "semantic_links": 135,
+      "total_links": 135
+    },
+    {
+      "id": "chunk:analysis/embedder_benchmark_20260311_000046.md:0007",
+      "file_path": "analysis/embedder_benchmark_20260311_000046.md",
+      "label": "Top nodes (hybrid)",
+      "references": 0,
+      "semantic_links": 134,
+      "total_links": 134
+    },
+    {
+      "id": "chunk:analysis/embedder_benchmark_20260311_000046.md:0030",
+      "file_path": "analysis/embedder_benchmark_20260311_000046.md",
+      "label": "Top nodes (semantic)",
+      "references": 0,
+      "semantic_links": 131,
+      "total_links": 131
+    },
+    {
+      "id": "chunk:analysis/embedder_benchmark_20260311_000046.md:0009",
+      "file_path": "analysis/embedder_benchmark_20260311_000046.md",
+      "label": "Top nodes (legacy)",
+      "references": 0,
+      "semantic_links": 130,
+      "total_links": 130
+    },
+    {
+      "id": "chunk:analysis/embedder_benchmark_20260311_000046.md:0004",
+      "file_path": "analysis/embedder_benchmark_20260311_000046.md",
+      "label": "Top nodes (semantic)",
+      "references": 0,
+      "semantic_links": 128,
+      "total_links": 128
+    },
+    {
+      "id": "chunk:analysis/embedder_benchmark_20260311_000046.md:0021",
+      "file_path": "analysis/embedder_benchmark_20260311_000046.md",
+      "label": "Top nodes (semantic)",
+      "references": 0,
+      "semantic_links": 128,
+      "total_links": 128
+    },
+    {
+      "id": "chunk:analysis/embedder_benchmark_20260311_000046.md:0012",
+      "file_path": "analysis/embedder_benchmark_20260311_000046.md",
+      "label": "Top nodes (semantic)",
+      "references": 0,
+      "semantic_links": 126,
+      "total_links": 126
+    },
+    {
+      "id": "chunk:analysis/embedder_benchmark_20260311_000046.md:0026",
+      "file_path": "analysis/embedder_benchmark_20260311_000046.md",
+      "label": "Top nodes (legacy)",
+      "references": 0,
+      "semantic_links": 126,
+      "total_links": 126
+    },
+    {
+      "id": "chunk:analysis/embedder_benchmark_20260311_000046.md:0013",
+      "file_path": "analysis/embedder_benchmark_20260311_000046.md",
+      "label": "Top nodes (legacy)",
+      "references": 0,
+      "semantic_links": 125,
+      "total_links": 125
+    }
+  ],
+  "issues": [
+    "Chunk density appears low; consider reducing --chunk-size or reviewing corpus content."
+  ],
+  "vs_previous": null,
+  "vs_baseline": {
+    "nodes": 260,
+    "edges": 24601,
+    "coverage_delta": 0.008801571905810657,
+    "issues_delta": 1
+  }
+}

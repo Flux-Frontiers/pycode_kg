@@ -37,8 +37,7 @@ from pathlib import Path
 # ============================================================================
 # Configuration
 # ============================================================================
-from kg_utils.embed import DEFAULT_MODEL as DEFAULT_MODEL  # noqa: F401 — re-exported
-
+from pycode_kg.index import DEFAULT_MODEL as DEFAULT_MODEL  # noqa: F401 — re-exported
 from pycode_kg.utils import node_id, rel_module_path
 from pycode_kg.visitor import PyCodeKGVisitor
 

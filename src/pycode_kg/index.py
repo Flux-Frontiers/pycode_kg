@@ -22,7 +22,48 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import numpy as np
-from kg_utils.embed import DEFAULT_MODEL, resolve_model_path
+
+# ---------------------------------------------------------------------------
+# Vendored from kg_utils.embed (pure stdlib — no PyPI package available yet)
+# ---------------------------------------------------------------------------
+
+DEFAULT_MODEL: str = "BAAI/bge-small-en-v1.5"
+
+_KNOWN_MODELS: dict[str, str] = {
+    "default": "BAAI/bge-small-en-v1.5",
+    "bge-small": "BAAI/bge-small-en-v1.5",
+    "bge-small-en-v1.5": "BAAI/bge-small-en-v1.5",
+    "bge-large": "BAAI/bge-large-en-v1.5",
+    "bge-large-en-v1.5": "BAAI/bge-large-en-v1.5",
+    "all-MiniLM-L6-v2": "sentence-transformers/all-MiniLM-L6-v2",
+    "all-mpnet-base-v2": "sentence-transformers/all-mpnet-base-v2",
+    "nomic": "nomic-ai/nomic-embed-text-v1.5",
+    "nomic-v1.5": "nomic-ai/nomic-embed-text-v1.5",
+}
+
+
+def _kg_model_cache_dir() -> Path:
+    env = os.environ.get("KGRAG_MODEL_DIR")
+    if env:
+        return Path(env).resolve()
+    return Path.home() / ".kgrag" / "models"
+
+
+def resolve_model_path(model_name: str, local_fallback: Path | None = None) -> Path:
+    """Return the local cache path for *model_name*.
+
+    Checks ``KGRAG_MODEL_DIR`` first (system-wide override), then
+    *local_fallback* if provided, otherwise ``~/.kgrag/models/``.
+
+    :param model_name: HuggingFace model identifier or short alias.
+    :param local_fallback: Per-module fallback when no env var is set.
+    :return: Absolute :class:`~pathlib.Path` to the model directory.
+    """
+    resolved = _KNOWN_MODELS.get(model_name, model_name)
+    if os.environ.get("KGRAG_MODEL_DIR") or local_fallback is None:
+        return _kg_model_cache_dir() / resolved.replace("/", os.sep)
+    return local_fallback / resolved.replace("/", "--")
+
 
 # ---------------------------------------------------------------------------
 # Local model cache
