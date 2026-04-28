@@ -18,6 +18,8 @@ from unittest.mock import patch
 
 import pytest
 
+pytest.importorskip("plotly")
+
 from pycode_kg.viz3d_timeline import (
     create_timeline_figure,
     display_timeline_summary,
