@@ -4,6 +4,34 @@ Full installation options, manual MCP setup, and CLI reference for PyCodeKG.
 
 ---
 
+## One-Line Installer (recommended for new repos)
+
+Run from within the repo you want to index:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Flux-Frontiers/pycode_kg/main/scripts/install-skill.sh | bash
+```
+
+This sets up everything end-to-end:
+
+1. Installs SKILL.md reference files for Claude Code, Kilo Code, and other agents
+2. Installs Claude Code slash commands (`/pycodekg`, `/setup-mcp`)
+3. Installs the `pycode-kg` package if not already present
+4. Builds the SQLite knowledge graph and LanceDB semantic index
+5. Writes MCP configuration for Claude Code, Kilo Code, GitHub Copilot, and Cline
+
+```bash
+# Preview without making changes
+curl -fsSL https://raw.githubusercontent.com/Flux-Frontiers/pycode_kg/main/scripts/install-skill.sh | bash -s -- --dry-run
+
+# Claude Code and GitHub Copilot only
+curl -fsSL https://raw.githubusercontent.com/Flux-Frontiers/pycode_kg/main/scripts/install-skill.sh | bash -s -- --providers claude,copilot
+```
+
+After the script completes, restart your AI agent to activate the MCP server.
+
+---
+
 ## Requirements
 
 Python ≥ 3.12, < 3.14
@@ -14,16 +42,16 @@ Python ≥ 3.12, < 3.14
 
 ```bash
 # Core install (SQLite + LanceDB + MCP server)
-pip install 'pycode-kg @ git+https://github.com/Flux-Frontiers/pycode_kg.git'
+pip install pycode-kg
 
 # With Streamlit web visualizer
-pip install 'pycode-kg[viz] @ git+https://github.com/Flux-Frontiers/pycode_kg.git'
+pip install 'pycode-kg[viz]'
 
 # With 3D visualizer extras (PyVista, PyQt5 — heavy dependencies)
-pip install 'pycode-kg[viz3d] @ git+https://github.com/Flux-Frontiers/pycode_kg.git'
+pip install 'pycode-kg[viz3d]'
 
 # Both visualizers
-pip install 'pycode-kg[viz,viz3d] @ git+https://github.com/Flux-Frontiers/pycode_kg.git'
+pip install 'pycode-kg[viz,viz3d]'
 ```
 
 ---
@@ -32,13 +60,13 @@ pip install 'pycode-kg[viz,viz3d] @ git+https://github.com/Flux-Frontiers/pycode
 
 ```bash
 # Core
-poetry add 'pycode-kg @ git+https://github.com/Flux-Frontiers/pycode_kg.git'
+poetry add pycode-kg
 
 # With Streamlit visualizer
-poetry add 'pycode-kg[viz] @ git+https://github.com/Flux-Frontiers/pycode_kg.git'
+poetry add 'pycode-kg[viz]'
 
 # With 3D visualizer
-poetry add 'pycode-kg[viz3d] @ git+https://github.com/Flux-Frontiers/pycode_kg.git'
+poetry add 'pycode-kg[viz3d]'
 ```
 
 Or in `pyproject.toml`:
@@ -46,13 +74,13 @@ Or in `pyproject.toml`:
 ```toml
 [tool.poetry.dependencies]
 # Core
-pycode-kg = {git = "https://github.com/Flux-Frontiers/pycode_kg.git"}
+pycode-kg = ">=0.18.0"
 
 # With Streamlit visualizer
-pycode-kg = {git = "https://github.com/Flux-Frontiers/pycode_kg.git", extras = ["viz"]}
+pycode-kg = {version = ">=0.18.0", extras = ["viz"]}
 
 # With 3D visualizer
-pycode-kg = {git = "https://github.com/Flux-Frontiers/pycode_kg.git", extras = ["viz3d"]}
+pycode-kg = {version = ">=0.18.0", extras = ["viz3d"]}
 ```
 
 > **PyCodeKG developers:** Use `poetry install --with dev` for the full dev environment. Add `-E viz` or `-E viz3d` for visualizer extras. The `extras` mechanism above is for *consumers* of the package.

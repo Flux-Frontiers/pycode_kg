@@ -6,15 +6,10 @@
 [![Poetry](https://img.shields.io/endpoint?url=https://python-poetry.org/badge/v0.json)](https://python-poetry.org/)
 [![DOI](https://zenodo.org/badge/1202379010.svg)](https://zenodo.org/badge/latestdoi/1202379010)
 
-<p align="center">
-  <img src="assets/logo-md-256x256.png" alt="PyCodeKG logo" width="256"/>
-</p>
-
 **PyCodeKG** — A Deterministic Knowledge Graph for Python Codebases
 with Semantic Indexing and Source-Grounded Snippet Packing
 
 *Author: Eric G. Suchanek, PhD*
-
 *Flux-Frontiers, Liberty TWP, OH*
 
 [Technical Paper (PDF)](article/pycode_kg.pdf)
@@ -25,84 +20,35 @@ with Semantic Indexing and Source-Grounded Snippet Packing
 
 PyCodeKG constructs a **deterministic, explainable knowledge graph** from a Python codebase using static analysis. The graph captures structural relationships — definitions, calls, imports, and inheritance — directly from the Python AST, stores them in SQLite, and augments retrieval with vector embeddings via LanceDB.
 
+**No inference required.** The CLI is fully useful as a standalone analysis tool — every result is derived from structure, not generated. When used with AI agents, PyCodeKG gives them structurally-grounded answers: precise callers, real call chains, exact line numbers. Hallucination-resistant by design.
+
 Structure is treated as **ground truth**; semantic search is strictly an acceleration layer. The result is a searchable, auditable representation of a codebase that supports precise navigation, contextual snippet extraction, and downstream reasoning without hallucination.
 
----
-
-## What Agents Say
-
-*From independent assessments run against PyCodeKG's own codebase. See [assessments/](assessments/) for the full reports.*
-
-> "The workflow compression is real and substantial. Rather than reading files sequentially or running grep searches in the dark, an agent equipped with PyCodeKG can orient itself in seconds."
-> — Claude Sonnet 4.6
-
-> "Replaces hours of manual exploration with a single call. The most valuable tool in the suite."
-> — Claude Opus 4, on `analyze_repo()`
-
-> "It let me move from broad orientation to intent-driven discovery and then to structural validation without dropping down into manual grep or repeated file reads."
-> — GPT-5 (via Cline)
-
-> "Traditional file reading and grep-based exploration are slow, linear, and context-poor. PyCodeKG's semantic search, graph navigation, and architectural analysis provide a quantum leap in speed and depth of understanding."
-> — GPT-4.1
-
-> "`pack_snippets()` provided source excerpts around each hit, making the code instantly readable. Context lines and relevance metadata obviated manual file open."
-> — Raptor Mini
-
-> "Dramatically more effective than traditional grep/file-reading workflows. Unique value proposition: hybrid search combining natural-language intent with precise structural relationships."
-> — Claude Haiku 4.5
-
----
-
-## Quick Start
-
-Run the one-line installer from within the repo you want to index:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/Flux-Frontiers/pycode_kg/main/scripts/install-skill.sh | bash
-```
-
-This sets up everything end-to-end:
-
-1. Installs SKILL.md reference files for Claude Code, Kilo Code, and other agents
-2. Installs Claude Code slash commands (`/pycodekg`, `/setup-mcp`)
-3. Installs the `pycode-kg` package if not already present
-4. Builds the SQLite knowledge graph and LanceDB semantic index
-5. Writes MCP configuration for Claude Code, Kilo Code, GitHub Copilot, and Cline
-
-After the script completes, restart your AI agent to activate the MCP server.
-
-```bash
-# Preview without making changes
-curl -fsSL .../install-skill.sh | bash -s -- --dry-run
-
-# Claude Code and GitHub Copilot only
-curl -fsSL .../install-skill.sh | bash -s -- --providers claude,copilot
-```
-
-→ **Full installation options, manual setup, and MCP config:** [docs/INSTALLATION.md](docs/INSTALLATION.md)
+PyCodeKG uses the same architecture as [DocKG](https://github.com/Flux-Frontiers/doc_kg) but targets Python source code rather than document corpora.
 
 ---
 
 ## Features
 
 - **Static analysis pipeline** — Three-pass AST extraction: structure, call graph, data-flow
-- **Deterministic knowledge graph** — SQLite-backed canonical store with provenance
+- **Deterministic knowledge graph** — SQLite-backed canonical store with provenance-tracked edges
 - **Symbol resolution** — `RESOLVES_TO` edges bridge cross-module call sites via import aliases
-- **Hybrid query model** — Semantic seeding (LanceDB) + structural expansion (graph traversal)
+- **Hybrid query model** — Semantic seeding (LanceDB embeddings) + structural expansion (graph traversal)
 - **Source-grounded snippet packing** — Definition and call-site snippets with line numbers
 - **Precise fan-in lookup** — Two-phase reverse traversal resolving cross-module caller chains
-- **MCP server** — Ten tools for AI agent integration
+- **Temporal snapshots** — Save and diff graph metrics across commits and versions
+- **MCP server** — Seventeen tools for AI agent integration
 - **Streamlit web app** — Interactive graph browser, hybrid query UI, snippet pack explorer
-- **3D visualizer** — PyVista/PyQt5 interactive graph explorer
+- **3-D visualizer** — PyVista/PyQt5 interactive graph explorer with FunnelLayout and timeline view
 - **Zero-config MCP setup** — Single-line installer configures Claude Code, Kilo Code, GitHub Copilot, and Cline
 
 ---
 
-## Usage
+## Quick Start
 
 ```bash
-# Build the knowledge graph
-pycodekg build --repo /path/to/your/repo
+# Index your repo (SQLite + LanceDB in one step)
+pycodekg build --repo /path/to/repo
 
 # Natural-language query
 pycodekg query "authentication flow"
@@ -111,31 +57,121 @@ pycodekg query "authentication flow"
 pycodekg pack "database connection setup" --format md --out context.md
 
 # Full architectural analysis
-pycodekg analyze /path/to/your/repo
-
-# Launch the interactive web app
-pycodekg viz
-
-# Start the MCP server
-pycodekg mcp --repo /path/to/your/repo
+pycodekg analyze /path/to/repo
 ```
 
-### MCP Tools (once the server is running)
+---
 
-```
-graph_stats()                         # node/edge counts by kind
-query_codebase("authentication flow") # hybrid semantic + structural search
-pack_snippets("database layer")        # source-grounded snippets as Markdown
-get_node("fn:store:GraphStore.write") # fetch a single node by ID
-callers("fn:store:GraphStore.write")  # precise fan-in lookup
-explain("fn:store:GraphStore.write")  # natural-language explanation
-analyze_repo()                        # full architectural analysis as Markdown
-snapshot_list()                       # list saved snapshots with deltas
-snapshot_show("latest")               # inspect the latest snapshot
-snapshot_diff("<key_a>", "<key_b>")   # compare two snapshots
+## Installation
+
+**Requirements:** Python ≥ 3.12, < 3.14
+
+```bash
+# pip
+pip install pycode-kg
+
+# With Streamlit web visualizer
+pip install 'pycode-kg[viz]'
+
+# With 3-D visualizer (PyVista/PyQt5)
+pip install 'pycode-kg[viz3d]'
+
+# Poetry
+poetry add pycode-kg
 ```
 
-### Python API
+> For the one-line skill installer (MCP config, Claude slash commands, git hooks) see [docs/INSTALLATION.md](docs/INSTALLATION.md).
+
+---
+
+## Usage
+
+### Build and query
+
+```bash
+pycodekg build --repo .                              # full build (SQLite + LanceDB)
+pycodekg build --repo . --include-dir src            # index a specific subtree
+pycodekg query "snapshot freshness comparison"       # hybrid semantic + structural search
+pycodekg pack "graph build pipeline" --format md     # snippet pack for LLM context
+```
+
+### Analyze codebase health
+
+```bash
+pycodekg analyze .                                   # full report + JSON snapshot
+```
+
+### Snapshots
+
+```bash
+pycodekg snapshot save 0.18.0                        # capture current metrics
+pycodekg snapshot list                               # list all snapshots
+pycodekg snapshot diff <key_a> <key_b>               # compare two versions
+```
+
+### Visualize
+
+```bash
+pycodekg viz                                         # Streamlit web app
+pycodekg viz3d --layout funnel                       # 3-D PyVista explorer
+pycodekg viz-timeline                                # metric history timeline
+```
+
+> Full flag reference: [docs/INSTALLATION.md](docs/INSTALLATION.md) · Query patterns: [docs/CHEATSHEET.md](docs/CHEATSHEET.md)
+
+---
+
+## MCP Integration
+
+Start the MCP server, then wire it into your AI agent:
+
+```bash
+pycodekg mcp --repo /path/to/repo
+```
+
+**Claude Code / Kilo Code** — add to `.mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "pycodekg": {
+      "command": "pycodekg",
+      "args": ["mcp", "--repo", "/absolute/path/to/repo"]
+    }
+  }
+}
+```
+
+**GitHub Copilot** — add to `.vscode/mcp.json`:
+
+```json
+{
+  "servers": {
+    "pycodekg": {
+      "type": "stdio",
+      "command": "/absolute/path/to/.venv/bin/pycodekg-mcp",
+      "args": ["--repo", "/absolute/path/to/repo"]
+    }
+  }
+}
+```
+
+| Tool | Description |
+|------|-------------|
+| `graph_stats()` | Node and edge counts by kind |
+| `query_codebase(q, k, hop)` | Hybrid semantic + structural search |
+| `pack_snippets(q, k, hop)` | Source-grounded snippets as Markdown |
+| `get_node(node_id)` | Fetch a single node by ID |
+| `callers(node_id)` | Precise fan-in lookup with import-alias resolution |
+| `explain(node_id)` | Natural-language role, callers, callees |
+| `analyze_repo()` | Full architectural analysis as Markdown |
+| `snapshot_list/show/diff()` | Temporal metric snapshots |
+
+> Full provider setup (Claude Desktop, Cline, SSE transport): [docs/MCP.md](docs/MCP.md)
+
+---
+
+## Python API
 
 ```python
 from pycode_kg import PyCodeKG
@@ -153,40 +189,58 @@ pack.save("context.md")
 
 ---
 
-## Architecture
+## Knowledge Graph Schema
 
-<p align="center">
-  <img src="assets/codeKG_arch_square-web.jpg" alt="PyCodeKG architecture workflow" width="600"/>
-</p>
+### Node kinds
+
+| Kind | Description |
+|------|-------------|
+| `module` | A Python source file |
+| `class` | A class definition |
+| `function` | A module-level function |
+| `method` | A method on a class |
+
+### Edge types
+
+| Type | Description |
+|------|-------------|
+| `CONTAINS` | Parent → child (module→class, class→method) |
+| `CALLS` | Direct function/method call |
+| `IMPORTS` | Module-level import |
+| `INHERITS` | Class inheritance |
+| `RESOLVES_TO` | Symbol stub → concrete definition (cross-module resolution) |
+| `SIMILAR_TO` | Semantic similarity between nodes (LanceDB-derived) |
+
+---
+
+## Storage Layout
 
 ```
-Repository
-  ↓
-AST parsing — Pass 1: structure, Pass 2: calls, Pass 3: data-flow
-  ↓
-SQLite graph — nodes + edges
-  ↓
-Symbol resolution — RESOLVES_TO edges (sym: stubs → fn:/cls: defs)
-  ↓
-Vector indexing — LanceDB
-  ↓
-Hybrid query — semantic + graph
-  ↓
-Ranking + deduplication
-  ↓
-  ├──▶  Streamlit web app
-  └──▶  MCP server tools
+.pycodekg/
+  graph.sqlite      # SQLite knowledge graph (nodes + edges)
+  lancedb/          # LanceDB vector index
+  snapshots/        # Temporal metric snapshots (JSON)
+    manifest.json
+    <tree-hash>.json
 ```
 
-The five design principles:
+---
 
-1. **Structure is authoritative** — The AST-derived graph is the source of truth.
-2. **Semantics accelerate, never decide** — Embeddings seed and rank retrieval but never invent structure.
-3. **Everything is traceable** — Nodes and edges map to concrete files and line numbers.
-4. **Determinism over heuristics** — Identical input yields identical output.
-5. **Composable artifacts** — SQLite for structure, LanceDB for vectors, Markdown/JSON for consumption.
+## What Agents Say
 
-→ **Full architecture documentation:** [docs/Architecture.md](docs/Architecture.md)
+*From independent assessments run against PyCodeKG's own codebase. See [assessments/](assessments/) for full reports.*
+
+> "PyCodeKG compresses a multi-step workflow — semantic search, graph expansion, caller tracing, snippet retrieval, and architectural summarization — into a small set of tools that are fast to invoke and easy to chain. In practice, it let me move from broad orientation to intent-driven discovery and then to structural validation without dropping down into manual grep or repeated file reads."
+> — GPT-5 (via Cline)
+
+> "What sets it apart from 'search the repo with embeddings' tools is the structural layer… Verdict: 4.5/5 — recommend without reservation for any non-trivial Python codebase."
+> — Claude Opus 4.7
+
+> "PyCodeKG is dramatically more effective than traditional grep/file-reading workflows. Unique value: hybrid search combining natural-language intent with precise structural relationships."
+> — Claude Haiku 4.5
+
+> "`pack_snippets()` provided source excerpts around each hit, making the code instantly readable. Context lines and relevance metadata obviated manual file open."
+> — Raptor Mini
 
 ---
 
@@ -194,8 +248,8 @@ The five design principles:
 
 When changing MCP tools in `src/pycode_kg/mcp_server.py` (signature, params, defaults, or behavior), update all three in the same commit:
 
-- Module docstring `Tools` list at the top of `src/pycode_kg/mcp_server.py`
-- `mcp = FastMCP(..., instructions=(...))` tool descriptions in `src/pycode_kg/mcp_server.py`
+- Module docstring `Tools` list at the top of `mcp_server.py`
+- `mcp = FastMCP(..., instructions=(...))` tool descriptions
 - The runtime tool implementation and `:param:` docstrings
 
 ---
@@ -208,7 +262,7 @@ If you use PyCodeKG in your research or project, please cite it:
 
 **APA**
 
-> Suchanek, E. G. (2026). *PyCodeKG: Semantic Knowledge Graph for Python Codebases* (Version 0.15.0) [Software]. Flux-Frontiers. https://doi.org/10.5281/zenodo.PLACEHOLDER
+> Suchanek, E. G. (2026). *PyCodeKG: Semantic Knowledge Graph for Python Codebases* (Version 0.18.0) [Software]. Flux-Frontiers. https://doi.org/10.5281/zenodo.PLACEHOLDER
 
 **BibTeX**
 
@@ -216,7 +270,7 @@ If you use PyCodeKG in your research or project, please cite it:
 @software{suchanek_pycode_kg,
   author    = {Suchanek, Eric G.},
   title     = {{PyCodeKG}: Semantic Knowledge Graph for Python Codebases},
-  version   = {0.15.0},
+  version   = {0.18.0},
   year      = {2026},
   publisher = {Flux-Frontiers},
   url       = {https://github.com/Flux-Frontiers/pycode_kg},
@@ -228,4 +282,4 @@ If you use PyCodeKG in your research or project, please cite it:
 
 ## License
 
-[Elastic License 2.0](https://www.elastic.co/licensing/elastic-license) — see [LICENSE](LICENSE).
+[Elastic License 2.0](https://www.elastic.co/licensing/elastic-license) — free for non-commercial and internal use; commercial redistribution requires a license from Flux-Frontiers.
