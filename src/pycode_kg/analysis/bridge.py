@@ -5,6 +5,7 @@ For well-modularized codebases, identifies orchestrator and hub modules.
 
 Author: Eric G. Suchanek, PhD
 Last Revision: 2026-03-12 17:30:35
+License: Elastic 2.0
 """
 
 import sqlite3
@@ -14,8 +15,11 @@ from pycode_kg.analysis.centrality import CentralityRecord, StructuralImportance
 
 
 def compute_bridge_centrality(
-    kind="module", include_imports=True, top=25, db_path="pycodekg.sqlite"
-):
+    kind: str = "module",
+    include_imports: bool = True,
+    top: int = 25,
+    db_path: str = "pycodekg.sqlite",
+) -> list[tuple[str, float]]:
     """
     Compute module connectivity: unique module interactions per module.
 

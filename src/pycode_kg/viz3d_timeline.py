@@ -76,7 +76,7 @@ def create_timeline_figure(snapshots_dir: Path) -> go.Figure:
     """
     timeline = load_snapshots_timeline(snapshots_dir)
 
-    if not timeline["commits"]:
+    if not timeline or not timeline["commits"]:
         return go.Figure().add_annotation(text="No snapshots found")
 
     # Create subplot figure with 2x2 layout
@@ -211,7 +211,7 @@ def create_3d_timeline_figure(snapshots_dir: Path) -> go.Figure:
     """
     timeline = load_snapshots_timeline(snapshots_dir)
 
-    if not timeline["commits"]:
+    if not timeline or not timeline["commits"]:
         return go.Figure().add_annotation(text="No snapshots found")
 
     # Normalize metrics to 0-100 scale for comparison
@@ -322,7 +322,7 @@ def display_timeline_summary(snapshots_dir: Path) -> str:
     """
     timeline = load_snapshots_timeline(snapshots_dir)
 
-    if not timeline["commits"]:
+    if not timeline or not timeline["commits"]:
         return "No snapshots found"
 
     # Calculate deltas
@@ -342,22 +342,22 @@ def display_timeline_summary(snapshots_dir: Path) -> str:
 | NODES:                                                         |
 |   First:   {timeline["nodes"][0]:<47} |
 |   Latest:  {timeline["nodes"][-1]:<47} |
-|   Δ:       {nodes_delta:+d:<46} |
+|   Δ:       {f"{nodes_delta:+d}":<46} |
 +================================================================+
 | EDGES:                                                         |
 |   First:   {timeline["edges"][0]:<47} |
 |   Latest:  {timeline["edges"][-1]:<47} |
-|   Δ:       {edges_delta:+d:<46} |
+|   Δ:       {f"{edges_delta:+d}":<46} |
 +================================================================+
 | DOCSTRING COVERAGE:                                            |
-|   First:   {timeline["coverage"][0]:.1f}%<{45} |
-|   Latest:  {timeline["coverage"][-1]:.1f}%<{45} |
-|   Δ:       {coverage_delta:+.1f}%<{44} |
+|   First:   {f"{timeline['coverage'][0]:.1f}%":<46} |
+|   Latest:  {f"{timeline['coverage'][-1]:.1f}%":<46} |
+|   Δ:       {f"{coverage_delta:+.1f}%":<46} |
 +================================================================+
 | CRITICAL ISSUES:                                               |
 |   First:   {timeline["critical_issues"][0]:<47} |
 |   Latest:  {timeline["critical_issues"][-1]:<47} |
-|   Δ:       {issues_delta:+d:<46} |
+|   Δ:       {f"{issues_delta:+d}":<46} |
 |   Trend:   {"Improving" if issues_delta <= 0 else "Regressing":<43} |
 +================================================================+
 """
