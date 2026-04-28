@@ -11,6 +11,16 @@ Note: older entries preserve the API names used at that release (for example com
 
 ### Added
 
+### Changed
+
+### Fixed
+
+### Removed
+
+## [0.18.0] - 2026-04-28
+
+### Added
+
 - **`FunnelLayout` 3-D layout** — `LayerCakeLayout` renamed to `FunnelLayout`; radius per layer now derived algorithmically as `node_spacing × node_size × √n` so the layout scales correctly across repos of any size without hand-tuning. Orphan nodes lifted to `z=radius` to avoid co-planar overlap with the module layer. CLI option renamed from `cake` → `funnel`.
 - **`docs/pycode_kg_funnel.html`** — Exported funnel-layout visualization added to the docs directory.
 - **`tests/test_viz3d_timeline.py`** — 20 unit tests covering `load_snapshots_timeline` field-name contract, `display_timeline_summary` format-string rendering, and `create_timeline_figure` smoke tests.
