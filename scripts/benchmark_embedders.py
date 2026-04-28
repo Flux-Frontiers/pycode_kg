@@ -5,13 +5,22 @@ This script rebuilds a LanceDB index for each model, runs a fixed query suite
 across one or more rerank modes, and writes a machine-readable JSON report plus
 an analyst-friendly Markdown summary.
 
-Usage example:
+Usage examples::
 
-    python scripts/benchmark_embedders.py \
-      --repo-root . \
-      --sqlite .pycodekg/graph.sqlite \
-      --models "all-MiniLM-L6-v2,all-MiniLM-L12-v2,BAAI/bge-small-en-v1.5,all-mpnet-base-v2" \
-      --modes "hybrid,semantic,legacy"
+    # Full suite (all CANDIDATE_MODELS)
+    python scripts/benchmark_embedders.py --repo-root .
+
+    # Quick run — current production model only
+    python scripts/benchmark_embedders.py --repo-root . --preset current
+
+    # Diary-KG comparison (nomic v1 vs v1.5 vs bge-small)
+    python scripts/benchmark_embedders.py --repo-root . --preset diary
+
+    # Custom model list
+    python scripts/benchmark_embedders.py \\
+      --repo-root . \\
+      --models "BAAI/bge-small-en-v1.5,nomic-ai/nomic-embed-text-v1.5" \\
+      --modes "hybrid,semantic"
 """
 
 from __future__ import annotations
@@ -34,6 +43,54 @@ if str(_SRC_DIR) not in sys.path:
 
 from pycode_kg import PyCodeKG  # noqa: E402
 
+# ---------------------------------------------------------------------------
+# Candidate model registry
+# All models we have tried or want to evaluate.  Edit this list to add new
+# candidates; the --preset flags reference named subsets.
+# ---------------------------------------------------------------------------
+
+CANDIDATE_MODELS: dict[str, str] = {
+    # ── Current production default (pycode_kg / doc_kg) ─────────────────────
+    "BAAI/bge-small-en-v1.5": "384-dim, fast, strong general retrieval. Current default.",
+    # ── BGE family ───────────────────────────────────────────────────────────
+    "BAAI/bge-large-en-v1.5": "1024-dim, slower, higher quality than bge-small.",
+    # ── MiniLM family ────────────────────────────────────────────────────────
+    "sentence-transformers/all-MiniLM-L6-v2": "384-dim, very fast, lower quality ceiling.",
+    "sentence-transformers/all-MiniLM-L12-v2": "384-dim, 2× layers vs L6, modestly better.",
+    # ── MPNet ────────────────────────────────────────────────────────────────
+    "sentence-transformers/all-mpnet-base-v2": "768-dim, historically strong baseline.",
+    # ── Nomic family ─────────────────────────────────────────────────────────
+    # Note: diary_kg KG LanceDB also uses bge-small-en-v1.5 (kg_utils default).
+    # nomic-v1 is used only in diary_kg's Pepys embedding cache, not its KG index.
+    "nomic-ai/nomic-embed-text-v1": "768-dim, Matryoshka. Requires trust_remote_code.",
+    "nomic-ai/nomic-embed-text-v1.5": "768-dim, Matryoshka, improved over v1. Requires trust_remote_code.",
+    # ── Code-specific ────────────────────────────────────────────────────────
+    "microsoft/codebert-base": "768-dim, code-aware, weaker on NL docstrings.",
+}
+
+# Named presets for --preset flag
+_PRESETS: dict[str, list[str]] = {
+    # Just the current production model — fastest sanity check
+    "current": [
+        "BAAI/bge-small-en-v1.5",
+    ],
+    # Compare nomic family against current default (all KGs use bge-small-en-v1.5)
+    "diary": [
+        "BAAI/bge-small-en-v1.5",
+        "nomic-ai/nomic-embed-text-v1",
+        "nomic-ai/nomic-embed-text-v1.5",
+    ],
+    # BGE family comparison
+    "bge": [
+        "BAAI/bge-small-en-v1.5",
+        "BAAI/bge-large-en-v1.5",
+    ],
+    # Full suite — all CANDIDATE_MODELS
+    "full": list(CANDIDATE_MODELS.keys()),
+}
+
+_DEFAULT_MODELS = ",".join(_PRESETS["full"])
+
 
 @dataclass(frozen=True)
 class QueryCase:
@@ -54,23 +111,90 @@ class QueryCase:
 
 
 DEFAULT_QUERY_CASES = [
+    # ── Code / KG queries ────────────────────────────────────────────────────
     QueryCase(
-        name="snapshot freshness comparison",
-        text="snapshot freshness comparison",
+        name="edge storage and query",
+        text="how are edges between modules stored and queried in the knowledge graph",
         k=8,
         hop=1,
         max_nodes=10,
     ),
     QueryCase(
-        name="missing lineno fallback",
-        text="missing_lineno_policy cap_or_skip fallback",
+        name="snapshot metrics over time",
+        text="track codebase metrics like node count and docstring coverage across commits",
+        k=8,
+        hop=1,
+        max_nodes=8,
+    ),
+    QueryCase(
+        name="MCP tool exposure",
+        text="how does the MCP server expose the knowledge graph to AI agents",
+        k=8,
+        hop=1,
+        max_nodes=8,
+    ),
+    QueryCase(
+        name="node missing line number",
+        text="what happens when a node has no source line number metadata",
         k=6,
         hop=0,
         max_nodes=6,
     ),
+    # ── Pepys diary queries (natural language prose, 1660–1668) ──────────────
+    # Designed to test embedder quality on rich historical natural-language text.
+    # Use against a DiaryKG index for meaningful retrieval results.
     QueryCase(
-        name="graph build from source",
-        text="how does the graph get built from source code",
+        name="pepys naval fleet and king",
+        text=(
+            "Captain Guy come on board from Dunkirk, who tells me that the King will come in, "
+            "and that the soldiers at Dunkirk do drink the King's health in the streets. "
+            "I made a commission for Captain Wilgness, of the Bear, which got me 30s."
+        ),
+        k=8,
+        hop=1,
+        max_nodes=8,
+    ),
+    QueryCase(
+        name="pepys music and viol",
+        text=(
+            "I heard the famous Mr. Stefkins play admirably well, and yet I found it as it is always, "
+            "I over expected. I commit the direction of my viol to him. "
+            "I took him to the tavern and found him a temperate sober man."
+        ),
+        k=8,
+        hop=1,
+        max_nodes=8,
+    ),
+    QueryCase(
+        name="pepys plague and naval failure",
+        text=(
+            "All the Dutch fleet, men-of-war and merchant East India ships, are got every one in from Bergen. "
+            "The fleet come home with shame to require a great deal of money, which is not to be had, "
+            "to discharge many men that must get the plague then or continue at greater charge on shipboard."
+        ),
+        k=8,
+        hop=1,
+        max_nodes=8,
+    ),
+    QueryCase(
+        name="pepys treasury and accounts",
+        text=(
+            "He and I did bemoan our public condition. He tells me the Duke of Albemarle is under a cloud, "
+            "and they have a mind at Court to lay him aside. "
+            "I had a hearing, but can get but £6,000 for the pay of the garrison, in lieu of above £16,000."
+        ),
+        k=8,
+        hop=1,
+        max_nodes=8,
+    ),
+    QueryCase(
+        name="pepys year-end reflection",
+        text=(
+            "Blessed be God! the year ends, after some late very great sorrow with my wife by my folly, "
+            "yet ends with great mutual peace and content, and likely to last so by my care. "
+            "My greatest trouble is now from the backwardness of my accounts, "
+            "which I have not seen the bottom of now near these two years."
+        ),
         k=8,
         hop=1,
         max_nodes=8,
@@ -276,6 +400,12 @@ def _to_markdown(report: dict) -> str:
     lines: list[str] = []
     lines.append("# Embedder Benchmark Report")
     lines.append("")
+    lines.append(
+        "> Query cases marked **[pepys]** use real Samuel Pepys diary text (1660–1668) "
+        "and are intended for evaluation against a DiaryKG index.  "
+        "All other cases target a PyCodeKG index."
+    )
+    lines.append("")
     lines.append(f"- Started (UTC): {report['started_utc']}")
     lines.append(f"- Completed (UTC): {report.get('completed_utc', 'n/a')}")
     lines.append(f"- Repo: `{report['repo_root']}`")
@@ -298,7 +428,8 @@ def _to_markdown(report: dict) -> str:
         lines.append("")
 
         for case in model_result["queries"]:
-            lines.append(f"### Query: `{case['query']}`")
+            tag = " **[pepys]**" if case["name"].startswith("pepys") else ""
+            lines.append(f"### Query: `{case['name']}`{tag}")
             lines.append(
                 f"- Params: k={case['k']}, hop={case['hop']}, max_nodes={case['max_nodes']}"
             )
@@ -348,13 +479,19 @@ def _parse_args() -> argparse.Namespace:
         help="Root dir for per-model LanceDB indexes.",
     )
     parser.add_argument(
-        "--models",
-        default=(
-            "all-MiniLM-L6-v2,all-MiniLM-L12-v2,"
-            "BAAI/bge-small-en-v1.5,all-mpnet-base-v2,microsoft/codebert-base,"
-            "nomic-ai/nomic-embed-text-v1.5"
+        "--preset",
+        choices=list(_PRESETS.keys()),
+        default=None,
+        help=(
+            "Named model subset: "
+            + ", ".join(f"{k} ({len(v)} models)" for k, v in _PRESETS.items())
+            + ". Overrides --models."
         ),
-        help="Comma-separated model ids.",
+    )
+    parser.add_argument(
+        "--models",
+        default=_DEFAULT_MODELS,
+        help="Comma-separated model ids (default: full CANDIDATE_MODELS list).",
     )
     parser.add_argument(
         "--modes",
@@ -406,7 +543,11 @@ def main() -> int:
         print("Build it first, e.g.: .venv/bin/pycodekg build-sqlite --repo . --wipe")
         return 2
 
-    models = [m.strip() for m in args.models.split(",") if m.strip()]
+    if args.preset:
+        models = _PRESETS[args.preset]
+        print(f"Using preset '{args.preset}': {models}")
+    else:
+        models = [m.strip() for m in args.models.split(",") if m.strip()]
     modes = [m.strip() for m in args.modes.split(",") if m.strip()]
 
     ts = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")

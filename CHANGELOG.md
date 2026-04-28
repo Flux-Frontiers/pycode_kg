@@ -14,11 +14,17 @@ Note: older entries preserve the API names used at that release (for example com
 - **`FunnelLayout` 3-D layout** — `LayerCakeLayout` renamed to `FunnelLayout`; radius per layer now derived algorithmically as `node_spacing × node_size × √n` so the layout scales correctly across repos of any size without hand-tuning. Orphan nodes lifted to `z=radius` to avoid co-planar overlap with the module layer. CLI option renamed from `cake` → `funnel`.
 - **`docs/pycode_kg_funnel.html`** — Exported funnel-layout visualization added to the docs directory.
 - **`tests/test_viz3d_timeline.py`** — 20 unit tests covering `load_snapshots_timeline` field-name contract, `display_timeline_summary` format-string rendering, and `create_timeline_figure` smoke tests.
+- **`docs/VIZ3D.md`** — New user-facing documentation for the `pycodekg viz3d` 3-D visualizer: layout options, controls, keyboard shortcuts, CLI flags, and PyVista/PyQt5 install notes.
+- **Embedder benchmark results** (`analysis/embedder_benchmark_20260428_*.{json,md}`) — Four benchmark runs comparing `BAAI/bge-small-en-v1.5`, MiniLM, MPNet, Nomic, and CodeBERT across hybrid/semantic/legacy rerank modes; updated summary in `analysis/embedder_benchmark_summary.md`.
+- **`analysis/pycode_kg_analysis_20260428.md`** — Full architectural analysis snapshot generated via `pycodekg analyze`.
 
 ### Changed
 
 - **Type annotations in `bridge.py` and `framework_detector.py`** — `compute_bridge_centrality` and `detect_framework_nodes` now have fully annotated parameters and return types (`list[tuple[str, float]]` and `list[tuple[str, float, str]]` respectively), enabling mypy to check their bodies.
 - **`.secrets.baseline` updated** — Regenerated to cover embedded-JS base64 blobs in HTML visualization exports and snapshot JSON files; avoids false-positive secret-detection failures on future commits.
+- **`scripts/benchmark_embedders.py` refactored** — Added `CANDIDATE_MODELS` registry with descriptions for all evaluated models; named `--preset` flag (`current`, `diary`, `bge`, `full`) replaces ad-hoc `--models` strings; expanded query suite with five Samuel Pepys diary test cases to validate embedder quality on rich historical prose (intended for DiaryKG evaluation); improved Markdown report with `[pepys]` tags and a note distinguishing PyCodeKG vs DiaryKG query targets.
+- **`docs/CodeKG_analysis_v0.9.0.md` renamed** to `docs/analysis_v0.9.0.md` for naming consistency.
+- **`.claude/skills/dockg/SKILL.md` updated** — Reflects DocKG's revised CLI (`--update` replaces `--wipe`; default is now a full rebuild), new `semantic-analyze` command, multipass analysis pipeline (`dockg pipeline run/embed/manifold`), updated default embedding model (`BAAI/bge-small-en-v1.5`, 384-d), and pipeline output paths (`.dockg/pipeline/`, `.dockg/cache/`).
 
 ### Fixed
 
