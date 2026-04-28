@@ -45,12 +45,15 @@ from PyQt5.QtWidgets import (
     QMainWindow,
     QPushButton,
     QSizePolicy,
+    QSlider,
     QTextBrowser,
     QVBoxLayout,
     QWidget,
 )
 from pyvistaqt import QtInteractor
 from rich.logging import RichHandler
+
+from pycode_kg import __version__
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -63,7 +66,6 @@ logger = logging.getLogger(__name__)
 # Constants
 # ---------------------------------------------------------------------------
 
-__version__ = "0.1.0"
 __author__ = "Eric G. Suchanek, PhD"
 
 DEFAULT_DB = ".pycodekg/graph.sqlite"
@@ -78,6 +80,7 @@ KIND_COLOR: dict[str, str] = {
     "module": "#4A90D9",
     "class": "#27AE60",
     "function": "#E74C3C",
+    "private_function": "#F1C40F",
     "method": "#3498DB",
     "symbol": "#95A5A6",
 }
@@ -87,6 +90,7 @@ KIND_SIZE: dict[str, float] = {
     "module": 1.2,
     "class": 0.9,
     "function": 0.7,
+    "private_function": 0.7,
     "method": 0.5,
     "symbol": 0.4,
 }
@@ -100,8 +104,15 @@ REL_COLOR: dict[str, str] = {
 }
 
 # LOD thresholds (total visible nodes)
-LOD_HIGH: int = 400  # icospheres / cylinders
-LOD_LOW: int = 1500  # cubes; above → small spheres
+LOD_HIGH: int = 800  # icospheres / cylinders
+LOD_LOW: int = 1500  # simplified geometry; above → small spheres
+
+# Edge rendering limits
+MAX_EDGES_ARC: int = 2000  # above this, draw straight lines instead of arcs
+MAX_EDGES_TOTAL: int = 8000  # hard cap — skip lowest-priority edges beyond this
+
+# Priority order when capping edges: CONTAINS (structural skeleton) always first
+_EDGE_PRIORITY: dict[str, int] = {"CONTAINS": 0, "INHERITS": 1, "IMPORTS": 2, "CALLS": 3}
 
 # ---------------------------------------------------------------------------
 # Internal geometry helpers
@@ -131,7 +142,7 @@ def _make_node_mesh(kind: str, center: np.ndarray, size: float, lod: str):
                     center[2] + h,
                 )
             )
-        elif kind == "function":
+        elif kind in ("function", "private_function"):
             return pv.Cylinder(
                 center=center,
                 direction=(0, 0, 1),
@@ -142,17 +153,30 @@ def _make_node_mesh(kind: str, center: np.ndarray, size: float, lod: str):
         else:
             return pv.Icosahedron(radius=size, center=center)
     elif lod == "low":
-        h = size * 0.9
-        return pv.Box(
-            bounds=(
-                center[0] - h,
-                center[0] + h,
-                center[1] - h,
-                center[1] + h,
-                center[2] - h,
-                center[2] + h,
+        if kind == "module":
+            h = size * 0.9
+            return pv.Box(
+                bounds=(
+                    center[0] - h,
+                    center[0] + h,
+                    center[1] - h,
+                    center[1] + h,
+                    center[2] - h,
+                    center[2] + h,
+                )
             )
-        )
+        elif kind in ("function", "private_function"):
+            return pv.Cylinder(
+                center=center,
+                direction=(0, 0, 1),
+                radius=size * 0.6,
+                height=size * 1.4,
+                resolution=6,
+            )
+        elif kind == "class":
+            return pv.Octahedron(radius=size, center=center)
+        else:
+            return pv.Sphere(radius=size * 0.5, center=center, theta_resolution=4, phi_resolution=4)
     else:
         return pv.Sphere(radius=size * 0.5, center=center, theta_resolution=4, phi_resolution=4)
 
@@ -280,49 +304,25 @@ def create_kg_visualization(
     :param plotter: The ``QtInteractor`` to render into.
     :return: ``(plotter, title_text, actor_to_node)``
     """
-    from pycode_kg.layout3d import AlliumLayout, LayerCakeLayout
+    from pycode_kg.layout3d import AlliumLayout, FunnelLayout
 
     viz.status = "Setting up visualization..."
     QApplication.processEvents()
 
     plotter.clear_actors()
     plotter.enable_anti_aliasing("msaa")
+    plotter.enable_terrain_style()  # type: ignore[call-arg]
     plotter.set_background("white", top="lightblue")  # type: ignore[arg-type]
-    plotter.add_axes()  # type: ignore[call-arg]
-
-    # Add ground plane
-    ground_size = 300
-    ground = pv.Plane(center=(0, 0, 0), direction=(0, 0, 1), i_size=ground_size, j_size=ground_size)
-    plotter.add_mesh(ground, color="lightgray", opacity=1.0, name="ground")
-
-    # Add cake stand (cylinder base + disk platform)
-    stand_height = 20
-    stand_radius = 80
-    cylinder = pv.Cylinder(
-        center=(0, 0, stand_height / 2),
-        direction=(0, 0, 1),
-        radius=8,
-        height=stand_height,
-        resolution=32,
-    )
-    plotter.add_mesh(cylinder, color="tan", opacity=1.0, smooth_shading=True, name="stand_cylinder")
-
-    platform = pv.Cylinder(
-        center=(0, 0, stand_height + 2),
-        direction=(0, 0, 1),
-        radius=stand_radius,
-        height=4,
-        resolution=32,
-    )
-    plotter.add_mesh(
-        platform, color="burlywood", opacity=1.0, smooth_shading=True, name="stand_disk"
+    plotter.add_axes(  # type: ignore[call-arg]
+        interactive=False,
+        viewport=(0.75, 0.75, 1.0, 1.0),
     )
 
     # -- Layout
     layout = (
         AlliumLayout()
         if viz.layout_name == "allium"
-        else LayerCakeLayout(disc_radius=150.0, layer_gap=20.0)
+        else FunnelLayout(layer_gap=20.0, node_spacing=viz.node_spacing)
     )
     # Always compute on ALL nodes for stable positions; filtering happens in display
 
@@ -330,12 +330,10 @@ def create_kg_visualization(
     all_edges_for_layout = viz.edges
     positions = layout.compute(all_nodes_for_layout, all_edges_for_layout)
 
-    # Lift all nodes to sit on top of the cake stand platform
-    # Platform is centered at (0, 0, stand_height + 2) with height 4, so top is at stand_height + 4
-    platform_top = stand_height + 4
-    for node_id in positions:
-        pos = positions[node_id]
-        positions[node_id] = np.array([pos[0], pos[1], pos[2] + platform_top])
+    # Clamp all nodes to Z >= 0 so nothing clips below the ground plane
+    for nid, pos in positions.items():
+        if pos[2] < 0:
+            positions[nid] = np.array([pos[0], pos[1], 0.0])
 
     # -- LOD tier
     n_visible = len(nodes)
@@ -353,7 +351,9 @@ def create_kg_visualization(
         if pos is None:
             continue
         kind = node.kind
-        if kind not in KIND_SIZE:
+        if kind == "function" and node.name.startswith("_"):
+            kind = "private_function"
+        elif kind not in KIND_SIZE:
             kind = "symbol"
 
         mesh = _make_node_mesh(kind, pos, KIND_SIZE[kind], lod)
@@ -406,37 +406,66 @@ def create_kg_visualization(
     if viz.show_contains:
         rel_to_show.add("CONTAINS")
 
-    rel_blocks: dict[str, pv.MultiBlock] = {r: pv.MultiBlock() for r in rel_to_show}
+    # Count renderable edges to decide rendering strategy
+    renderable = [
+        e for e in edges if e.rel in rel_to_show and e.src in node_id_set and e.dst in node_id_set
+    ]
+    use_arcs = len(renderable) <= MAX_EDGES_ARC
+    if len(renderable) > MAX_EDGES_TOTAL:
+        renderable.sort(key=lambda e: _EDGE_PRIORITY.get(e.rel, 9))
+        renderable = renderable[:MAX_EDGES_TOTAL]
 
-    viz.status = "Rendering edges..."
+    viz.status = f"Rendering {len(renderable)} edges {'(arcs)' if use_arcs else '(lines)'}..."
     QApplication.processEvents()
 
-    for edge in edges:
-        if edge.rel not in rel_to_show:
-            continue
-        if edge.src not in node_id_set or edge.dst not in node_id_set:
-            continue
+    # Accumulate raw point/connectivity arrays per relation — one PolyData per rel
+    rel_pts: dict[str, list[np.ndarray]] = {r: [] for r in rel_to_show}
+    rel_cells: dict[str, list[int]] = {r: [] for r in rel_to_show}
+    rel_idx: dict[str, int] = {r: 0 for r in rel_to_show}
+
+    for edge in renderable:
         p1, p2 = positions.get(edge.src), positions.get(edge.dst)
         if p1 is None or p2 is None:
             continue
-
-        if edge.rel == "CONTAINS":
-            rel_blocks["CONTAINS"].append(pv.Line(p1, p2))
+        rel = edge.rel
+        if use_arcs and rel != "CONTAINS":
+            seg = _arc_points(p1, p2)
         else:
-            arc_pts = _arc_points(p1, p2)
-            rel_blocks[edge.rel].append(pv.Spline(arc_pts, n_points=24))
+            seg = np.array([p1, p2])
+        n = len(seg)
+        rel_pts[rel].extend(seg)
+        rel_cells[rel].extend([n] + list(range(rel_idx[rel], rel_idx[rel] + n)))
+        rel_idx[rel] += n
 
-    for rel, block in rel_blocks.items():
-        if block.n_blocks > 0:
-            is_contains = rel == "CONTAINS"
-            plotter.add_mesh(
-                block,
-                color=REL_COLOR[rel],
-                line_width=4.0 if is_contains else 2.5,
-                opacity=0.5 if is_contains else 1.0,
-                smooth_shading=True,
-                name=f"{rel.lower()}_edges",
-            )
+    QApplication.processEvents()
+
+    for rel in rel_to_show:
+        pts = rel_pts[rel]
+        cells = rel_cells[rel]
+        if not pts:
+            continue
+        pd = pv.PolyData()
+        pd.points = np.array(pts)
+        pd.lines = np.array(cells)
+        is_contains = rel == "CONTAINS"
+        plotter.add_mesh(
+            pd,
+            color=REL_COLOR[rel],
+            line_width=4.0 if is_contains else 2.5,
+            opacity=0.5 if is_contains else 1.0,
+            name=f"{rel.lower()}_edges",
+        )
+
+    # -- Ground plane: auto-sized to scene bounds, added after all meshes
+    plotter.add_floor(  # type: ignore[call-arg]
+        face="-z",
+        color="lightgray",
+        opacity=0.85,
+        show_edges=True,
+        i_resolution=20,
+        j_resolution=20,
+        pad=0.1,
+    )
 
     # -- Stats
     total_faces = 0
@@ -447,17 +476,21 @@ def create_kg_visualization(
                 total_faces += mesh.n_faces_strict  # type: ignore[union-attr]
     viz.num_faces = total_faces
 
+    _db = Path(viz.db_path)
+    _repo_name = _db.parent.parent.name if _db.parent.name == ".pycodekg" else _db.stem
     title = (
-        f"PyCodeKG 3D | {Path(viz.db_path).name} | "
+        f"PyCodeKG 3D v{__version__} | {_repo_name} | "
         f"Modules: {viz.num_modules}  Classes: {viz.num_classes}  "
         f"Methods: {viz.num_methods}  Functions: {viz.num_functions}  "
         f"Faces: {total_faces}"
     )
 
     plotter.reset_camera()  # type: ignore[call-arg]
-    plotter.view_isometric()  # type: ignore[call-arg]
+    # Front-elevated perspective: mostly looking along +Y, tilted ~25° down,
+    # with a slight rightward rotation so the scene reads with depth.
+    plotter.view_vector((0.0, 1.0, 0.35), viewup=(0, 0, 1))  # type: ignore[call-arg, arg-type]
+    plotter.camera.zoom(1.6)
     plotter.render()
-    plotter.camera.zoom(3)
 
     viz.status = "Scene generation complete."
     QApplication.processEvents()
@@ -481,7 +514,7 @@ class KGVisualizer(param.Parameterized):
 
     db_path: str = param.String(default=DEFAULT_DB, doc="SQLite database path")
     layout_name: str = param.Selector(
-        objects=["allium", "cake"], default="allium", doc="3-D layout strategy"
+        objects=["allium", "funnel"], default="allium", doc="3-D layout strategy"
     )
     save_path: str = param.String(default=DEFAULT_SAVE, doc="Save path stem")
     save_format: str = param.Selector(
@@ -496,6 +529,8 @@ class KGVisualizer(param.Parameterized):
     show_imports: bool = param.Boolean(default=True, doc="Render IMPORTS edges")
     show_inherits: bool = param.Boolean(default=True, doc="Render INHERITS edges")
     show_contains: bool = param.Boolean(default=True, doc="Render CONTAINS edges")
+    # Layout spacing (funnel only)
+    node_spacing: float = param.Number(default=2.0, bounds=(0.5, 10.0), doc="Funnel node spacing")
 
     # Status / title
     status: str = param.String(default="Ready", doc="Status bar text")
@@ -561,8 +596,9 @@ class KGVisualizer(param.Parameterized):
         self.param.selected_modules.objects = mod_names
         self.selected_modules = []
 
+        repo_name = db.parent.parent.name if db.parent.name == ".pycodekg" else db.stem
         self.window_title = (
-            f"PyCodeKG 3D | {db.name} | "
+            f"PyCodeKG 3D v{__version__} | {repo_name} | "
             f"Modules: {self.num_modules}  Classes: {self.num_classes}  "
             f"Methods: {self.num_methods}  Functions: {self.num_functions}"
         )
@@ -766,7 +802,7 @@ class MainWindow(QMainWindow):
 
         ctrl.addWidget(self._lbl("<b>Layout</b>"))
         self.layout_select = QComboBox()
-        self.layout_select.addItems(["allium", "cake"])
+        self.layout_select.addItems(["allium", "funnel"])
         self.layout_select.setCurrentText(self.visualizer.layout_name)
         ctrl.addWidget(self.layout_select)
 
@@ -827,6 +863,20 @@ class MainWindow(QMainWindow):
         for w in (self.cb_calls, self.cb_imports, self.cb_inherits):
             cb_row2.addWidget(w)
         ctrl.addLayout(cb_row2)
+
+        ctrl.addWidget(self._lbl("<b>Funnel Spacing</b>"))
+        spacing_row = QHBoxLayout()
+        self.spacing_slider = QSlider(Qt.Orientation.Horizontal)
+        self.spacing_slider.setMinimum(5)
+        self.spacing_slider.setMaximum(100)
+        self.spacing_slider.setValue(int(self.visualizer.node_spacing * 10))
+        self.spacing_slider.setTickInterval(5)
+        self.spacing_val_label = QLabel(f"{self.visualizer.node_spacing:.1f}")
+        self.spacing_val_label.setFixedWidth(30)
+        self.spacing_slider.valueChanged.connect(self._on_spacing_changed)
+        spacing_row.addWidget(self.spacing_slider)
+        spacing_row.addWidget(self.spacing_val_label)
+        ctrl.addLayout(spacing_row)
 
         ctrl.addWidget(self._lbl("<b>Graph Statistics</b>"))
         self.stats_label = QLabel(self._stats_text())
@@ -985,6 +1035,13 @@ class MainWindow(QMainWindow):
         self.visualizer.param.watch(
             lambda _: self.stats_label.setText(self._stats_text()), "num_faces"
         )
+
+    # ── Spacing slider ───────────────────────────────────────────────────────
+
+    def _on_spacing_changed(self, value: int) -> None:
+        spacing = value / 10.0
+        self.visualizer.node_spacing = spacing
+        self.spacing_val_label.setText(f"{spacing:.1f}")
 
     # ── Stats helper ────────────────────────────────────────────────────────
 
@@ -1192,13 +1249,12 @@ class MainWindow(QMainWindow):
     # ── Camera controls (spin_camera copied verbatim from repo_vis) ─────────
 
     def reset_camera(self) -> None:
-        """Reset the camera to isometric view fitted to scene bounds."""
+        """Reset the camera to the default front-elevated view."""
         if not self.plotter:
             return
         self.plotter.reset_camera()
-        self.plotter.view_isometric()
+        self.plotter.view_vector((0.0, 1.0, 0.35), viewup=(0, 0, 1))
         self.plotter.render()
-        self.plotter.camera.zoom(3)
         self.visualizer.status = "View reset."
 
     # ── Save ────────────────────────────────────────────────────────────────
@@ -1334,7 +1390,7 @@ def launch(
     Create a :class:`QApplication`, open :class:`MainWindow`, and run the event loop.
 
     :param db_path: Path to the SQLite database.
-    :param layout_name: ``"allium"`` or ``"cake"``.
+    :param layout_name: ``"allium"`` or ``"funnel"``.
     :param width: Initial window width.
     :param height: Initial window height.
     """

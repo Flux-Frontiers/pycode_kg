@@ -1,6 +1,10 @@
 """
 Framework Detector for PyCodeKG.
 Identifies repo-defining abstractions using centrality and cross-module signals.
+
+Author: Eric G. Suchanek, PhD
+Last Revision: 2026-03-12 17:30:35
+License: Elastic 2.0
 """
 
 import sqlite3
@@ -33,7 +37,9 @@ _BOILERPLATE_NAMES: frozenset[str] = frozenset(
 )
 
 
-def detect_framework_nodes(limit=25, db_path="pycodekg.sqlite"):
+def detect_framework_nodes(
+    limit: int = 25, db_path: str = "pycodekg.sqlite"
+) -> list[tuple[str, float, str]]:
     """
     Detect framework-like nodes using SIR and module connectivity.
 

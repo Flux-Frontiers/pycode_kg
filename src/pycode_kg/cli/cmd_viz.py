@@ -88,13 +88,13 @@ def viz(db: str, port: str, no_browser: bool) -> None:
 )
 @click.option(
     "--layout",
-    type=click.Choice(["allium", "cake"]),
+    type=click.Choice(["allium", "funnel"]),
     default="allium",
     show_default=True,
     help=(
         "3-D layout strategy. "
         "'allium' renders each module as a Giant Allium plant; "
-        "'cake' stratifies nodes by kind across Z layers."
+        "'funnel' stratifies nodes by kind across Z layers."
     ),
 )
 @click.option(

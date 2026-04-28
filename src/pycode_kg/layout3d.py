@@ -9,7 +9,7 @@ implementations:
   (a vertical stem with a Fibonacci-sphere "head" of classes and functions).
   Modules are arranged in a Fibonacci annulus in the XY plane.
 
-- :class:`LayerCakeLayout`: Node kind determines the Z level (modules at
+- :class:`FunnelLayout`: Node kind determines the Z level (modules at
   the bottom, classes above, functions/methods at the top).  XY positions
   are spread via a golden-angle spiral within each layer.
 
@@ -339,7 +339,7 @@ class AlliumLayout(Layout3D):
         n_mods = len(modules)
         inner = self.annulus_inner_radius
         # Scale outer radius so stems don't crowd each other
-        outer = max(self.annulus_outer_radius, inner + n_mods * 2.5)
+        outer = max(self.annulus_outer_radius, inner + np.sqrt(n_mods) * 4.0)
 
         mod_positions = fibonacci_annulus(
             n_mods,
@@ -384,7 +384,10 @@ class AlliumLayout(Layout3D):
         # Orphan nodes: anything not yet placed (symbols, unrooted nodes)
         orphans = [n for n in nodes if n.id not in positions]
         if orphans:
-            orphan_positions = fibonacci_sphere(len(orphans), radius=3.0, center=np.zeros(3))
+            orphan_r = 3.0
+            orphan_positions = fibonacci_sphere(
+                len(orphans), radius=orphan_r, center=np.array([0.0, 0.0, orphan_r])
+            )
             for n, pos in zip(orphans, orphan_positions):
                 positions[n.id] = np.array(pos)
 
@@ -392,7 +395,7 @@ class AlliumLayout(Layout3D):
 
 
 # ---------------------------------------------------------------------------
-# LayerCakeLayout
+# FunnelLayout
 # ---------------------------------------------------------------------------
 
 # Z level per node kind
@@ -404,8 +407,16 @@ _KIND_ZLEVEL: dict[str, int] = {
     "symbol": 3,
 }
 
+# Representative node radius per Z level (mirrors KIND_SIZE in viz3d)
+_LEVEL_NODE_SIZE: dict[int, float] = {
+    0: 1.2,  # module
+    1: 0.9,  # class
+    2: 0.7,  # function / method
+    3: 0.4,  # symbol
+}
 
-class LayerCakeLayout(Layout3D):
+
+class FunnelLayout(Layout3D):
     """
     Stratified layout: node *kind* determines the Z layer; XY positions use a
     golden-angle disc spiral within each layer.
@@ -420,22 +431,26 @@ class LayerCakeLayout(Layout3D):
     Cross-cutting edges (``CALLS``, ``IMPORTS``, ``INHERITS``) arc between
     layers, making structural coupling immediately visible from any angle.
 
+    Disc radius is derived algorithmically:
+    ``r = node_spacing * node_size * sqrt(n)``
+    so the layout scales correctly for repos of any size without hand-tuning.
+
     :param layer_gap: Vertical distance between adjacent layers.
-    :param disc_radius: Base outer radius of the golden-angle disc per layer.
+    :param node_spacing: Spacing multiplier — larger spreads layers out more.
     """
 
     def __init__(
         self,
         layer_gap: float = 12.0,
-        disc_radius: float = 28.0,
+        node_spacing: float = 2.0,
     ) -> None:
         """Initialise layout parameters.
 
         :param layer_gap: Vertical separation between layers.
-        :param disc_radius: Base XY spread radius per layer disc.
+        :param node_spacing: Controls minimum gap between node surfaces.
         """
         self.layer_gap = layer_gap
-        self.disc_radius = disc_radius
+        self.node_spacing = node_spacing
 
     def compute(
         self,
@@ -443,7 +458,7 @@ class LayerCakeLayout(Layout3D):
         edges: list[LayoutEdge],
     ) -> dict[str, np.ndarray]:
         """
-        Compute layer-cake 3-D positions for all nodes.
+        Compute funnel 3-D positions for all nodes.
 
         :param nodes: All nodes in the graph.
         :param edges: Unused by this layout (present for API compatibility).
@@ -456,13 +471,14 @@ class LayerCakeLayout(Layout3D):
             layers.setdefault(level, []).append(n)
 
         positions: dict[str, np.ndarray] = {}
-        n_total = max(len(nodes), 1)
 
         for level, layer_nodes in layers.items():
             z = level * self.layer_gap
-            # Scale disc radius proportionally to the layer's node count
-            r = self.disc_radius * np.sqrt(len(layer_nodes) / n_total)
-            r = max(r, 4.0)  # minimum spread
+            node_size = _LEVEL_NODE_SIZE.get(level, 0.7)
+            # Derived radius: scales with sqrt(n) and node size so no manual
+            # tuning is needed as the repo grows
+            r = self.node_spacing * node_size * np.sqrt(len(layer_nodes))
+            r = max(r, 4.0)
             pts = _golden_spiral_2d(len(layer_nodes), radius=r, z=z)
             for n, pt in zip(layer_nodes, pts):
                 positions[n.id] = pt
