@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "pycodekg": {
+      "command": "/absolute/path/to/.venv/bin/pycodekg",
+      "args": ["mcp", "--repo", "/absolute/path/to/repo"]
+    },
+    "dockg": {
+      "command": "/absolute/path/to/.venv/bin/dockg",
+      "args": ["mcp", "--repo", "/absolute/path/to/repo"]
+    }
+  }
+}

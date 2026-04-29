@@ -1,26 +1,26 @@
 {
   "mcpServers": {
     "pycodekg_pycodekg": {
-      "command": "/Users/egs/repos/pycode_kg/.venv/bin/pycodekg-mcp",
+      "command": "/absolute/path/to/.venv/bin/pycodekg-mcp",
       "args": [
         "--repo",
-        "/Users/egs/repos/pycode_kg",
+        "/absolute/path/to/repo",
         "--db",
-        "/Users/egs/repos/pycode_kg/.pycodekg/pycodekg.sqlite",
+        "/absolute/path/to/repo/.pycodekg/pycodekg.sqlite",
         "--lancedb",
-        "/Users/egs/repos/pycode_kg/.pycodekg/lancedb"
+        "/absolute/path/to/repo/.pycodekg/lancedb"
       ]
     },
-	"dockg_pycodekg": {
-      "command": "/Users/egs/repos/pycode_kg/.venv/bin/dockg-mcp",
+    "dockg_pycodekg": {
+      "command": "/absolute/path/to/.venv/bin/dockg-mcp",
       "args": [
         "--repo",
-        "/Users/egs/repos/pycode_kg",
+        "/absolute/path/to/repo",
         "--db",
-        "/Users/egs/repos/pycode_kg/.dockg/pycodekg.sqlite",
+        "/absolute/path/to/repo/.dockg/pycodekg.sqlite",
         "--lancedb",
-        "/Users/egs/repos/pycode_kg/.dockg/lancedb"
+        "/absolute/path/to/repo/.dockg/lancedb"
       ]
     }
-  },
+  }
 }

@@ -1,7 +1,11 @@
 
+<p align="center">
+  <img src="assets/logos/pycodeKG.PNG" alt="PyCodeKG" width="200"/>
+</p>
+
 [![Python](https://img.shields.io/badge/python-3.12%20%7C%203.13-blue.svg)](https://www.python.org/)
 [![License: Elastic-2.0](https://img.shields.io/badge/License-Elastic%202.0-blue.svg)](https://www.elastic.co/licensing/elastic-license)
-[![Version](https://img.shields.io/badge/version-0.18.0-blue.svg)](https://github.com/Flux-Frontiers/pycode_kg/releases)
+[![Version](https://img.shields.io/badge/version-0.18.1-blue.svg)](https://github.com/Flux-Frontiers/pycode_kg/releases)
 [![CI](https://github.com/Flux-Frontiers/pycode_kg/actions/workflows/ci.yml/badge.svg)](https://github.com/Flux-Frontiers/pycode_kg/actions/workflows/ci.yml)
 [![Poetry](https://img.shields.io/endpoint?url=https://python-poetry.org/badge/v0.json)](https://python-poetry.org/)
 [![DOI](https://zenodo.org/badge/1202379010.svg)](https://zenodo.org/badge/latestdoi/1202379010)
@@ -129,100 +133,9 @@ Start the MCP server, then wire it into your AI agent:
 pycodekg mcp --repo /path/to/repo
 ```
 
-**Claude Code / Kilo Code** — add to `.mcp.json`:
+PyCodeKG exposes seventeen tools covering hybrid search, snippet packing, caller tracing, architectural analysis, and temporal snapshots. Any MCP-compatible agent — Claude Code, Claude Desktop, Cursor, Continue, GitHub Copilot — can consume them directly.
 
-```json
-{
-  "mcpServers": {
-    "pycodekg": {
-      "command": "pycodekg",
-      "args": ["mcp", "--repo", "/absolute/path/to/repo"]
-    }
-  }
-}
-```
-
-**GitHub Copilot** — add to `.vscode/mcp.json`:
-
-```json
-{
-  "servers": {
-    "pycodekg": {
-      "type": "stdio",
-      "command": "/absolute/path/to/.venv/bin/pycodekg-mcp",
-      "args": ["--repo", "/absolute/path/to/repo"]
-    }
-  }
-}
-```
-
-| Tool | Description |
-|------|-------------|
-| `graph_stats()` | Node and edge counts by kind |
-| `query_codebase(q, k, hop)` | Hybrid semantic + structural search |
-| `pack_snippets(q, k, hop)` | Source-grounded snippets as Markdown |
-| `get_node(node_id)` | Fetch a single node by ID |
-| `callers(node_id)` | Precise fan-in lookup with import-alias resolution |
-| `explain(node_id)` | Natural-language role, callers, callees |
-| `analyze_repo()` | Full architectural analysis as Markdown |
-| `snapshot_list/show/diff()` | Temporal metric snapshots |
-
-> Full provider setup (Claude Desktop, Cline, SSE transport): [docs/MCP.md](docs/MCP.md)
-
----
-
-## Python API
-
-```python
-from pycode_kg import PyCodeKG
-
-kg = PyCodeKG(repo_root="/path/to/repo")
-kg.build(wipe=True)
-
-result = kg.query("database connection setup", k=8, hop=1)
-for node in result.nodes:
-    print(node["id"], node["name"])
-
-pack = kg.pack("authentication flow")
-pack.save("context.md")
-```
-
----
-
-## Knowledge Graph Schema
-
-### Node kinds
-
-| Kind | Description |
-|------|-------------|
-| `module` | A Python source file |
-| `class` | A class definition |
-| `function` | A module-level function |
-| `method` | A method on a class |
-
-### Edge types
-
-| Type | Description |
-|------|-------------|
-| `CONTAINS` | Parent → child (module→class, class→method) |
-| `CALLS` | Direct function/method call |
-| `IMPORTS` | Module-level import |
-| `INHERITS` | Class inheritance |
-| `RESOLVES_TO` | Symbol stub → concrete definition (cross-module resolution) |
-| `SIMILAR_TO` | Semantic similarity between nodes (LanceDB-derived) |
-
----
-
-## Storage Layout
-
-```
-.pycodekg/
-  graph.sqlite      # SQLite knowledge graph (nodes + edges)
-  lancedb/          # LanceDB vector index
-  snapshots/        # Temporal metric snapshots (JSON)
-    manifest.json
-    <tree-hash>.json
-```
+> Full provider setup, tool reference, and SSE transport: [docs/MCP.md](docs/MCP.md)
 
 ---
 
@@ -244,16 +157,6 @@ pack.save("context.md")
 
 ---
 
-## Contribution Checklist
-
-When changing MCP tools in `src/pycode_kg/mcp_server.py` (signature, params, defaults, or behavior), update all three in the same commit:
-
-- Module docstring `Tools` list at the top of `mcp_server.py`
-- `mcp = FastMCP(..., instructions=(...))` tool descriptions
-- The runtime tool implementation and `:param:` docstrings
-
----
-
 ## Citation
 
 If you use PyCodeKG in your research or project, please cite it:
@@ -262,7 +165,7 @@ If you use PyCodeKG in your research or project, please cite it:
 
 **APA**
 
-> Suchanek, E. G. (2026). *PyCodeKG: Semantic Knowledge Graph for Python Codebases* (Version 0.18.0) [Software]. Flux-Frontiers. https://doi.org/10.5281/zenodo.PLACEHOLDER
+> Suchanek, E. G. (2026). *PyCodeKG: Semantic Knowledge Graph for Python Codebases* (Version 0.18.0) [Software]. Flux-Frontiers. https://doi.org/10.5281/zenodo.19834777
 
 **BibTeX**
 
@@ -274,7 +177,7 @@ If you use PyCodeKG in your research or project, please cite it:
   year      = {2026},
   publisher = {Flux-Frontiers},
   url       = {https://github.com/Flux-Frontiers/pycode_kg},
-  doi       = {10.5281/zenodo.PLACEHOLDER},
+  doi       = {10.5281/zenodo.19834777},
 }
 ```
 
@@ -282,4 +185,4 @@ If you use PyCodeKG in your research or project, please cite it:
 
 ## License
 
-[Elastic License 2.0](https://www.elastic.co/licensing/elastic-license) — free for non-commercial and internal use; commercial redistribution requires a license from Flux-Frontiers.
+[Elastic License 2.0](https://www.elastic.co/licensing/elastic-license) — free for non-commercial and internal use; commercial redistribution or hosting requires a license from Flux-Frontiers.

@@ -28,7 +28,7 @@
 #   1. Creates skill directories for Claude Code, Kilo Code, and other agents
 #      and installs SKILL.md + references/installation.md into each
 #   2. Installs Claude Code slash commands (pycodekg, setup-pycodekg-mcp, changelog-commit,
-#      continue, protocol, release) to ~/.claude/commands/
+#      release) to ~/.claude/commands/
 #   3. Installs the /pycodekg slash command into the target repo for Cline
 #   4. Installs pycode-kg if pycodekg is not found:
 #        a. pip install from latest GitHub release wheel (preferred, no git needed)
@@ -123,8 +123,6 @@ CLAUDE_COMMAND_FILES=(
     "pycodekg.md"
     "setup-pycodekg-mcp.md"
     "changelog-commit.md"
-    "continue.md"
-    "protocol.md"
     "release.md"
 )
 
@@ -582,8 +580,6 @@ echo "  Claude commands installed:"
 echo "    ✓ ~/.claude/commands/pycodekg.md"
 echo "    ✓ ~/.claude/commands/setup-pycodekg-mcp.md"
 echo "    ✓ ~/.claude/commands/changelog-commit.md"
-echo "    ✓ ~/.claude/commands/continue.md"
-echo "    ✓ ~/.claude/commands/protocol.md"
 echo "    ✓ ~/.claude/commands/release.md"
 echo ""
 echo "  Providers configured:"

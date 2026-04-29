@@ -1,20 +1,20 @@
-# Release Notes — v0.18.0
+# Release Notes — v0.18.1
 
-> Released: 2026-04-28
+> Released: 2026-04-29
 
 ## Highlights
 
-**3-D Visualizer — FunnelLayout and docs**
-The `LayerCakeLayout` has been replaced by `FunnelLayout`, which derives per-layer radii algorithmically (`node_spacing × node_size × √n`) so layouts scale correctly across repos of any size. Orphan nodes are lifted out of the module plane to avoid overlap. The CLI flag is renamed `--layout funnel`. A new [`docs/VIZ3D.md`](docs/VIZ3D.md) user guide covers all layout options, controls, keyboard shortcuts, and install notes for PyVista/PyQt5.
+**MCP configuration template**
+A new `.mcp.json.template` replaces the previously tracked `.mcp.json`. Users copy the template and fill in their own absolute paths — the live config is now gitignored, eliminating accidental commits of machine-specific paths. The `docs/claude_chat_global_mcp.json` reference doc was similarly sanitised with placeholder paths.
 
-**Embedder benchmarking infrastructure**
-`scripts/benchmark_embedders.py` is fully redesigned: a `CANDIDATE_MODELS` registry catalogs all evaluated models, a `--preset` flag (`current`, `diary`, `bge`, `full`) replaces hand-typed model lists, and the query suite is expanded with five Samuel Pepys diary passages for cross-corpus evaluation against DiaryKG. Four benchmark runs from 2026-04-28 are included in `analysis/`.
+**Logo refresh — transparent backgrounds**
+All PyCodeKG logo assets (`assets/logos/logo_16` through `logo_512`, `pycodeKG.PNG`, `src/logo.png`) now have transparent backgrounds, so they render cleanly on any background color in READMEs, docs, and UI surfaces.
 
-**Timeline fixes and test coverage**
-`viz3d_timeline.py` guards against empty-snapshot dicts, fixes invalid f-string compound format specs, and corrects stale manifest field names. A new 20-test suite (`tests/test_viz3d_timeline.py`) covers the full timeline contract.
+**README overhaul**
+The README is streamlined: the centered logo header is added at the top, verbose Python API, schema, storage layout, and contribution checklist sections are replaced with links to dedicated docs, and the Zenodo DOI is updated to the real archived DOI (`10.5281/zenodo.19834777`).
 
-**DocKG skill refresh**
-`.claude/skills/dockg/SKILL.md` updated to reflect DocKG's new CLI defaults (`--update` replaces `--wipe`), the new `semantic-analyze` command, and the multipass analysis pipeline (`dockg pipeline run/embed/manifold`).
+**Housekeeping**
+Stale per-version analysis snapshots (`docs/analysis_v0.9.0` through `v0.17.2`) removed from the docs tree. Old Claude Copilot command files (superseded by the skills system) and `pycodekg_assessment_final.md` removed from the repo.
 
 ---
 

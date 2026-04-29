@@ -17,6 +17,29 @@ Note: older entries preserve the API names used at that release (for example com
 
 ### Removed
 
+## [0.18.1] - 2026-04-29
+
+### Added
+
+- **`.mcp.json.template`** — new template file with placeholder paths for MCP configuration; users copy and fill in absolute paths rather than editing a tracked `.mcp.json`.
+
+### Changed
+
+- **Logo assets — transparent backgrounds** — all PNGs in `assets/logos/` (`logo_16` through `logo_512`, `pycodeKG.PNG`) and `src/logo.png` now have transparent backgrounds (flood-filled from borders); renders cleanly on any background color.
+- **`README.md` — logo header + streamlined content** — centered `pycodeKG.PNG` logo added at the top; verbose Python API, schema, storage layout, and contribution checklist sections removed in favour of links to dedicated docs; Zenodo DOI placeholder replaced with the real DOI (`10.5281/zenodo.19834777`); license note clarified to include hosting.
+- **`.gitignore`** — `.mcp.json` now properly gitignored (was commented out); comment updated to reference `.mcp.json.template`.
+- **`docs/claude_chat_global_mcp.json`** — hardcoded absolute paths replaced with `/absolute/path/to/…` placeholders so the doc is safe to publish.
+
+### Fixed
+
+### Removed
+
+- **`.claude/commands/continue.md`, `.claude/commands/protocol.md`** — old Claude Copilot command files superseded by the skills system.
+- **`.mcp.json`** — removed from tracking; replaced by `.mcp.json.template`.
+- **`settings.json.template`** — removed stale template.
+- **`docs/analysis_v0.{9,11,15,15.1,17.1,17.2}.md`** — stale per-version analysis snapshots removed from the docs tree.
+- **`pycodekg_assessment_final.md`** — old assessment document removed from repo root.
+
 ## [0.18.0] - 2026-04-28
 
 ### Added
