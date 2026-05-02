@@ -132,7 +132,7 @@ poetry run pycodekg-build-sqlite  --repo .
 poetry run pycodekg-build-lancedb
 
 # Run a query
-poetry run pycodekg-query --q "database connection setup"
+poetry run pycodekg-query "database connection setup"
 ```
 
 Or use the Streamlit app (`pycodekg-viz`) for an interactive graph browser with point-and-click queries and snippet extraction.

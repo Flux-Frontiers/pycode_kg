@@ -145,7 +145,7 @@ Run a quick end-to-end test to confirm the full pipeline works before configurin
 
 2. Run a sample query (must be run from `$REPO_ROOT` so `.pycodekg/` defaults resolve):
    ```bash
-   cd "$REPO_ROOT" && $RUNNER pycodekg query --q "module structure"
+   cd "$REPO_ROOT" && $RUNNER pycodekg query "module structure"
    ```
 
 3. If either command errors, diagnose and report the issue before proceeding.

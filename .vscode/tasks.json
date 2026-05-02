@@ -47,7 +47,7 @@
       "command": "/bin/bash",
       "args": [
         "-c",
-        "read -p 'Query: ' q && ${workspaceFolder}/.venv/bin/pycodekg query --q \"$q\""
+        "read -p 'Query: ' q && ${workspaceFolder}/.venv/bin/pycodekg query \"$q\""
       ],
       "group": "test",
       "presentation": {

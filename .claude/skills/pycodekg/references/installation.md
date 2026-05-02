@@ -50,7 +50,7 @@
 poetry run pycodekg-query \
   --sqlite .pycodekg/graph.sqlite \
   --lancedb .pycodekg/lancedb \
-  --q "your query here"
+  "your query here"
 ```
 
 ---
@@ -275,7 +275,7 @@ print(json.dumps(kg.stats(), indent=2))
 "
 
 # Sample query (CLI)
-poetry run pycodekg-query --sqlite .pycodekg/graph.sqlite --lancedb .pycodekg/lancedb --q "module structure"
+poetry run pycodekg-query --sqlite .pycodekg/graph.sqlite --lancedb .pycodekg/lancedb "module structure"
 
 # Verify SQLite row counts
 sqlite3 .pycodekg/graph.sqlite "SELECT COUNT(*) FROM nodes; SELECT COUNT(*) FROM edges;"
