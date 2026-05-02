@@ -1,20 +1,21 @@
-# Release Notes — v0.18.1
+# Release Notes — v0.18.2
 
-> Released: 2026-04-29
+> Released: 2026-05-01
 
-## Highlights
+A docs and hygiene release. No API or behaviour changes.
 
-**MCP configuration template**
-A new `.mcp.json.template` replaces the previously tracked `.mcp.json`. Users copy the template and fill in their own absolute paths — the live config is now gitignored, eliminating accidental commits of machine-specific paths. The `docs/claude_chat_global_mcp.json` reference doc was similarly sanitised with placeholder paths.
+The MCP and Installation guides had drifted into each other — both tried to teach setup, neither did it completely. They're now split cleanly: **`docs/INSTALLATION.md`** owns install, build, and per-agent configuration; **`docs/MCP.md`** is purely the MCP tool reference. While we were in there, the MCP reference also caught up with reality — it had been documenting eleven tools for a while; the server actually exposes nineteen. All nineteen are now documented and grouped by purpose (Discovery, Relationships, Centrality & Ranking, Snapshots).
 
-**Logo refresh — transparent backgrounds**
-All PyCodeKG logo assets (`assets/logos/logo_16` through `logo_512`, `pycodeKG.PNG`, `src/logo.png`) now have transparent backgrounds, so they render cleanly on any background color in READMEs, docs, and UI surfaces.
+A round of `:param:`-style docstrings on the SIR centrality pipeline, the snapshot manager, and the CLI entry points pushed non-test docstring coverage from **91.5% to 96%**. Two long-orphaned placeholder modules (`mcp/bridge_tools.py`, `mcp/framework_tools.py`) were removed — they were never imported, and the live MCP server uses `analysis/bridge.py` and `analysis/framework_detector.py` directly.
 
-**README overhaul**
-The README is streamlined: the centered logo header is added at the top, verbose Python API, schema, storage layout, and contribution checklist sections are replaced with links to dedicated docs, and the Zenodo DOI is updated to the real archived DOI (`10.5281/zenodo.19834777`).
+## What you should know
 
-**Housekeeping**
-Stale per-version analysis snapshots (`docs/analysis_v0.9.0` through `v0.17.2`) removed from the docs tree. Old Claude Copilot command files (superseded by the skills system) and `pycodekg_assessment_final.md` removed from the repo.
+- **`.mcp.json.template` is gone.** Use the one-line installer or `/setup-mcp` instead — both write `.mcp.json` with absolute paths resolved at install time.
+  ```bash
+  curl -fsSL https://raw.githubusercontent.com/Flux-Frontiers/pycode_kg/main/scripts/install-skill.sh | bash
+  ```
+- **The KGModule SDK guide moved.** It now lives at [`kgrag/docs/KGMODULE.md`](https://github.com/Flux-Frontiers/kgrag/blob/main/docs/KGMODULE.md), co-located with the federation layer that consumes it.
+- **No rebuild required.** Existing `.pycodekg/graph.sqlite` and `.pycodekg/lancedb/` remain valid.
 
 ---
 
