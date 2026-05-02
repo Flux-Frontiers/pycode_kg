@@ -112,6 +112,13 @@ class StructuralImportanceRanker:
     """
 
     def __init__(self, db_path: str | Path, config: CentralityConfig | None = None) -> None:
+        """Bind the ranker to a SQLite graph and (optional) tuning config.
+
+        :param db_path: Path to the PyCodeKG SQLite knowledge graph.
+        :param config: Override default relation weights, damping, iteration
+            cap, tolerance, cross-module boost, or private-symbol penalty.
+            Pass ``None`` for the package defaults (see ``CentralityConfig``).
+        """
         self.db_path = Path(db_path)
         self.config = config or CentralityConfig()
 
@@ -204,6 +211,7 @@ class StructuralImportanceRanker:
         return len(rows)
 
     def _load_nodes(self) -> dict[str, _NodeInfo]:
+        """Load real graph nodes (modules, classes, functions, methods) from SQLite, keyed by node id. ``sym:`` stubs are excluded."""
         with sqlite3.connect(self.db_path) as con:
             rows = con.execute(
                 """
@@ -221,6 +229,11 @@ class StructuralImportanceRanker:
         self,
         node_map: dict[str, _NodeInfo],
     ) -> list[_EffectiveEdge]:
+        """Load structural edges (CALLS / INHERITS / IMPORTS / CONTAINS) and rewrite ``sym:`` targets through ``RESOLVES_TO``.
+
+        Returns deduplicated edges weighted by relation type, with cross-module
+        edges receiving an additional boost from ``config.cross_module_boost``.
+        """
         with sqlite3.connect(self.db_path) as con:
             structural = con.execute(
                 """
@@ -280,6 +293,13 @@ class StructuralImportanceRanker:
         node_map: dict[str, _NodeInfo],
         effective_edges: list[_EffectiveEdge],
     ) -> dict[str, float]:
+        """Run weighted PageRank on the resolved edge set until convergence.
+
+        Iterates up to ``config.max_iter`` with damping ``config.damping``,
+        redistributing dangling-node mass uniformly. After convergence, names
+        starting with ``_`` are scaled by ``config.private_penalty`` and the
+        result is normalized so all scores sum to ``1.0``.
+        """
         nodes = list(node_map)
         n = len(nodes)
         if n == 0:
@@ -329,6 +349,7 @@ class StructuralImportanceRanker:
         effective_edges: list[_EffectiveEdge],
         scores: dict[str, float],
     ) -> list[CentralityRecord]:
+        """Combine PageRank scores with inbound counts, per-relation breakdowns, and top contributing callers into rank-ordered ``CentralityRecord`` outputs."""
         inbound_counts: dict[str, int] = defaultdict(int)
         cross_counts: dict[str, int] = defaultdict(int)
         rel_breakdown: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))

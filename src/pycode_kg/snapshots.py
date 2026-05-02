@@ -269,6 +269,15 @@ class SnapshotManager(_BaseSnapshotManager):
         db_path: Path | str | None = None,
         package_name: str = "pycode-kg",
     ) -> None:
+        """Initialize the manager rooted at ``snapshots_dir``.
+
+        :param snapshots_dir: Directory where snapshot JSON files live; created
+            on first save if it does not exist.
+        :param db_path: PyCodeKG SQLite graph path; required for collecting
+            per-module node counts during ``capture()``. Optional otherwise.
+        :param package_name: Package name used for version detection in saved
+            snapshots. Defaults to ``"pycode-kg"``.
+        """
         super().__init__(snapshots_dir, package_name=package_name, db_path=db_path)
 
     # ------------------------------------------------------------------
@@ -457,14 +466,17 @@ class SnapshotManager(_BaseSnapshotManager):
     # ------------------------------------------------------------------
 
     def load_snapshot(self, key: str) -> Snapshot | None:  # type: ignore[override]
+        """Load a snapshot by key and re-wrap it as a pycode-kg ``Snapshot`` with typed-accessor properties. Returns ``None`` if no snapshot matches."""
         snap = super().load_snapshot(key)
         return _rewrap(snap) if snap is not None else None
 
     def get_previous(self, key: str) -> Snapshot | None:  # type: ignore[override]
+        """Return the snapshot immediately preceding ``key`` in manifest chronology, re-wrapped as a pycode-kg ``Snapshot``. ``None`` when ``key`` is the earliest."""
         snap = super().get_previous(key)
         return _rewrap(snap) if snap is not None else None
 
     def get_baseline(self) -> Snapshot | None:  # type: ignore[override]
+        """Return the earliest (baseline) snapshot in the manifest, re-wrapped as a pycode-kg ``Snapshot``. ``None`` if no snapshots exist."""
         snap = super().get_baseline()
         return _rewrap(snap) if snap is not None else None
 

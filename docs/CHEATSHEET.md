@@ -1,11 +1,11 @@
 # PyCodeKG Query Cheatsheet
 
-A practical reference for the seventeen MCP tools, with examples drawn from this codebase.
+A practical reference for the nineteen MCP tools, with examples drawn from this codebase.
 All queries below work against the live `pycode_kg` knowledge graph.
 
 ---
 
-## The Seventeen Tools at a Glance
+## The Nineteen Tools at a Glance
 
 ### Core Tools
 
@@ -16,6 +16,8 @@ All queries below work against the live `pycode_kg` knowledge graph.
 | `pack_snippets(q)` | Implementation detail — *actual source code* | Markdown: snippets with line numbers |
 | `get_node(node_id, include_edges)` | Pinpoint lookup — one node by its stable ID + optional neighborhood | Markdown: full node metadata |
 | `list_nodes(module_path, kind)` | Enumerate all nodes in a module filtered by kind | JSON: array of matching nodes |
+| `find_node(name, kind)` | Search by (partial) name when you don't have the stable ID | JSON: matching node candidates |
+| `find_definition_at(file, line)` | Reverse-lookup the node spanning a `file:line` location | Markdown: same shape as `explain()` |
 | `callers(node_id, rel)` | Fan-in lookup — *who calls this function?* | JSON: all caller nodes, resolved through stubs |
 | `explain(node_id)` | Natural language understanding — *what does this do?* | Markdown: role, callers, callees, docstring |
 | `centrality(top, kinds, group_by)` | SIR PageRank — rank nodes or modules by structural importance | Markdown: ranking table |

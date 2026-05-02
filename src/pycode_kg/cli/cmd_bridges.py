@@ -8,6 +8,7 @@ from pycode_kg.analysis.bridge import compute_bridge_centrality
 
 
 def main():
+    """CLI entry point: parse args and print top bridge modules by connectivity score to stdout."""
     parser = argparse.ArgumentParser(
         description="Show top bridge modules by betweenness centrality."
     )

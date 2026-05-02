@@ -41,28 +41,10 @@ PyCodeKG uses the same architecture as [DocKG](https://github.com/Flux-Frontiers
 - **Source-grounded snippet packing** — Definition and call-site snippets with line numbers
 - **Precise fan-in lookup** — Two-phase reverse traversal resolving cross-module caller chains
 - **Temporal snapshots** — Save and diff graph metrics across commits and versions
-- **MCP server** — Seventeen tools for AI agent integration
+- **MCP server** — Nineteen tools for AI agent integration
 - **Streamlit web app** — Interactive graph browser, hybrid query UI, snippet pack explorer
 - **3-D visualizer** — PyVista/PyQt5 interactive graph explorer with FunnelLayout and timeline view
 - **Zero-config MCP setup** — Single-line installer configures Claude Code, Kilo Code, GitHub Copilot, and Cline
-
----
-
-## Quick Start
-
-```bash
-# Index your repo (SQLite + LanceDB in one step)
-pycodekg build --repo /path/to/repo
-
-# Natural-language query
-pycodekg query "authentication flow"
-
-# Source-grounded snippet pack — paste straight into an LLM prompt
-pycodekg pack "database connection setup" --format md --out context.md
-
-# Full architectural analysis
-pycodekg analyze /path/to/repo
-```
 
 ---
 
@@ -85,6 +67,24 @@ poetry add pycode-kg
 ```
 
 > For the one-line skill installer (MCP config, Claude slash commands, git hooks) see [docs/INSTALLATION.md](docs/INSTALLATION.md).
+
+---
+
+## Quick Start
+
+```bash
+# Index your repo (SQLite + LanceDB in one step)
+pycodekg build --repo /path/to/repo
+
+# Natural-language query
+pycodekg query "authentication flow"
+
+# Source-grounded snippet pack — paste straight into an LLM prompt
+pycodekg pack "database connection setup" --format md --out context.md
+
+# Full architectural analysis
+pycodekg analyze /path/to/repo
+```
 
 ---
 
@@ -122,20 +122,6 @@ pycodekg viz-timeline                                # metric history timeline
 ```
 
 > Full flag reference: [docs/INSTALLATION.md](docs/INSTALLATION.md) · Query patterns: [docs/CHEATSHEET.md](docs/CHEATSHEET.md)
-
----
-
-## MCP Integration
-
-Start the MCP server, then wire it into your AI agent:
-
-```bash
-pycodekg mcp --repo /path/to/repo
-```
-
-PyCodeKG exposes seventeen tools covering hybrid search, snippet packing, caller tracing, architectural analysis, and temporal snapshots. Any MCP-compatible agent — Claude Code, Claude Desktop, Cursor, Continue, GitHub Copilot — can consume them directly.
-
-> Full provider setup, tool reference, and SSE transport: [docs/MCP.md](docs/MCP.md)
 
 ---
 

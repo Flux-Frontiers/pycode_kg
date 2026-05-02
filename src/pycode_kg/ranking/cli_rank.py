@@ -16,6 +16,7 @@ from .coderank import (
 
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
+    """Parse CodeRank CLI arguments. Pass ``argv`` to override ``sys.argv`` (used in tests)."""
     parser = argparse.ArgumentParser(description="Compute CodeRank metrics for PyCodeKG graphs.")
     parser.add_argument("--sqlite", required=True, help="Path to PyCodeKG SQLite graph.")
     parser.add_argument("--top", type=int, default=25, help="Number of top results to print.")
@@ -43,6 +44,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    """CLI entry point: compute CodeRank scores, optionally persist them to ``node_metrics``, and print the top results as plain text or JSON. Returns the process exit code."""
     args = parse_args(argv)
     sqlite_path = Path(args.sqlite)
     if not sqlite_path.exists():

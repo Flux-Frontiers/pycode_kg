@@ -154,6 +154,24 @@ pycodekg build-lancedb [--model BAAI/bge-small-en-v1.5] [--wipe]
 pycodekg-download-model --repo .
 ```
 
+### Verify the build
+
+```bash
+pycodekg query "module structure"
+```
+
+A non-empty result confirms both the SQLite graph and LanceDB index are wired up correctly. For the full MCP smoke test see [MCP.md § Smoke Test](MCP.md#smoke-test).
+
+### Gitignore
+
+Add this to `.gitignore` to keep the binary artifacts out of version control:
+
+```gitignore
+.pycodekg/
+```
+
+The SQLite graph and LanceDB index are transient and rebuildable. Snapshots in `.pycodekg/snapshots/` are tracked separately and committed atomically by the pre-commit hook.
+
 ---
 
 ## Restricting Which Directories Are Indexed

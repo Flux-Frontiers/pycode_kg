@@ -17,6 +17,28 @@ Note: older entries preserve the API names used at that release (for example com
 
 ### Removed
 
+## [0.18.2] - 2026-05-01
+
+### Added
+
+- **Docstring coverage raised from 91.5% → 96.0%** for non-test functions and methods. Added `:param:`-style docstrings to:
+  - `StructuralImportanceRanker.__init__` and four private algorithm steps (`_load_nodes`, `_load_effective_edges`, `_pagerank`, `_assemble_records`) in `src/pycode_kg/analysis/centrality.py` — clarifies the SIR PageRank pipeline for maintainers.
+  - `SnapshotManager.__init__` and three load helpers (`load_snapshot`, `get_previous`, `get_baseline`) in `src/pycode_kg/snapshots.py` — public API surface previously had only class-level docs.
+  - CLI entry points `main` in `cli/cmd_bridges.py` and `cli/cmd_framework_nodes.py`; `parse_args` and `main` in `ranking/cli_rank.py`.
+- **`docs/INSTALLATION.md` — "Verify the build" + ".pycodekg/" gitignore sections** — adds a one-line smoke test (`pycodekg query "module structure"`) right after the build steps, plus the recommended `.gitignore` entry. Both were previously only in `MCP.md`; surfacing them in `INSTALLATION.md` lets the install guide stand alone.
+
+### Changed
+
+- **`docs/MCP.md` reframed as an MCP-specific reference** (966 → 591 lines net; full rewrite of structure). The hodgepodge of install / build / per-agent-config sections (which duplicated `INSTALLATION.md`) was removed; what remains is purely MCP: overview + tool inventory, smoke test, full tool reference, query strategy guide, and MCP-specific troubleshooting. Tool reference grouped by purpose — Discovery & Exploration, Relationships & Analysis, Centrality & Ranking, Snapshots — and **expanded from 11 to all 19 MCP tools**, adding schema entries for `find_node`, `find_definition_at`, `centrality`, `bridge_centrality`, `framework_nodes`, `rank_nodes`, `query_ranked`, and `explain_rank`. A new "When to reach for the ranking tools" table maps situations to the right tool.
+- **`docs/CHEATSHEET.md` — tool count corrected to nineteen** — adds the two previously-missing discovery tools (`find_node(name, kind)`, `find_definition_at(file, line)`) to the Core Tools table; updates "Seventeen" → "Nineteen" throughout.
+- **`README.md` — Installation now precedes Quick Start** — install the package first, *then* run the example commands; the previous order asked readers to run `pycodekg build` before they had a way to install it. The standalone "MCP Integration" section was collapsed (was overlapping with `docs/MCP.md`); the Features bullet still surfaces the MCP server, and `docs/INSTALLATION.md` and `docs/MCP.md` cover setup and tool reference respectively. Tool count "Seventeen" → "Nineteen".
+
+### Removed
+
+- **`src/pycode_kg/mcp/bridge_tools.py`**, **`src/pycode_kg/mcp/framework_tools.py`**, and the now-empty **`src/pycode_kg/mcp/` directory** — ~37 lines of dead placeholder code (`TODO`/`pass` stubs). Never imported anywhere; the live MCP server uses `analysis/bridge.py` and `analysis/framework_detector.py` directly. Removing them eliminated five misleading missing-docstring entries and pushed coverage from 95.0% to 96.0% without writing any docstrings for code nobody calls.
+- **`docs/KGMODULE.md`** — moved to `kgrag/docs/KGMODULE.md` in the consuming KGRAG repo. The KGModule SDK contract is part of the federation layer that adapts implementations into KGRAG; co-locating it with KGRAG keeps the SDK spec next to its consumer rather than next to one specific implementation. The trailing reference to `KGMODULE_SPEC.md` already pointed into the KGRAG tree, so the move makes co-location consistent.
+- **`.mcp.json.template`** — superseded by the one-line installer (`scripts/install-skill.sh`) and the `/setup-mcp` slash command, both of which write `.mcp.json` directly with absolute paths resolved at install time. The hand-edited template required users to manually substitute placeholders, a step the installers handle correctly.
+
 ## [0.18.1] - 2026-04-29
 
 ### Added

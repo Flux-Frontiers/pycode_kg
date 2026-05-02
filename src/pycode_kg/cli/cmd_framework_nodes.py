@@ -8,6 +8,7 @@ from pycode_kg.analysis.framework_detector import detect_framework_nodes
 
 
 def main():
+    """CLI entry point: parse args and print top framework-like modules (high SIR + high connectivity) to stdout."""
     parser = argparse.ArgumentParser(description="Show top framework-like modules.")
     parser.add_argument("--db", default="pycodekg.sqlite", help="Path to PyCodeKG SQLite DB")
     parser.add_argument("--top", type=int, default=25, help="Number of top framework nodes to show")
