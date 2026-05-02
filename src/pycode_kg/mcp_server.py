@@ -77,10 +77,11 @@ snapshot_diff(key_a, key_b)
     nodes, edges, docstring coverage, and critical issues.  Returns JSON
     including freshness metadata and lists of introduced/resolved issues.
 
-list_nodes(module_path, kind)
+list_nodes(module_path, kind, include_symbols)
     List nodes filtered by module path prefix and/or kind.  Returns a
     JSON array of matching node dicts.  Useful for enumerating classes
-    or functions in a specific module.
+    or functions in a specific module.  ``sym:`` import-stub nodes are
+    excluded by default; pass ``include_symbols=True`` to include them.
 
 find_node(name, kind)
     Find nodes by plain name or qualname substring without knowing the
@@ -303,10 +304,11 @@ mcp = FastMCP(
         "INHERITS) and resolved incoming CALLS callers, eliminating a separate callers() "
         "round-trip. Use query_codebase() to discover node IDs, then get_node() to inspect "
         "them, then pack_snippets() to read the source.\n\n"
-        "**list_nodes(module_path, kind)** — List nodes filtered by module path prefix "
-        "and/or kind (e.g. 'function', 'class'). Returns a JSON array of matching nodes. "
-        "Use this to enumerate the contents of a specific module before inspecting "
-        "individual nodes with get_node().\n\n"
+        "**list_nodes(module_path, kind, include_symbols=False)** — List nodes filtered "
+        "by module path prefix and/or kind (e.g. 'function', 'class'). Returns a JSON "
+        "array of matching nodes. ``sym:`` import-stub nodes are excluded by default; "
+        "pass include_symbols=True to include them. Use this to enumerate the contents "
+        "of a specific module before inspecting individual nodes with get_node().\n\n"
         "**find_node(name, kind)** — Find nodes by plain name or qualname when the stable "
         "ID is unknown. Case-insensitive match against name and qualname columns; sym: stubs "
         "are excluded. Optional kind filter narrows to 'function', 'class', 'method', or "
@@ -816,12 +818,18 @@ def graph_stats() -> str:
 
 
 @mcp.tool()
-def list_nodes(module_path: str = "", kind: str = "") -> str:
+def list_nodes(
+    module_path: str = "",
+    kind: str = "",
+    include_symbols: bool = False,
+) -> str:
     """
     List nodes filtered by module path prefix and/or kind.
 
     :param module_path: Module path prefix filter (e.g. "src/pycode_kg/store.py").
     :param kind: Node kind filter: module | class | function | method.
+    :param include_symbols: If True, include ``sym:`` import-stub nodes.  Default
+                            False so only meaningful code entities are returned.
     :return: JSON array of matching node dicts.
     """
     kg = _get_kg()
@@ -839,6 +847,9 @@ def list_nodes(module_path: str = "", kind: str = "") -> str:
     if kind:
         query += " AND kind = ?"
         params.append(kind)
+
+    if not include_symbols:
+        query += " AND id NOT LIKE 'sym:%'"
 
     query += " ORDER BY module_path, lineno"
 
@@ -1252,181 +1263,14 @@ def explain(node_id: str, limit: int = 10) -> str:
                   to list all.
     :return: Markdown-formatted explanation ready for LLM consumption.
     """
-    kg = _get_kg()
-    node = kg.node(node_id)
+    from pycode_kg.explain import render_explain  # pylint: disable=import-outside-toplevel
 
-    if node is None:
-        return f"# Node Not Found\n\nNode ID `{node_id}` does not exist in the knowledge graph."
-
-    out: list[str] = []
-
-    # Header with kind and name
-    kind = node.get("kind", "unknown")
-    name = node.get("qualname") or node.get("name", "unknown")
-    out.append(f"# {kind.capitalize()}: `{name}`\n")
-
-    # Metadata
-    out.append("## Metadata\n")
-    if node.get("module_path"):
-        out.append(f"- **Module**: `{node['module_path']}`")
-    if node.get("lineno") is not None:
-        out.append(
-            f"- **Location**: line {node['lineno']}"
-            + (f"–{node['end_lineno']}" if node.get("end_lineno") else "")
-        )
-    out.append(f"- **ID**: `{node_id}`")
-    out.append("")
-
-    # Docstring
-    docstring = node.get("docstring", "").strip()
-    if docstring:
-        out.append("## Documentation\n")
-        out.append(docstring)
-        out.append("")
-
-    # Get callers
-    try:
-        caller_list = kg.callers(node_id, rel="CALLS")
-        if caller_list:
-            out.append("## Called By (Callers)\n")
-            out.append(f"This {kind} is called by **{len(caller_list)}** other function(s):\n")
-            shown_callers = caller_list[:limit] if limit > 0 else caller_list
-            for caller in shown_callers:
-                caller_name = caller.get("qualname") or caller.get("name", "unknown")
-                caller_module = caller.get("module_path", "")
-                out.append(f"- `{caller_name}` ({caller_module})")
-            if limit > 0 and len(caller_list) > limit:
-                out.append(f"- ... and {len(caller_list) - limit} more")
-            out.append("")
-    except (AttributeError, ValueError, RuntimeError):
-        pass
-
-    # Get callees (what this function calls)
-    try:
-        if hasattr(kg, "_store") and kg._store is not None:
-            store = kg._store
-            edges = store.edges_from(node_id, rel="CALLS", limit=50)
-            if edges:
-                callees = set()
-                for edge in edges:
-                    dst = edge.get("dst")
-                    if dst is not None:
-                        dst_node = kg.node(dst)
-                        if (
-                            dst_node
-                            and dst_node.get("kind") != "symbol"
-                            and dst_node.get("module_path")  # exclude builtins/stdlib
-                        ):
-                            dst_name = dst_node.get("qualname") or dst_node.get("name", "unknown")
-                            callees.add(f"- `{dst_name}`")
-                if callees:
-                    out.append("## Calls (Callees)\n")
-                    out.append(f"This {kind} calls **{len(callees)}** other function(s):\n")
-                    sorted_callees = sorted(callees)
-                    shown_callees = sorted_callees[:limit] if limit > 0 else sorted_callees
-                    for callee in shown_callees:
-                        out.append(callee)
-                    if limit > 0 and len(callees) > limit:
-                        out.append(f"- ... and {len(callees) - limit} more")
-                    out.append("")
-    except (AttributeError, ValueError, RuntimeError):
-        pass
-
-    # Role assessment — use relative thresholds so that a node called by >5% of
-    # meaningful nodes is always flagged high-value, regardless of codebase size.
-    out.append("## Role in Codebase\n")
-    try:
-        caller_count = len(kg.callers(node_id, rel="CALLS"))
-        # Compute callee count for orchestrator detection — a node that calls many
-        # things is a coordination hub even if it has few callers.
-        callee_count = 0
-        try:
-            if hasattr(kg, "_store") and kg._store is not None:
-                _callee_edges = kg._store.edges_from(node_id, rel="CALLS", limit=100)
-                callee_count = sum(
-                    1
-                    for _e in (_callee_edges or [])
-                    if not (_e.get("dst") or "").startswith("sym:")
-                    and kg.node(_e.get("dst") or "")
-                    and (kg.node(_e.get("dst") or "") or {}).get("module_path")
-                )
-        except (AttributeError, ValueError, RuntimeError):
-            pass
-        try:
-            meaningful_nodes = kg.stats().get("meaningful_nodes", 100)
-        except (AttributeError, ValueError, RuntimeError):
-            meaningful_nodes = 100
-        _thresh_high_value = max(15, int(meaningful_nodes * 0.05))  # top 5%
-        _thresh_important = max(5, int(meaningful_nodes * 0.02))  # top 2%
-        _thresh_orchestrator = 8  # calling 8+ distinct functions signals a coordination hub
-        if caller_count > _thresh_high_value:
-            out.append(
-                f"**High-value function**: Called {caller_count} times "
-                f"(>{_thresh_high_value} = top 5% of this codebase). "
-                "This is likely a core API or bottleneck. Changes here may have wide impact."
-            )
-        elif caller_count > _thresh_important:
-            out.append(
-                f"**Important function**: Called {caller_count} times "
-                f"(>{_thresh_important} = top 2% of this codebase). "
-                "Part of the essential infrastructure."
-            )
-        elif callee_count >= _thresh_orchestrator and caller_count > 0:
-            out.append(
-                f"**Core orchestrator**: Called {caller_count} time(s), calls {callee_count} others. "
-                "Low caller count likely reflects a top-level entry point — "
-                "the high fan-out indicates a coordination hub, not a utility."
-            )
-        elif caller_count > 0:
-            try:
-                _callers_for_role = kg.callers(node_id, rel="CALLS")
-                _caller_mods = sorted(
-                    {
-                        c.get("module_path", "").split("/")[-1].replace(".py", "")
-                        for c in _callers_for_role
-                        if c.get("module_path")
-                    }
-                )
-                _mod_summary = (
-                    ", ".join(f"`{m}`" for m in _caller_mods[:4])
-                    + (" and more" if len(_caller_mods) > 4 else "")
-                    if _caller_mods
-                    else "various callers"
-                )
-            except (AttributeError, ValueError, RuntimeError):
-                _mod_summary = "various callers"
-            out.append(f"**Utility function**: Called {caller_count} time(s) from {_mod_summary}.")
-        else:
-            module = node.get("module_path", "")
-            name = node.get("name", "")
-            if name.startswith("__") and name.endswith("__"):
-                out.append(
-                    "**Protocol method**: Zero internal callers by design. "
-                    "Invoked by Python's runtime machinery (e.g., `__init__`, `__str__`, `__exit__`)."
-                )
-            elif "mcp_server" in module or name.startswith("_get_"):
-                out.append(
-                    "**MCP Tool / Framework entry point**: Zero internal callers by design. "
-                    "Invoked by the MCP protocol dispatcher, not by code."
-                )
-            elif "/cli/" in module or module.endswith("cli.py"):
-                out.append(
-                    "**CLI entry point**: Zero internal callers by design. "
-                    "Invoked by Click's CLI router when the user runs the command."
-                )
-            else:
-                out.append(
-                    "**Orphaned**: Never called internally. "
-                    "May be dead code, a public API, or a framework entry point."
-                )
-    except (AttributeError, ValueError, RuntimeError):
-        out.append("Unable to determine call graph role.")
-
-    out.append("")
-    out.append("---\n")
-    out.append("*Use `pack_snippets()` to retrieve the full source code.*")
-
-    return "\n".join(out)
+    return render_explain(
+        _get_kg(),
+        node_id,
+        limit=limit,
+        snippets_hint="pack_snippets()",
+    )
 
 
 # ---------------------------------------------------------------------------

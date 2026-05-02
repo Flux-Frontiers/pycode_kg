@@ -1,34 +1,34 @@
 {
-  "key": "cc0904a70364cbaeea278c89914a805bb51d7081",
+  "key": "f401290bfe2850ab7ea469ce2cd851e085c2e611",
   "branch": "main",
-  "timestamp": "2026-05-01T04:24:40.755729+00:00",
+  "timestamp": "2026-05-02T21:13:46.456326+00:00",
   "version": "0.18.1",
   "metrics": {
     "db_path": ".pycodekg/graph.sqlite",
-    "total_nodes": 7287,
+    "total_nodes": 7300,
     "meaningful_nodes": 480,
-    "total_edges": 7234,
+    "total_edges": 7263,
     "node_counts": {
       "class": 46,
-      "function": 163,
+      "function": 164,
       "method": 215,
-      "module": 56,
-      "symbol": 6807
+      "module": 55,
+      "symbol": 6820
     },
     "edge_counts": {
-      "ATTR_ACCESS": 2353,
-      "CALLS": 2565,
-      "CONTAINS": 424,
-      "IMPORTS": 432,
+      "ATTR_ACCESS": 2352,
+      "CALLS": 2568,
+      "CONTAINS": 425,
+      "IMPORTS": 435,
       "INHERITS": 14,
-      "RESOLVES_TO": 1446
+      "RESOLVES_TO": 1469
     },
-    "module_count": 56,
+    "module_count": 55,
     "class_count": 46,
-    "function_count": 163,
+    "function_count": 164,
     "method_count": 215,
-    "docstring_coverage": 0.919,
-    "snapshot_count": 77,
+    "docstring_coverage": 0.946,
+    "snapshot_count": 80,
     "critical_issues": 3,
     "complexity_median": 6,
     "module_node_counts": {
@@ -37,7 +37,7 @@
       "src/pycode_kg/analysis/__init__.py": 2,
       "src/pycode_kg/analysis/bridge.py": 36,
       "src/pycode_kg/analysis/centrality.py": 171,
-      "src/pycode_kg/analysis/framework_detector.py": 38,
+      "src/pycode_kg/analysis/framework_detector.py": 36,
       "src/pycode_kg/analysis/hybrid_rank.py": 40,
       "src/pycode_kg/app.py": 372,
       "src/pycode_kg/architecture.py": 202,
@@ -50,7 +50,7 @@
       "src/pycode_kg/cli/cmd_build.py": 55,
       "src/pycode_kg/cli/cmd_build_full.py": 103,
       "src/pycode_kg/cli/cmd_centrality.py": 72,
-      "src/pycode_kg/cli/cmd_explain.py": 47,
+      "src/pycode_kg/cli/cmd_explain.py": 18,
       "src/pycode_kg/cli/cmd_framework_nodes.py": 16,
       "src/pycode_kg/cli/cmd_hooks.py": 22,
       "src/pycode_kg/cli/cmd_init.py": 101,
@@ -62,13 +62,12 @@
       "src/pycode_kg/cli/main.py": 2,
       "src/pycode_kg/cli/options.py": 11,
       "src/pycode_kg/config.py": 21,
+      "src/pycode_kg/explain.py": 107,
       "src/pycode_kg/graph.py": 45,
       "src/pycode_kg/index.py": 208,
       "src/pycode_kg/kg.py": 43,
       "src/pycode_kg/layout3d.py": 184,
-      "src/pycode_kg/mcp/bridge_tools.py": 7,
-      "src/pycode_kg/mcp/framework_tools.py": 4,
-      "src/pycode_kg/mcp_server.py": 549,
+      "src/pycode_kg/mcp_server.py": 498,
       "src/pycode_kg/module/__init__.py": 2,
       "src/pycode_kg/module/base.py": 264,
       "src/pycode_kg/module/extractor.py": 58,
@@ -111,7 +110,7 @@
     },
     {
       "name": "m:src/pycode_kg/store.py:GraphStore.node",
-      "callers": 14,
+      "callers": 15,
       "callees": 4,
       "risk_level": "low"
     },
@@ -159,9 +158,9 @@
   ],
   "vs_previous": null,
   "vs_baseline": {
-    "nodes": 2306,
-    "edges": 2303,
-    "coverage_delta": -0.04699999999999993,
+    "nodes": 2319,
+    "edges": 2332,
+    "coverage_delta": -0.020000000000000018,
     "critical_issues_delta": 2
   }
 }

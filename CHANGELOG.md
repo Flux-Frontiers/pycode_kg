@@ -11,11 +11,22 @@ Note: older entries preserve the API names used at that release (for example com
 
 ### Added
 
+- **`src/pycode_kg/explain.py` — shared `render_explain()` presenter** — single source of truth for the Markdown explanation rendered by the `pycodekg explain` CLI and the MCP `explain` tool. Both surfaces previously rendered independently and had drifted: the MCP version used relative thresholds (top-5%/2%) while the CLI used hard-coded `50`/`10`, and only the MCP version had the kind-aware role labels and orchestrator branch. Centralizing prevents future drift; the footer call-to-action is parameterized so MCP shows `pack_snippets()` and CLI shows `pycodekg pack`.
+- **`list_nodes(include_symbols=False)` parameter** — `mcp__pycodekg__list_nodes` now excludes `sym:` import-stub nodes by default; pass `include_symbols=True` to restore the previous noisy output. Module docstring and `FastMCP` instructions block updated to match.
+- **`tests/test_explain.py`** — six tests covering the presenter: not-found header, class-aware role labels (regression guard for the "Utility function" misclassification), zero-caller orphan branch, protocol-method dunder branch, parameterized footer hint, and standard-section smoke test.
+
 ### Changed
+
+- **`framework_nodes()` — module-only ranking with corrected key-space join** — the tool advertises "Framework-like Modules" but previously mixed two key spaces in its scoring: `sir_pagerank` rows are keyed by typed node IDs (`mod:...`, `m:...:method`, `fn:...:func`) while `module_connectivity` rows are keyed by bare paths (`src/...`). The accidental union let methods like `GraphStore.con` and functions like `parse_args` appear alongside genuine modules. Now aggregates node-level SIR up to module level via the existing `aggregate_module_scores()`, joins on bare paths, and emits `(mod:<path>, score, <path>)` tuples — guaranteed module-only output. Top-of-list is now `store.py`, `viz3d.py`, `module/base.py`, `snapshots.py`, `visitor.py`, `mcp_server.py`.
 
 ### Fixed
 
+- **`explain()` — kind-aware role labels** — a class with N callers was previously labeled a "Utility function" regardless of node kind. The role assessment now branches on `node.get("kind")` to pick a noun (`class` / `module` / `function`) and verb (`Constructed` / `Imported` / `Called`). `GraphStore` (9 callers) now correctly reads as **"Important class: Constructed 9 times (≥9 = top 2% of this codebase)"** instead of "Utility function: Called 9 time(s)…". Both the CLI and MCP surfaces inherit the fix via the new shared presenter.
+- **`explain()` — off-by-one in threshold comparisons** — the "High-value" and "Important" branches used `>` instead of `>=`, so a node sitting exactly at the top-5% / top-2% boundary fell through to the "Utility" branch. Now uses `>=`. Surfaced by GPT-5.4's PyCodeKG assessment (2026-05-02).
+
 ### Removed
+
+- **Duplicated `_explain_node()` from `cli/cmd_explain.py` and the inlined explain-rendering block from `mcp_server.py`** — ~322 lines of duplicated Markdown-rendering and role-classification logic, replaced by single-line delegations into `pycode_kg.explain.render_explain()`.
 
 ## [0.18.2] - 2026-05-01
 
