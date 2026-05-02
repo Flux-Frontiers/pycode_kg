@@ -678,7 +678,12 @@ class PyCodeKGAnalyzer:
                 module_path = module_path or "unknown"
                 incoming = list(incoming_map.get(module_path, set()))
                 outgoing = list(outgoing_map.get(module_path, set()))
-                cohesion = min(1.0, len(outgoing) / (len(incoming) + len(outgoing) + 1))
+                # Cohesion = incoming / (incoming + outgoing + 1).  Higher = more
+                # internally focused (many modules depend on it, few outward
+                # dependencies).  A leaf entry-point (e.g. mcp_server.py with
+                # incoming=0, outgoing=3) should score ~0, not 0.75.  The +1 in
+                # the denominator keeps the score finite for orphan modules.
+                cohesion = min(1.0, len(incoming) / (len(incoming) + len(outgoing) + 1))
                 counts = kind_counts.get(module_path, {})
                 self.module_metrics[module_path] = ModuleMetrics(
                     path=module_path,
@@ -1198,11 +1203,36 @@ class PyCodeKGAnalyzer:
         support ``query()``).  Degrades gracefully if the index is unavailable.
         """
 
-        CONCERNS = [
-            "configuration loading initialization setup",
-            "data persistence storage database",
-            "query search retrieval semantic",
-            "graph traversal node edge",
+        # Concern entries are (display_label, embedding_query) pairs.
+        #
+        # The query string seeds the vector index and benefits from verb anchors
+        # specific to the concern — pure noun phrases (e.g. "graph traversal
+        # node edge") collapse to whatever module mentions those nouns most,
+        # regardless of intent.  The "graph traversal" concern previously
+        # surfaced 3-D layout ``compute()`` methods because their docstrings
+        # happen to say "nodes" / "edges" / "graph"; adding ``expand`` /
+        # ``callers`` / ``neighbors`` anchors the query on store-traversal
+        # verbs that 3-D layout code does not contain.
+        #
+        # The display label is what shows up as the section heading in the
+        # report — kept short and human-readable, decoupled from the query.
+        CONCERNS: list[tuple[str, str]] = [
+            (
+                "configuration loading initialization setup",
+                "configuration loading initialization setup",
+            ),
+            (
+                "data persistence storage database",
+                "data persistence storage database",
+            ),
+            (
+                "query search retrieval semantic",
+                "query search retrieval semantic",
+            ),
+            (
+                "graph traversal node edge",
+                "graph expansion traverse callers neighbors edges from seeds",
+            ),
         ]
 
         try:
@@ -1221,7 +1251,7 @@ class PyCodeKGAnalyzer:
 
             results: list[dict] = []
 
-            for concern in CONCERNS:
+            for label, query in CONCERNS:
                 try:
                     # Get semantic scores from the vector index.
                     # Suppress tqdm progress bars from LanceDB embedding model loading.
@@ -1230,7 +1260,7 @@ class PyCodeKGAnalyzer:
                     _old_disable = _os.environ.get("TQDM_DISABLE")
                     _os.environ["TQDM_DISABLE"] = "1"
                     try:
-                        query_result = self.kg.query(concern, k=8, hop=0, rels=("CONTAINS",))
+                        query_result = self.kg.query(query, k=8, hop=0, rels=("CONTAINS",))
                     finally:
                         if _old_disable is None:
                             _os.environ.pop("TQDM_DISABLE", None)
@@ -1244,7 +1274,7 @@ class PyCodeKGAnalyzer:
                             semantic_scores[node_id] = float(score)
 
                     if not semantic_scores:
-                        logger.debug(f"No semantic seeds for concern: {concern!r}")
+                        logger.debug(f"No semantic seeds for concern: {label!r}")
                         continue
 
                     ranked = rank_query_hybrid(
@@ -1274,10 +1304,10 @@ class PyCodeKGAnalyzer:
                             break
 
                     if top_nodes:
-                        results.append({"concern": concern, "top_nodes": top_nodes})
+                        results.append({"concern": label, "top_nodes": top_nodes})
 
                 except (AttributeError, ValueError, RuntimeError) as e:
-                    logger.debug(f"Concern query failed for {concern!r}: {e}")
+                    logger.debug(f"Concern query failed for {label!r}: {e}")
 
             self.concern_analysis = results
             self._phase_result = f"{len(results)}/{len(CONCERNS)} concerns resolved"
