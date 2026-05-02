@@ -10,136 +10,171 @@
 [![Poetry](https://img.shields.io/endpoint?url=https://python-poetry.org/badge/v0.json)](https://python-poetry.org/)
 [![DOI](https://zenodo.org/badge/1202379010.svg)](https://zenodo.org/badge/latestdoi/1202379010)
 
-**PyCodeKG** — A Deterministic Knowledge Graph for Python Codebases
-with Semantic Indexing and Source-Grounded Snippet Packing
+# PyCodeKG — A Knowledge Graph for Python Codebases
 
-*Author: Eric G. Suchanek, PhD*
-*Flux-Frontiers, Liberty TWP, OH*
+**PyCodeKG turns a Python codebase into a deterministic, queryable knowledge graph — and uses it to produce architectural analyses you can act on, with or without an LLM in the loop.**
 
-[Technical Paper (PDF)](article/pycode_kg.pdf)
+It walks the AST of every module, class, function, and method in your repo, extracts the typed relationships that actually hold the code together (`CONTAINS`, `CALLS`, `IMPORTS`, `INHERITS`, `RESOLVES_TO`), and stores the result in SQLite. A LanceDB vector index sits alongside the graph so that *"authentication flow"* and *"verify_jwt"* both find the right place to start exploring. From there you can rank functions by structural importance, trace fan-in across import aliases, detect circular imports and dead code, render the call graph in 3D, snapshot metrics for diffing across releases, or hand the whole thing to Claude over MCP.
 
----
+The original motivation was simple: **produce thorough, defensible analyses of Python codebases that don't depend on inference**. Every result is computed from the AST and the graph — no model is asked to guess. When an LLM is present, it consumes the *same* grounded output as a structured context pack, and the hallucinations that plague "embed-the-repo" tools largely disappear.
 
-## Overview
+Everything runs on your laptop. No cloud APIs, no quotas, no source code leaving the machine.
 
-PyCodeKG constructs a **deterministic, explainable knowledge graph** from a Python codebase using static analysis. The graph captures structural relationships — definitions, calls, imports, and inheritance — directly from the Python AST, stores them in SQLite, and augments retrieval with vector embeddings via LanceDB.
-
-**No inference required.** The CLI is fully useful as a standalone analysis tool — every result is derived from structure, not generated. When used with AI agents, PyCodeKG gives them structurally-grounded answers: precise callers, real call chains, exact line numbers. Hallucination-resistant by design.
-
-Structure is treated as **ground truth**; semantic search is strictly an acceleration layer. The result is a searchable, auditable representation of a codebase that supports precise navigation, contextual snippet extraction, and downstream reasoning without hallucination.
-
-PyCodeKG uses the same architecture as [DocKG](https://github.com/Flux-Frontiers/doc_kg) but targets Python source code rather than document corpora.
+[Technical Paper (PDF)](article/pycode_kg.pdf) · *Author: Eric G. Suchanek, PhD — Flux-Frontiers, Liberty TWP, OH*
 
 ---
 
-## Features
+## Sister projects
 
-- **Static analysis pipeline** — Three-pass AST extraction: structure, call graph, data-flow
-- **Deterministic knowledge graph** — SQLite-backed canonical store with provenance-tracked edges
-- **Symbol resolution** — `RESOLVES_TO` edges bridge cross-module call sites via import aliases
-- **Hybrid query model** — Semantic seeding (LanceDB embeddings) + structural expansion (graph traversal)
-- **Source-grounded snippet packing** — Definition and call-site snippets with line numbers
-- **Precise fan-in lookup** — Two-phase reverse traversal resolving cross-module caller chains
-- **Temporal snapshots** — Save and diff graph metrics across commits and versions
-- **MCP server** — Nineteen tools for AI agent integration
-- **Streamlit web app** — Interactive graph browser, hybrid query UI, snippet pack explorer
-- **3-D visualizer** — PyVista/PyQt5 interactive graph explorer with FunnelLayout and timeline view
-- **Zero-config MCP setup** — Single-line installer configures Claude Code, Kilo Code, GitHub Copilot, and Cline
+PyCodeKG is part of a growing family of knowledge-graph systems that share the same hybrid semantic-plus-structural design — each one applies it to a different kind of corpus:
+
+- **[DocKG](https://github.com/Flux-Frontiers/doc_kg)** — Markdown and prose. Indexes PyCodeKG's own documentation, so the docs you're reading are themselves a queryable graph.
+- **[MetaboKG](https://github.com/Flux-Frontiers/metabo_kg)** — metabolic pathway data (KEGG, SBML, BioPAX), with FBA / ODE simulation on top of the graph.
+- **[DiaryKG](https://github.com/Flux-Frontiers/diary_kg)** — personal journals and diary corpora; semantic search and graph traversal over a writer's body of work.
+- **[FTreeKG](https://github.com/Flux-Frontiers/FTreeKG)** — filesystem trees as a queryable graph of directories, files, and contents.
+- **[AgentKG](https://github.com/Flux-Frontiers/agent_kg)** — conversational memory as a knowledge graph: turns, decisions, commitments, preferences, and the relationships between them.
+
+Together they form **KGRAG**, a federated retrieval layer where one query can span code, documentation, journals, filesystems, agent memory, and domain data simultaneously.
 
 ---
 
-## Installation
+## Two ways to use it
+
+PyCodeKG is designed to be useful at both ends — as a standalone command-line analysis tool, and as a structured context layer for AI agents.
+
+### 1. Standalone — `pycodekg analyze`
+
+This is the bread and butter. One command, one repo, one architectural report:
+
+```bash
+pycodekg build --repo .                              # one-time index
+pycodekg analyze .                                   # the report
+```
+
+`analyze` walks the graph and produces:
+
+- **Complexity hotspots** — high fan-in (broadly depended on, breaking-change risk) and high fan-out (orchestrators, refactoring candidates) functions, with risk levels
+- **Docstring coverage** — broken down by module, class, function, method
+- **Circular import cycles** — module loops that cause hard-to-debug failures
+- **Orphaned functions** — dead-code candidates with line counts (with caveats about entry points and reflection)
+- **Module coupling** — the import graph, with the most tightly coupled pairs called out
+- **Issues and strengths** — high-level callouts suitable for a design review or release note
+
+It writes a Markdown report for humans and a timestamped JSON snapshot for tooling, CI gates, and trend tracking. Reach for `analyze` before any non-trivial refactor, at every release, and whenever you inherit an unfamiliar codebase. Full reference: [docs/Analyze.md](docs/Analyze.md).
+
+```bash
+pycodekg analyze --quiet --json ~/.claude/pycodekg_analysis_latest.json
+jq '.docstring_coverage.total' ~/.claude/pycodekg_analysis_latest.json
+```
+
+### 2. Agentic — MCP server for grounded AI workflows
+
+Run `pycodekg mcp` and Claude (or any MCP-aware client) gets nineteen tools backed by the same graph: `graph_stats`, `query_codebase`, `pack_snippets`, `get_node`, `list_nodes`, `callers`, `explain`, `centrality`, `bridge_centrality`, `framework_nodes`, `analyze_repo`, `snapshot_list / show / diff`, and more. Setup for Claude Code, Claude Desktop, Kilo Code, Copilot, and Cline is a single line — see [docs/MCP.md](docs/MCP.md) and [docs/INSTALLATION.md](docs/INSTALLATION.md).
+
+The agent benefit isn't subtle. Tools like `pack_snippets` return *actual source* with line numbers and surrounding context; `callers` returns the *real* fan-in resolved across import aliases, not a regex's best guess. The agent stops fabricating function signatures and starts citing them. Multi-step workflows — *"find the auth path, list its callers, summarize what changes if I rename it"* — collapse from dozens of `grep`s and file reads into a handful of source-grounded calls.
+
+Independent assessments tend to put it the same way:
+
+> "PyCodeKG compresses a multi-step workflow — semantic search, graph expansion, caller tracing, snippet retrieval, and architectural summarization — into a small set of tools that are fast to invoke and easy to chain. In practice, it let me move from broad orientation to intent-driven discovery and then to structural validation without dropping down into manual grep or repeated file reads."
+> — *GPT-5 (via Cline)*
+
+> "What sets it apart from 'search the repo with embeddings' tools is the structural layer… Verdict: 4.5/5 — recommend without reservation for any non-trivial Python codebase."
+> — *Claude Opus 4.7*
+
+> "PyCodeKG is dramatically more effective than traditional grep/file-reading workflows. Unique value: hybrid search combining natural-language intent with precise structural relationships."
+> — *Claude Haiku 4.5*
+
+Full reports in [assessments/](assessments/).
+
+---
+
+## Get started in 60 seconds
 
 **Requirements:** Python ≥ 3.12, < 3.14
 
 ```bash
-# pip
-pip install pycode-kg
+pip install 'pycode-kg[viz,viz3d]'        # base + Streamlit + 3-D viewer
 
-# With Streamlit web visualizer
-pip install 'pycode-kg[viz]'
-
-# With 3-D visualizer (PyVista/PyQt5)
-pip install 'pycode-kg[viz3d]'
-
-# Poetry
-poetry add pycode-kg
+cd /path/to/your/repo
+pycodekg init --repo .                    # download model, build graph, install hooks, snapshot
+pycodekg analyze .                        # the architectural report
 ```
 
-> For the one-line skill installer (MCP config, Claude slash commands, git hooks) see [docs/INSTALLATION.md](docs/INSTALLATION.md).
+That's the recommended path. Variants (minimal install, MCP-only, contributor setup) are in [docs/INSTALLATION.md](docs/INSTALLATION.md). Every CLI subcommand is also exposed as a script alias (`pycodekg-analyze`, `pycodekg-build`, `pycodekg-mcp`, …) for use in Makefiles and Poetry projects.
 
 ---
 
-## Quick Start
+## How retrieval works
 
-```bash
-# Index your repo (SQLite + LanceDB in one step)
-pycodekg build --repo /path/to/repo
+Search is hybrid by design. A query like *"authentication flow"* runs in two phases:
 
-# Natural-language query
-pycodekg query "authentication flow"
+1. **Vector phase** — the query is embedded with a local sentence-transformer (cached after first download) and LanceDB returns the `k` closest functions, classes, and modules by cosine similarity.
+2. **Graph expansion phase** — each seed hit is expanded `hop` BFS steps along the typed edges (`CONTAINS`, `CALLS`, `IMPORTS`, `INHERITS`, `RESOLVES_TO`) so call chains and module relationships surface alongside the names that matched.
 
-# Source-grounded snippet pack — paste straight into an LLM prompt
-pycodekg pack "database connection setup" --format md --out context.md
+**Structure is treated as ground truth; the embeddings are strictly an acceleration layer.** When the graph and the vector index disagree, the graph wins. This is why fan-in lookups are accurate even for same-named symbols across modules — `RESOLVES_TO` edges bridge call sites through their import aliases, and `callers()` does a two-phase reverse traversal that grep simply cannot replicate.
 
-# Full architectural analysis
-pycodekg analyze /path/to/repo
-```
+The graph is built around four node kinds (module, class, function, method) and five edge relations. Schema and edge semantics are documented in [docs/CHEATSHEET.md](docs/CHEATSHEET.md).
 
 ---
 
-## Usage
+## What you can actually do with it
 
-### Build and query
+| If you want to… | Reach for | Detail |
+|---|---|---|
+| **Get a thorough architectural report** | `pycodekg analyze` | [docs/Analyze.md](docs/Analyze.md) |
+| **Generate a coherent architecture description** | `pycodekg architecture` | [docs/Architecture_usage.md](docs/Architecture_usage.md) |
+| **Track metrics across releases** | `pycodekg snapshot save / list / diff` | [docs/SNAPSHOTS.md](docs/SNAPSHOTS.md) |
+| **Identify the most structurally important code** | `pycodekg centrality` (SIR PageRank) | [docs/CODERANK.md](docs/CODERANK.md) |
+| **Pull source-grounded context for an LLM** | `pycodekg pack "..." --format md` | [docs/CHEATSHEET.md](docs/CHEATSHEET.md) |
+| **Run a hybrid semantic + structural query** | `pycodekg query "..."` | [docs/CHEATSHEET.md](docs/CHEATSHEET.md) |
+| **Browse the graph interactively** | `pycodekg viz` (Streamlit) | [docs/INSTALLATION.md](docs/INSTALLATION.md) |
+| **See call graphs in 3-D** | `pycodekg viz3d --layout funnel` | [docs/VIZ3D.md](docs/VIZ3D.md) |
+| **Wire it into Claude / Copilot / Cline** | `pycodekg mcp` | [docs/MCP.md](docs/MCP.md) |
 
-```bash
-pycodekg build --repo .                              # full build (SQLite + LanceDB)
-pycodekg build --repo . --include-dir src            # index a specific subtree
-pycodekg query "snapshot freshness comparison"       # hybrid semantic + structural search
-pycodekg pack "graph build pipeline" --format md     # snippet pack for LLM context
-```
-
-### Analyze codebase health
-
-```bash
-pycodekg analyze .                                   # full report + JSON snapshot
-```
-
-### Snapshots
-
-```bash
-pycodekg snapshot save 0.18.0                        # capture current metrics
-pycodekg snapshot list                               # list all snapshots
-pycodekg snapshot diff <key_a> <key_b>               # compare two versions
-```
-
-### Visualize
-
-```bash
-pycodekg viz                                         # Streamlit web app
-pycodekg viz3d --layout funnel                       # 3-D PyVista explorer
-pycodekg viz-timeline                                # metric history timeline
-```
-
-> Full flag reference: [docs/INSTALLATION.md](docs/INSTALLATION.md) · Query patterns: [docs/CHEATSHEET.md](docs/CHEATSHEET.md)
+If you only read one doc after this one, read [docs/Analyze.md](docs/Analyze.md) — that's where most of the day-to-day value lives.
 
 ---
 
-## What Agents Say
+## Architecture
 
-*From independent assessments run against PyCodeKG's own codebase. See [assessments/](assessments/) for full reports.*
+```
+src/pycode_kg/
+├── visitor.py                       # AST extraction (three-pass: structure, calls, dataflow)
+├── graph.py                         # GraphBuilder: file discovery + dispatch
+├── store.py                         # SQLite persistence + canonical edges
+├── index.py                         # LanceDB semantic index
+├── pycodekg.py                      # Public façade
+├── pycodekg_query.py                # Hybrid query
+├── pycodekg_snippet_packer.py       # Source-grounded packs
+├── pycodekg_thorough_analysis.py    # `analyze` engine
+├── architecture.py                  # `architecture` description generator
+├── ranking/                         # PageRank, bridge centrality, framework nodes
+├── snapshots.py                     # Temporal metric snapshots
+├── analysis/                        # Coupling, cycles, orphans, hotspots
+├── cli/                             # All `pycodekg-*` entry points
+├── mcp_server.py                    # MCP server (nineteen tools)
+├── app.py                           # Streamlit web app
+├── viz3d.py / layout3d.py           # PyVista/PyQt5 3-D viewer
+└── viz3d_timeline.py                # Metric history timeline
+```
 
-> "PyCodeKG compresses a multi-step workflow — semantic search, graph expansion, caller tracing, snippet retrieval, and architectural summarization — into a small set of tools that are fast to invoke and easy to chain. In practice, it let me move from broad orientation to intent-driven discovery and then to structural validation without dropping down into manual grep or repeated file reads."
-> — GPT-5 (via Cline)
+The MCP server, the CLI, and the Streamlit app are thin wrappers over the same store + index + ranking core — there is exactly one code path for each capability. The latest architectural deep-dive is in [docs/analysis_v0.18.2.md](docs/analysis_v0.18.2.md), produced (of course) by `pycodekg analyze` against this very repo.
 
-> "What sets it apart from 'search the repo with embeddings' tools is the structural layer… Verdict: 4.5/5 — recommend without reservation for any non-trivial Python codebase."
-> — Claude Opus 4.7
+---
 
-> "PyCodeKG is dramatically more effective than traditional grep/file-reading workflows. Unique value: hybrid search combining natural-language intent with precise structural relationships."
-> — Claude Haiku 4.5
+## Documentation map
 
-> "`pack_snippets()` provided source excerpts around each hit, making the code instantly readable. Context lines and relevance metadata obviated manual file open."
-> — Raptor Mini
+| Doc | What it covers |
+|---|---|
+| [docs/INSTALLATION.md](docs/INSTALLATION.md) | All install variants, MCP setup, contributor setup, troubleshooting |
+| [docs/Analyze.md](docs/Analyze.md) | The `analyze` command — every metric, every flag, interpretation guide |
+| [docs/Architecture_usage.md](docs/Architecture_usage.md) | Generating coherent architecture descriptions |
+| [docs/SNAPSHOTS.md](docs/SNAPSHOTS.md) | Temporal metric snapshots, diffing across releases |
+| [docs/CODERANK.md](docs/CODERANK.md) | SIR PageRank, bridge centrality, framework hubs |
+| [docs/MCP.md](docs/MCP.md) | MCP server setup for Claude / Kilo / Copilot / Cline, tool reference |
+| [docs/CHEATSHEET.md](docs/CHEATSHEET.md) | Every CLI flag and every MCP tool — one page |
+| [docs/VIZ3D.md](docs/VIZ3D.md) | The 3-D PyVista viewer and layouts |
+| [CHANGELOG.md](CHANGELOG.md) | Release history |
 
 ---
 
@@ -149,17 +184,13 @@ If you use PyCodeKG in your research or project, please cite it:
 
 [![DOI](https://zenodo.org/badge/1202379010.svg)](https://zenodo.org/badge/latestdoi/1202379010)
 
-**APA**
-
-> Suchanek, E. G. (2026). *PyCodeKG: Semantic Knowledge Graph for Python Codebases* (Version 0.18.0) [Software]. Flux-Frontiers. https://doi.org/10.5281/zenodo.19834777
-
-**BibTeX**
+> Suchanek, E. G. (2026). *PyCodeKG: A Knowledge Graph for Python Codebases* (Version 0.18.2) [Software]. Flux-Frontiers. https://doi.org/10.5281/zenodo.19834777
 
 ```bibtex
 @software{suchanek_pycode_kg,
   author    = {Suchanek, Eric G.},
-  title     = {{PyCodeKG}: Semantic Knowledge Graph for Python Codebases},
-  version   = {0.18.0},
+  title     = {{PyCodeKG}: A Knowledge Graph for Python Codebases},
+  version   = {0.18.2},
   year      = {2026},
   publisher = {Flux-Frontiers},
   url       = {https://github.com/Flux-Frontiers/pycode_kg},
@@ -172,3 +203,15 @@ If you use PyCodeKG in your research or project, please cite it:
 ## License
 
 [Elastic License 2.0](https://www.elastic.co/licensing/elastic-license) — free for non-commercial and internal use; commercial redistribution or hosting requires a license from Flux-Frontiers.
+
+---
+
+## Support & acknowledgments
+
+- **Issues** — [GitHub Issues](https://github.com/Flux-Frontiers/pycode_kg/issues)
+- Sister projects [DocKG](https://github.com/Flux-Frontiers/doc_kg) and [MetaboKG](https://github.com/Flux-Frontiers/metabo_kg)
+- LanceDB, sentence-transformers, PyVista, Streamlit, and FastMCP for the foundations
+
+---
+
+*Built for Python developers and AI agents that work alongside them — egs · Last updated May 2026*

@@ -2,13 +2,14 @@
   "servers": {
     "pycodekg": {
       "type": "stdio",
-      "command": "/Users/egs/repos/pycode_kg/.venv/bin/pycodekg",
+      "command": "/Users/egs/repos/pycode_kg/.venv/bin/pycodekg-mcp",
       "args": [
-        "mcp",
         "--repo",
         "/Users/egs/repos/pycode_kg",
         "--db",
-        "/Users/egs/repos/pycode_kg/.pycodekg/graph.sqlite"
+        "/Users/egs/repos/pycode_kg/.pycodekg/graph.sqlite",
+        "--lancedb",
+        "/Users/egs/repos/pycode_kg/.pycodekg/lancedb"
       ]
     }
   }
