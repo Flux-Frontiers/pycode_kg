@@ -11,6 +11,16 @@ Note: older entries preserve the API names used at that release (for example com
 
 ### Added
 
+### Changed
+
+### Fixed
+
+### Removed
+
+## [0.19.0] - 2026-05-02
+
+### Added
+
 - **`src/pycode_kg/explain.py` — shared `render_explain()` presenter** — single source of truth for the Markdown explanation rendered by the `pycodekg explain` CLI and the MCP `explain` tool. Both surfaces previously rendered independently and had drifted: the MCP version used relative thresholds (top-5%/2%) while the CLI used hard-coded `50`/`10`, and only the MCP version had the kind-aware role labels and orchestrator branch. Centralizing prevents future drift; the footer call-to-action is parameterized so MCP shows `pack_snippets()` and CLI shows `pycodekg pack`.
 - **`list_nodes(include_symbols=False)` parameter** — `mcp__pycodekg__list_nodes` now excludes `sym:` import-stub nodes by default; pass `include_symbols=True` to restore the previous noisy output. Module docstring and `FastMCP` instructions block updated to match.
 - **`tests/test_explain.py`** — six tests covering the presenter: not-found header, class-aware role labels (regression guard for the "Utility function" misclassification), zero-caller orphan branch, protocol-method dunder branch, parameterized footer hint, and standard-section smoke test.
