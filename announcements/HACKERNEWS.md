@@ -30,7 +30,7 @@ PyCodeKG inverts the priority: **structure is authoritative; semantics accelerat
 
 **For AI agents:** Precise, auditable code context. No hallucination. Every snippet is traceable.
 
-**For developers:** Interactive exploration. Streamlit web app for browsing. 3D graph visualizer. CLI for scripting.
+**For developers:** Interactive exploration. Streamlit web app for browsing. 3D graph visualizer (`viz3d`) — actively in development, functional but rough around the edges. CLI for scripting.
 
 **For enterprises:** A canonical, SQLite-backed store of code structure that supports deterministic reasoning, compliance auditing, and downstream tool integration.
 
@@ -55,31 +55,52 @@ PyCodeKG inverts the priority: **structure is authoritative; semantics accelerat
 
 ---
 
-## Quick Start
+## The Fast Win: `pycodekg analyze`
 
-**One-line installer** (runs inside your repo):
+Honest admission: this single command is the actual reason this project exists. I got tired of watching my LLM grep through `src/` every time I asked for a codebase analysis. So I built a proper 15-phase structural pipeline that runs in seconds and hands the LLM something it can actually reason about. I ran it against **numpy** and **matplotlib** for fun — the reports are in `analysis/` in the repo.
+
+One command, 15 analysis passes, seconds to run, Markdown output you can paste straight into Claude or ChatGPT for actionable improvement suggestions.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Flux-Frontiers/pycode_kg/main/scripts/install-skill.sh | bash
+pip install 'pycode-kg[viz,viz3d]'
+pycodekg init --repo .    # download model, build graph, install hooks, snapshot
+pycodekg analyze .        # the full report
 ```
 
-This sets up:
-- SQLite knowledge graph (`.pycodekg/graph.sqlite`)
-- LanceDB semantic index
-- MCP config for Claude Code, GitHub Copilot, Cline, or Claude Desktop
-- Skill files for integration
+> **Note:** First run downloads the embedder model — be patient. Subsequent runs are fast.
 
-**Build manually:**
+The pipeline runs these phases in order:
+
+| # | Phase | What it surfaces |
+|---|-------|-----------------|
+| 1 | Baseline metrics | Node/edge counts, graph shape |
+| 2 | CodeRank (global PageRank) | Structurally most important symbols |
+| 3 | Fan-in analysis | Heavily depended-on functions (breaking-change risk) |
+| 4 | Fan-out analysis | Orchestrators and complexity hotspots |
+| 5 | Dependency analysis | Orphaned / dead code candidates |
+| 6 | Pattern detection | Anti-patterns and structural red flags |
+| 7 | Module coupling | Tightly coupled pairs, import graph density |
+| 8 | Critical paths | Longest call chains, bottlenecks |
+| 9 | Public API identification | Exposed vs. internal surface |
+| 10 | Docstring coverage | By module, class, function, method |
+| 11 | Inheritance hierarchy | Depth, multiple inheritance, diamond patterns |
+| 12 | Insight synthesis | Issues + strengths callouts |
+| 13 | Snapshot history | Metric trends across releases |
+| 14 | Structural centrality (SIR) | Bridge nodes, graph removal impact |
+| 15 | Concern-based ranking | Nodes grouped by architectural concern |
+
+Every finding maps to a file and line number. The JSON output is CI-gate-ready; the Markdown output is LLM-ready.
+
+---
+
+## Quick Start
 
 ```bash
-pip install 'pycode-kg @ git+https://github.com/Flux-Frontiers/pycode_kg.git'
+pip install 'pycode-kg[viz,viz3d]'   # base + Streamlit + 3D viewer
 
-# Full pipeline in one step
-pycodekg build --repo /path/to/repo
-
-# Or step by step
-pycodekg build-sqlite --repo /path/to/repo
-pycodekg build-lancedb --repo /path/to/repo
+cd /path/to/your/repo
+pycodekg init --repo .               # download model, build graph, install hooks, snapshot
+pycodekg analyze .                   # architectural report
 ```
 
 **Query:**
@@ -104,7 +125,7 @@ pycodekg analyze .
 
 ```bash
 pycodekg viz          # Streamlit web app
-pycodekg viz3d        # 3D graph (PyVista)
+pycodekg viz3d        # 3D graph (PyVista) — actively in development, rough around the edges
 ```
 
 **Integrate with agents:**

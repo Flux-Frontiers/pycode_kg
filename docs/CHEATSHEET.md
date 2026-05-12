@@ -581,7 +581,59 @@ Both options are additive — CLI flags extend `pyproject.toml` excludes.
 
 ---
 
-## 14. This Codebase Live Stats
+## 14. Exercises and Practice
+
+Two companion resources cover all 19 tools hands-on:
+
+### `docs/exercises.md` — 10-part exercise guide
+
+Structured exercises covering every tool, with concrete calls, "what to notice"
+annotations, and follow-ups that chain results together. Parts:
+
+| Part | Focus |
+|---|---|
+| 1 | Orientation — `graph_stats`, `centrality`, `bridge_centrality`, `framework_nodes` |
+| 2 | Exploration — `query_codebase` (varied rels, hop depths) |
+| 3 | Source Reading — `pack_snippets` (context, k, max_per_module) |
+| 4 | Pinpoint Lookups — `get_node`, `find_node`, `find_definition_at` |
+| 5 | Fan-In and Explanations — `callers`, `explain`, `list_nodes` |
+| 6 | Structural Ranking — `rank_nodes`, `query_ranked`, `explain_rank` |
+| 7 | Architecture Analysis — `analyze_repo` |
+| 8 | Temporal Tracking — `snapshot_list`, `snapshot_show`, `snapshot_diff` |
+| 9 | Data Flow — `ATTR_ACCESS`, `RESOLVES_TO` edges |
+| 10 | Capstone — full refactor validation workflow (before/after `analyze_repo` + `snapshot_diff`) |
+
+### `scripts/exercise_runner.py` — live exercise runner
+
+Runs every tool in exercise order against a built repo and prints real output:
+
+```bash
+# Run against the current repo (graph must already be built)
+python scripts/exercise_runner.py
+
+# Run against any repo
+python scripts/exercise_runner.py --repo /path/to/repo
+
+# Build the graph first, then run all exercises
+python scripts/exercise_runner.py --build
+
+# Capture output for later review
+python scripts/exercise_runner.py > exercise_output.md
+```
+
+The runner extracts node IDs dynamically from early results so later exercises
+(callers, explain, find_definition_at) always operate on real nodes from the
+target repo — no hardcoded IDs.
+
+### `docs/case_study_refactor_validation.md` — worked example
+
+End-to-end case study using `gutenberg_kg`: shows how `analyze_repo()` independently
+validated a 400-line refactor in 3.6 s — confirming zero orphans, correct cohesion
+scores (0.50 for library modules, 0.25 for CLI modules), and an A/100 quality grade.
+
+---
+
+## 15. This Codebase Live Stats
 
 ```
 Nodes: 6,741   (class: 42 · function: 146 · method: 184 · module: 51 · symbol: 6,318)

@@ -103,7 +103,7 @@ The other issue is auditability. When an LLM tells you "the authentication flow 
 
 ## The Architecture in Brief
 
-![PyCodeKG layered architecture and build pipeline](../assets/codeKG_arch_banana.png)
+![PyCodeKG layered architecture and build pipeline](../assets/PyCodeKG_arch_banana.png)
 
 *Phase 1 (left): static AST extraction into SQLite. Phase 2 (centre): LanceDB semantic indexing. Right: hybrid query model — vector seeding followed by structural graph expansion into ranked, source-grounded results.*
 

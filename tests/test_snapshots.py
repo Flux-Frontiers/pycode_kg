@@ -1181,3 +1181,329 @@ def test_collect_module_node_counts_from_sqlite(snapshot_dir: Path, tmp_path: Pa
     mgr = SnapshotManager(snapshot_dir, db_path=db)
     counts = mgr._collect_module_node_counts()
     assert counts == {"src/a.py": 2, "src/b.py": 3}
+
+
+# ---------------------------------------------------------------------------
+# Typed-property layer: Snapshot.metrics / .vs_previous / .vs_baseline
+# ---------------------------------------------------------------------------
+
+
+def test_snapshot_metrics_property_returns_typed_dataclass(sample_metrics: SnapshotMetrics) -> None:
+    """Snapshot.metrics must return a SnapshotMetrics dataclass, not a raw dict."""
+    snap = Snapshot(
+        branch="main",
+        timestamp="2026-01-01T00:00:00+00:00",
+        version="1.0",
+        metrics=sample_metrics,
+        tree_hash="h1",
+    )
+    assert isinstance(snap.metrics, SnapshotMetrics)
+    assert snap.metrics.total_nodes == sample_metrics.total_nodes
+    assert snap.metrics.docstring_coverage == pytest.approx(sample_metrics.docstring_coverage)
+
+
+def test_snapshot_vs_previous_property_returns_typed_delta() -> None:
+    """Snapshot.vs_previous must return a SnapshotDelta, not a raw dict."""
+    delta_dict = {"nodes": 5, "edges": 10, "coverage_delta": 0.05, "critical_issues_delta": -1}
+    snap = Snapshot(
+        branch="main",
+        timestamp="2026-01-01T00:00:00+00:00",
+        version="1.0",
+        metrics=SnapshotMetrics(
+            total_nodes=10,
+            total_edges=20,
+            meaningful_nodes=8,
+            docstring_coverage=0.9,
+            node_counts={},
+            edge_counts={},
+            critical_issues=0,
+            complexity_median=1.0,
+        ),
+        tree_hash="h1",
+        vs_previous=delta_dict,
+    )
+    assert isinstance(snap.vs_previous, SnapshotDelta)
+    assert snap.vs_previous.nodes == 5
+    assert snap.vs_previous.coverage_delta == pytest.approx(0.05)
+    assert snap.vs_previous.critical_issues_delta == -1
+
+
+def test_snapshot_vs_baseline_none_when_unset() -> None:
+    """Snapshot.vs_baseline must be None when not provided."""
+    snap = Snapshot(
+        branch="main",
+        timestamp="2026-01-01T00:00:00+00:00",
+        version="1.0",
+        metrics=SnapshotMetrics(
+            total_nodes=10,
+            total_edges=20,
+            meaningful_nodes=8,
+            docstring_coverage=0.9,
+            node_counts={},
+            edge_counts={},
+            critical_issues=0,
+            complexity_median=1.0,
+        ),
+        tree_hash="h1",
+    )
+    assert snap.vs_baseline is None
+
+
+def test_snapshot_metrics_setter_accepts_dict() -> None:
+    """Setting Snapshot.metrics to a plain dict stores it transparently."""
+    snap = Snapshot(
+        branch="main",
+        timestamp="2026-01-01T00:00:00+00:00",
+        version="1.0",
+        metrics={
+            "total_nodes": 5,
+            "total_edges": 8,
+            "meaningful_nodes": 4,
+            "docstring_coverage": 0.5,
+            "node_counts": {},
+            "edge_counts": {},
+            "critical_issues": 0,
+            "complexity_median": 0.0,
+            "module_node_counts": {},
+        },
+        tree_hash="h1",
+    )
+    assert isinstance(snap.metrics, SnapshotMetrics)
+    assert snap.metrics.total_nodes == 5
+
+
+# ---------------------------------------------------------------------------
+# save_snapshot dedup and force
+# ---------------------------------------------------------------------------
+
+
+def _minimal_snap(
+    mgr: SnapshotManager, *, nodes: int, tree_hash: str, version: str = "1.0", branch: str = "main"
+) -> Snapshot:
+    return mgr.capture(
+        version=version,
+        branch=branch,
+        tree_hash=tree_hash,
+        graph_stats_dict={
+            "total_nodes": nodes,
+            "total_edges": nodes * 2,
+            "meaningful_nodes": nodes,
+            "node_counts": {},
+            "edge_counts": {},
+        },
+    )
+
+
+def test_save_dedup_refresh_same_version_same_metrics(snapshot_dir: Path) -> None:
+    """Saving identical version+metrics under a new hash refreshes the manifest entry."""
+    mgr = SnapshotManager(snapshot_dir)
+    s1 = _minimal_snap(mgr, nodes=100, tree_hash="h1")
+    mgr.save_snapshot(s1)
+    s2 = _minimal_snap(mgr, nodes=100, tree_hash="h2")  # same metrics
+    mgr.save_snapshot(s2)
+    manifest = mgr.load_manifest()
+    assert len(manifest.snapshots) == 1, "dedup must keep only one entry"
+    assert manifest.snapshots[0]["key"] == "h2"
+
+
+def test_save_force_bypasses_dedup(snapshot_dir: Path) -> None:
+    """save_snapshot(force=True) always creates a new manifest entry."""
+    mgr = SnapshotManager(snapshot_dir)
+    s1 = _minimal_snap(mgr, nodes=100, tree_hash="h1")
+    mgr.save_snapshot(s1)
+    s2 = _minimal_snap(mgr, nodes=100, tree_hash="h2")
+    mgr.save_snapshot(s2, force=True)
+    assert len(mgr.load_manifest().snapshots) == 2
+
+
+def test_save_different_metrics_creates_new_entry(snapshot_dir: Path) -> None:
+    """Changing any metric (nodes, coverage, etc.) must produce a new history entry."""
+    mgr = SnapshotManager(snapshot_dir)
+    s1 = _minimal_snap(mgr, nodes=100, tree_hash="h1")
+    mgr.save_snapshot(s1)
+    s2 = _minimal_snap(mgr, nodes=150, tree_hash="h2")  # node count changed
+    mgr.save_snapshot(s2)
+    assert len(mgr.load_manifest().snapshots) == 2
+
+
+# ---------------------------------------------------------------------------
+# prune_snapshots
+# ---------------------------------------------------------------------------
+
+
+def _save_seq(mgr: SnapshotManager, specs: list[dict]) -> None:
+    """Save a sequence of snapshots from spec dicts (nodes, tree_hash, version)."""
+    for spec in specs:
+        snap = Snapshot(
+            branch="main",
+            timestamp=spec["ts"],
+            version=spec.get("version", "1.0"),
+            metrics=SnapshotMetrics(
+                total_nodes=spec["nodes"],
+                total_edges=spec["nodes"] * 2,
+                meaningful_nodes=spec["nodes"],
+                docstring_coverage=0.8,
+                node_counts={},
+                edge_counts={},
+                critical_issues=0,
+                complexity_median=1.0,
+            ),
+            tree_hash=spec["hash"],
+        )
+        mgr.save_snapshot(snap, force=True)
+
+
+def test_prune_dry_run_changes_nothing(snapshot_dir: Path) -> None:
+    """prune_snapshots(dry_run=True) must not delete any files or manifest entries."""
+    mgr = SnapshotManager(snapshot_dir)
+    _save_seq(
+        mgr,
+        [
+            {"nodes": 100, "hash": "h0", "ts": "2026-01-01T00:00:00+00:00"},
+            {"nodes": 100, "hash": "h1", "ts": "2026-01-02T00:00:00+00:00"},  # duplicate
+            {"nodes": 200, "hash": "h2", "ts": "2026-01-03T00:00:00+00:00"},
+        ],
+    )
+    result = mgr.prune_snapshots(dry_run=True)
+    assert result.dry_run is True
+    assert len(mgr.load_manifest().snapshots) == 3, "dry_run must not mutate manifest"
+
+
+def test_prune_removes_metric_duplicate_interior(snapshot_dir: Path) -> None:
+    """Metric-duplicate interior entries (same nodes+edges as predecessor) are pruned."""
+    mgr = SnapshotManager(snapshot_dir)
+    _save_seq(
+        mgr,
+        [
+            {"nodes": 100, "hash": "h0", "ts": "2026-01-01T00:00:00+00:00"},
+            {"nodes": 100, "hash": "h1", "ts": "2026-01-02T00:00:00+00:00"},  # duplicate interior
+            {"nodes": 200, "hash": "h2", "ts": "2026-01-03T00:00:00+00:00"},
+        ],
+    )
+    result = mgr.prune_snapshots()
+    assert "h1" in result.removed
+    keys = {e["key"] for e in mgr.load_manifest().snapshots}
+    assert "h1" not in keys
+    assert "h0" in keys  # baseline preserved
+    assert "h2" in keys  # latest preserved
+
+
+def test_prune_preserves_baseline_and_latest(snapshot_dir: Path) -> None:
+    """Baseline (oldest) and latest entries are never pruned even if metrics match."""
+    mgr = SnapshotManager(snapshot_dir)
+    _save_seq(
+        mgr,
+        [
+            {"nodes": 100, "hash": "base", "ts": "2026-01-01T00:00:00+00:00"},
+            {"nodes": 100, "hash": "last", "ts": "2026-01-02T00:00:00+00:00"},
+        ],
+    )
+    result = mgr.prune_snapshots()
+    assert "base" not in result.removed
+    assert "last" not in result.removed
+
+
+def test_prune_removes_orphaned_json_files(snapshot_dir: Path) -> None:
+    """JSON files in the snapshots directory with no manifest entry must be deleted."""
+    mgr = SnapshotManager(snapshot_dir)
+    _save_seq(mgr, [{"nodes": 100, "hash": "h0", "ts": "2026-01-01T00:00:00+00:00"}])
+    orphan = mgr.snapshots_dir / "orphan_deadbeef.json"
+    orphan.write_text('{"key": "orphan"}')
+    result = mgr.prune_snapshots()
+    assert "orphan_deadbeef.json" in result.orphaned_files
+    assert not orphan.exists()
+
+
+def test_prune_cleans_broken_manifest_entries(snapshot_dir: Path) -> None:
+    """Manifest entries whose JSON file is missing are marked broken and removed."""
+    mgr = SnapshotManager(snapshot_dir)
+    _save_seq(mgr, [{"nodes": 100, "hash": "h0", "ts": "2026-01-01T00:00:00+00:00"}])
+    manifest = mgr.load_manifest()
+    manifest.snapshots.append(
+        {
+            "key": "ghost",
+            "branch": "main",
+            "timestamp": "2020-01-01T00:00:00+00:00",
+            "file": "ghost.json",
+            "version": "0.1",
+            "metrics": {},
+        }
+    )
+    mgr._save_manifest(manifest)
+    result = mgr.prune_snapshots()
+    assert "ghost" in result.broken_entries
+
+
+# ---------------------------------------------------------------------------
+# diff_snapshots — issues_delta (introduced / resolved)
+# ---------------------------------------------------------------------------
+
+
+def test_diff_snapshots_issues_delta_introduced(snapshot_dir: Path) -> None:
+    """diff_snapshots must report issues present in B but not A as 'introduced'."""
+    mgr = SnapshotManager(snapshot_dir)
+
+    def _snap_with_issues(nodes, tree_hash, ts, issues):
+        snap = Snapshot(
+            branch="main",
+            timestamp=ts,
+            version="1.0",
+            metrics=SnapshotMetrics(
+                total_nodes=nodes,
+                total_edges=nodes * 2,
+                meaningful_nodes=nodes,
+                docstring_coverage=0.9,
+                node_counts={},
+                edge_counts={},
+                critical_issues=len(issues),
+                complexity_median=1.0,
+            ),
+            tree_hash=tree_hash,
+            issues=issues,
+        )
+        mgr.save_snapshot(snap, force=True)
+        return snap
+
+    _snap_with_issues(100, "a", "2026-01-01T00:00:00+00:00", ["orphan module: foo"])
+    _snap_with_issues(
+        120, "b", "2026-01-02T00:00:00+00:00", ["orphan module: foo", "high coupling: bar"]
+    )
+
+    diff = mgr.diff_snapshots("a", "b")
+    assert "issues_delta" in diff
+    assert "high coupling: bar" in diff["issues_delta"]["introduced"]
+    assert "orphan module: foo" not in diff["issues_delta"]["introduced"]
+
+
+def test_diff_snapshots_issues_delta_resolved(snapshot_dir: Path) -> None:
+    """diff_snapshots must report issues present in A but not B as 'resolved'."""
+    mgr = SnapshotManager(snapshot_dir)
+
+    def _snap_with_issues(nodes, tree_hash, ts, issues):
+        snap = Snapshot(
+            branch="main",
+            timestamp=ts,
+            version="1.0",
+            metrics=SnapshotMetrics(
+                total_nodes=nodes,
+                total_edges=nodes * 2,
+                meaningful_nodes=nodes,
+                docstring_coverage=0.9,
+                node_counts={},
+                edge_counts={},
+                critical_issues=len(issues),
+                complexity_median=1.0,
+            ),
+            tree_hash=tree_hash,
+            issues=issues,
+        )
+        mgr.save_snapshot(snap, force=True)
+
+    _snap_with_issues(
+        100, "a", "2026-01-01T00:00:00+00:00", ["orphan module: foo", "high coupling: bar"]
+    )
+    _snap_with_issues(120, "b", "2026-01-02T00:00:00+00:00", ["orphan module: foo"])
+
+    diff = mgr.diff_snapshots("a", "b")
+    assert "high coupling: bar" in diff["issues_delta"]["resolved"]
+    assert "orphan module: foo" not in diff["issues_delta"]["resolved"]

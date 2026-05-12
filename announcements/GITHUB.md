@@ -1,4 +1,4 @@
-# 🎉 PyCodeKG v0.5.2 — Public Release
+# 🎉 PyCodeKG v0.19.0 — Public Release
 
 We're thrilled to announce **PyCodeKG** is now publicly available.
 
@@ -36,7 +36,8 @@ PyCodeKG constructs an auditable knowledge graph from Python source code using *
 ✅ **Source-grounded snippets** — Definition and call-site code with line numbers
 ✅ **Precise fan-in lookup** — Find all callers of a function across modules
 ✅ **MCP server** — Five tools for AI agent integration
-✅ **Interactive visualizers** — Streamlit web app + 3D PyVista graph
+✅ **Streamlit visualizer** — interactive web app for browsing the graph
+🚧 **3D PyVista graph** (`viz3d`) — actively in development; functional but still rough around the edges
 ✅ **One-line installer** — Automated setup for Claude Code, GitHub Copilot, Cline, Continue
 ✅ **Elastic License 2.0** — Free to use, modify, distribute; no hosted service reselling
 
@@ -44,41 +45,64 @@ PyCodeKG constructs an auditable knowledge graph from Python source code using *
 
 ## Quick Start
 
-### Fastest Way (One-Liner)
-
-Run this from inside your Python repository:
-
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Flux-Frontiers/pycode_kg/main/scripts/install-skill.sh | bash
+pip install 'pycode-kg[viz,viz3d]'   # base + Streamlit + 3D viewer
+
+cd /path/to/your/repo
+pycodekg init --repo .               # download model, build graph, install hooks, snapshot
+pycodekg analyze .                   # the architectural report
 ```
 
-The installer:
-1. Installs the `pycode-kg` package
-2. Builds the SQLite knowledge graph (`.pycodekg/graph.sqlite`)
-3. Builds the LanceDB semantic index
-4. Configures MCP for your IDE (Claude Code, GitHub Copilot, Cline, Continue)
-5. Sets up CLI commands and skill files
-
-After setup, reload VS Code (`Cmd+Shift+P` → `Developer: Reload Window`) to activate.
-
-### Manual Installation
+MCP-only (no visualizers):
 
 ```bash
-pip install 'pycode-kg @ git+https://github.com/Flux-Frontiers/pycode_kg.git'
-# or in Poetry:
-poetry add 'pycode-kg @ git+https://github.com/Flux-Frontiers/pycode_kg.git'
+pip install pycode-kg
+pycodekg init --repo .
+pycodekg mcp --repo .
 ```
 
-Build the graph:
+Poetry:
 
 ```bash
-# Full pipeline in one step
-pycodekg build --repo /path/to/repo
-
-# Or step by step
-pycodekg-build-sqlite --repo /path/to/repo
-pycodekg-build-lancedb --repo /path/to/repo
+poetry add 'pycode-kg[viz,viz3d]'
 ```
+
+---
+
+## The Fast Win: `pycodekg analyze`
+
+This single command is the actual reason PyCodeKG exists. The author got tired of LLMs grepping through `src/` every time they asked for a codebase analysis — so a proper 15-phase structural pipeline was built instead. It runs in seconds and hands the LLM something it can actually reason about. It's been run against **numpy** and **matplotlib**; the reports live in `analysis/` if you want to see what real-world output looks like.
+
+```bash
+pycodekg init --repo .    # first time: downloads embedder, builds graph, installs hooks
+pycodekg analyze .        # the full report
+# optional: save JSON for CI/trend tracking
+pycodekg analyze --json ~/.claude/pycodekg_analysis_latest.json
+```
+
+> **Note:** First run downloads the embedder model — be patient. Subsequent runs are fast.
+
+### The 15-Phase Pipeline
+
+| # | Phase | What it surfaces |
+|---|-------|-----------------|
+| 1 | Baseline metrics | Node/edge counts, graph shape |
+| 2 | CodeRank (global PageRank) | Structurally most important symbols |
+| 3 | Fan-in analysis | Heavily depended-on functions (breaking-change risk) |
+| 4 | Fan-out analysis | Orchestrators and complexity hotspots |
+| 5 | Dependency analysis | Orphaned / dead code candidates |
+| 6 | Pattern detection | Anti-patterns and structural red flags |
+| 7 | Module coupling | Tightly coupled pairs, import graph density |
+| 8 | Critical paths | Longest call chains, bottlenecks |
+| 9 | Public API identification | Exposed vs. internal surface |
+| 10 | Docstring coverage | By module, class, function, method |
+| 11 | Inheritance hierarchy | Depth, multiple inheritance, diamond patterns |
+| 12 | Insight synthesis | Issues + strengths callouts |
+| 13 | Snapshot history | Metric trends across releases |
+| 14 | Structural centrality (SIR) | Bridge nodes, graph removal impact |
+| 15 | Concern-based ranking | Nodes grouped by architectural concern |
+
+Every finding maps to a file and line number. No hallucinated signatures. Drop the Markdown into your favorite LLM and say *"here's my codebase — what should I fix first?"*
 
 ---
 
@@ -104,7 +128,7 @@ pycodekg pack "configuration loading" --out context_pack.md
 # Streamlit web app
 pycodekg viz
 
-# 3D graph visualizer
+# 3D graph visualizer (actively in development — functional but rough around the edges)
 pycodekg viz3d --layout allium
 ```
 

@@ -1,8 +1,8 @@
 # PyCodeKG Agent Assessment Protocol
 
-**Author:** Eric G. Suchanek, PhD <suchanek@mac.com>
+**Author:** Eric G. Suchanek, PhD <suchanek@flux-frontiers.com>
 **Repository:** https://github.com/Flux-Frontiers/pycode_kg.git
-**Testing Platform: 2024 M3 Max, Macbook Pro, 36GB RAM, 1TB SSD**
+**Testing Platform: 2025 M5 Max, Macbook Pro, 64GB RAM, 2TB SSD**
 
 ---
 

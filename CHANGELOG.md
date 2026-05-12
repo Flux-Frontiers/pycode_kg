@@ -11,11 +11,19 @@ Note: older entries preserve the API names used at that release (for example com
 
 ### Added
 
+- **`docs/exercises.md` + `scripts/exercise_runner.py`** — guided exercise set and runner script for hands-on PyCodeKG exploration; covers orientation, query, pack, callers, analyze, and snapshot workflows.
+- **`docs/case_study_refactor_validation.md`** — case study documenting the refactor validation workflow using PyCodeKG snapshots and structural analysis.
+- **Six new metric snapshots** in `.pycodekg/snapshots/` — temporal coverage extended with snapshots from earlier in the v0.19.0 cycle.
+
 ### Changed
+
+- **`README.md` — `pycodekg analyze` section expanded** — replaced the bullet-list summary with the full 15-phase pipeline table (baseline → CodeRank → fan-in/out → dependencies → patterns → coupling → critical paths → public API → docstring coverage → inheritance → insights → snapshots → centrality → concern ranking); added personal origin note and numpy/matplotlib anecdote; added viz3d active-development caveat to the feature table.
+- **Announcements updated to v0.19.0** — all three announcement files (`GITHUB.md`, `HACKERNEWS.md`, `REDDIT.md`) now reference the current version, use `pip install pycode-kg` instead of stale git-URL installs, lead with the 15-phase analyze pipeline, and note that `viz3d` is actively in development.
+- **Asset files renamed** — `assets/codeKG_arch_*.{png,jpg}` renamed to `assets/PyCodeKG_arch_*` (four files: `_9x16.png`, `_banana.png`, `_square-web.jpg`, `_square.png`) for naming consistency; references updated in `article/pycode_kg.tex` and `article/pycode_kg_medium.md`.
 
 ### Fixed
 
-### Removed
+- **`scripts/exercise_runner.py`** — removed unused `snap_keys: list[str] = []` local variable (ruff F841).
 
 ## [0.19.0] - 2026-05-02
 

@@ -5,7 +5,7 @@
 
 [![Python](https://img.shields.io/badge/python-3.12%20%7C%203.13-blue.svg)](https://www.python.org/)
 [![License: Elastic-2.0](https://img.shields.io/badge/License-Elastic%202.0-blue.svg)](https://www.elastic.co/licensing/elastic-license)
-[![Version](https://img.shields.io/badge/version-0.19.0-blue.svg)](https://github.com/Flux-Frontiers/pycode_kg/releases)
+[![Version](https://img.shields.io/badge/version-0.19.1-blue.svg)](https://github.com/Flux-Frontiers/pycode_kg/releases)
 [![CI](https://github.com/Flux-Frontiers/pycode_kg/actions/workflows/ci.yml/badge.svg)](https://github.com/Flux-Frontiers/pycode_kg/actions/workflows/ci.yml)
 [![Poetry](https://img.shields.io/endpoint?url=https://python-poetry.org/badge/v0.json)](https://python-poetry.org/)
 [![DOI](https://zenodo.org/badge/1202379010.svg)](https://zenodo.org/badge/latestdoi/1202379010)
@@ -44,23 +44,40 @@ PyCodeKG is designed to be useful at both ends — as a standalone command-line 
 
 ### 1. Standalone — `pycodekg analyze`
 
-This is the bread and butter. One command, one repo, one architectural report:
+This single command is the actual reason I wrote this module. I got tired of my LLM doing grep on my src/ in order to get a good analysis of the codebase. This command runs fifteen analysis passes in seconds and the output drops straight into your favorite coding LLM for targeted improvement suggestions. I used this process to iteratively improve PyCodeKG and several of the analysis passes were added as a result.
+
+The analysis/ has files *_analysis_<date>.md - I ran PyCodeKG against **numpy** and **matplotlib** for fun.
 
 ```bash
+pycodekg init                                        # downloads embedder
 pycodekg build --repo .                              # one-time index
-pycodekg analyze .                                   # the report
+pycodekg analyze.                                    # the full report
 ```
 
-`analyze` walks the graph and produces:
+**Note**
+The first-time run can take some time to warm up. Be patient.
 
-- **Complexity hotspots** — high fan-in (broadly depended on, breaking-change risk) and high fan-out (orchestrators, refactoring candidates) functions, with risk levels
-- **Docstring coverage** — broken down by module, class, function, method
-- **Circular import cycles** — module loops that cause hard-to-debug failures
-- **Orphaned functions** — dead-code candidates with line counts (with caveats about entry points and reflection)
-- **Module coupling** — the import graph, with the most tightly coupled pairs called out
-- **Issues and strengths** — high-level callouts suitable for a design review or release note
+The 15-phase pipeline runs in sequence and surfaces several important metrics:
 
-It writes a Markdown report for humans and a timestamped JSON snapshot for tooling, CI gates, and trend tracking. Reach for `analyze` before any non-trivial refactor, at every release, and whenever you inherit an unfamiliar codebase. Full reference: [docs/Analyze.md](docs/Analyze.md).
+| # | Phase | What it surfaces |
+|---|-------|-----------------|
+| 1 | Baseline metrics | Node/edge counts, graph shape |
+| 2 | CodeRank (global PageRank) | Structurally most important symbols |
+| 3 | Fan-in analysis | Heavily depended-on functions (breaking-change risk) |
+| 4 | Fan-out analysis | Orchestrators and complexity hotspots |
+| 5 | Dependency analysis | Orphaned / dead code candidates |
+| 6 | Pattern detection | Anti-patterns and structural red flags |
+| 7 | Module coupling | Tightly coupled pairs, import graph density |
+| 8 | Critical paths | Longest call chains, bottlenecks |
+| 9 | Public API identification | Exposed vs. internal surface |
+| 10 | Docstring coverage | By module, class, function, method |
+| 11 | Inheritance hierarchy | Depth, multiple inheritance, diamond patterns |
+| 12 | Insight synthesis | Issues + strengths callouts |
+| 13 | Snapshot history | Metric trends across releases |
+| 14 | Structural centrality (SIR) | Bridge nodes, graph removal impact |
+| 15 | Concern-based ranking | Nodes grouped by architectural concern |
+
+Every finding maps to a file and line number — no hallucinated signatures, no probabilistic guesses. The Markdown output is LLM-ready; the JSON snapshot is CI-gate-ready. Reach for `analyze` before any non-trivial refactor, at every release, and whenever you inherit an unfamiliar codebase. Full reference: [docs/Analyze.md](docs/Analyze.md).
 
 ```bash
 pycodekg analyze --quiet --json ~/.claude/pycodekg_analysis_latest.json
@@ -117,7 +134,7 @@ The graph is built around four node kinds (module, class, function, method) and 
 
 ---
 
-## What you can actually do with it
+## What you can do with it
 
 | If you want to… | Reach for | Detail |
 |---|---|---|
@@ -128,7 +145,7 @@ The graph is built around four node kinds (module, class, function, method) and 
 | **Pull source-grounded context for an LLM** | `pycodekg pack "..." --format md` | [docs/CHEATSHEET.md](docs/CHEATSHEET.md) |
 | **Run a hybrid semantic + structural query** | `pycodekg query "..."` | [docs/CHEATSHEET.md](docs/CHEATSHEET.md) |
 | **Browse the graph interactively** | `pycodekg viz` (Streamlit) | [docs/INSTALLATION.md](docs/INSTALLATION.md) |
-| **See call graphs in 3-D** | `pycodekg viz3d --layout funnel` | [docs/VIZ3D.md](docs/VIZ3D.md) |
+| **See call graphs in 3-D** *(active development — functional but rough)* | `pycodekg viz3d --layout funnel` | [docs/VIZ3D.md](docs/VIZ3D.md) |
 | **Wire it into Claude / Copilot / Cline** | `pycodekg mcp` | [docs/MCP.md](docs/MCP.md) |
 
 If you only read one doc after this one, read [docs/Analyze.md](docs/Analyze.md) — that's where most of the day-to-day value lives.
