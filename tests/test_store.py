@@ -10,7 +10,7 @@ import json
 import textwrap
 from pathlib import Path
 
-from pycode_kg.pycodekg import extract_repo
+from pycode_kg.module.extractor import EdgeSpec, NodeSpec, PyCodeKGExtractor
 from pycode_kg.store import GraphStore, ProvMeta
 
 
@@ -23,10 +23,17 @@ def _make_store(tmp_path: Path, files: dict) -> GraphStore:
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(textwrap.dedent(src))
 
-    nodes, edges = extract_repo(repo)
+    extractor = PyCodeKGExtractor(repo)
+    node_specs: list[NodeSpec] = []
+    edge_specs: list[EdgeSpec] = []
+    for item in extractor.extract():
+        if isinstance(item, NodeSpec):
+            node_specs.append(item)
+        else:
+            edge_specs.append(item)
     db = tmp_path / "pycodekg.sqlite"
     store = GraphStore(db)
-    store.write(nodes, edges, wipe=True)
+    store.write(node_specs, edge_specs, wipe=True)
     return store
 
 
@@ -97,13 +104,20 @@ def test_store_upsert_idempotent(tmp_path):
     repo = tmp_path / "repo"
     repo.mkdir()
     (repo / "mod.py").write_text("def foo(): pass\n")
-    nodes, edges = extract_repo(repo)
+    extractor = PyCodeKGExtractor(repo)
+    node_specs: list[NodeSpec] = []
+    edge_specs: list[EdgeSpec] = []
+    for item in extractor.extract():
+        if isinstance(item, NodeSpec):
+            node_specs.append(item)
+        else:
+            edge_specs.append(item)
 
     db = tmp_path / "pycodekg.sqlite"
     store = GraphStore(db)
-    store.write(nodes, edges)
+    store.write(node_specs, edge_specs)
     count1 = store.stats()["total_nodes"]
-    store.write(nodes, edges)  # write again — should upsert, not duplicate
+    store.write(node_specs, edge_specs)  # write again — should upsert, not duplicate
     count2 = store.stats()["total_nodes"]
     assert count1 == count2
     store.close()

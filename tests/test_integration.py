@@ -20,7 +20,6 @@ from pathlib import Path
 
 import pytest
 
-from pycode_kg.graph import CodeGraph
 from pycode_kg.index import (
     SeedHit,
     SemanticIndex,
@@ -139,10 +138,18 @@ def test_ste_real_similar_texts_closer_than_dissimilar(real_embedder):
 
 def _build_store_and_index(tmp_path: Path, sample_repo: Path, embedder) -> tuple:
     """Extract graph, write to SQLite, build LanceDB index. Returns (store, idx)."""
-    graph = CodeGraph(sample_repo)
-    nodes, edges = graph.extract(force=True).result()
+    from pycode_kg.module.extractor import EdgeSpec, NodeSpec, PyCodeKGExtractor
+
+    extractor = PyCodeKGExtractor(sample_repo)
+    node_specs: list[NodeSpec] = []
+    edge_specs: list[EdgeSpec] = []
+    for item in extractor.extract():
+        if isinstance(item, NodeSpec):
+            node_specs.append(item)
+        else:
+            edge_specs.append(item)
     store = GraphStore(tmp_path / "graph.sqlite")
-    store.write(nodes, edges, wipe=True)
+    store.write(node_specs, edge_specs, wipe=True)
     idx = SemanticIndex(tmp_path / "ldb", embedder=embedder)
     idx.build(store)
     return store, idx

@@ -562,7 +562,7 @@ class _FakeEmbedder(Embedder):
 
 def test_pycodekg_embedder_property_lazy_init(tmp_path):
     fake_emb = _FakeEmbedder()
-    with patch("pycode_kg.module.base.SentenceTransformerEmbedder", return_value=fake_emb):
+    with patch("kg_utils.pipeline.SentenceTransformerEmbedder", return_value=fake_emb):
         kg = PyCodeKG(tmp_path, tmp_path / "db.sqlite", tmp_path / "ldb")
         emb = kg.embedder
         assert emb is fake_emb

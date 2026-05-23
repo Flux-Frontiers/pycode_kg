@@ -43,11 +43,6 @@
 requires = ["poetry-core>=2.0.0"]
 build-backend = "poetry.core.masonry.api"
 
-[[tool.poetry.source]]
-name = "testpypi"
-url = "https://test.pypi.org/simple/"
-priority = "supplemental"
-
 [tool.poetry]
 packages = [{ include = "pycode_kg", from = "src" }]
 
@@ -66,7 +61,7 @@ ruff = ">=0.4.0"
 # ---------------------------------------------------------------------------
 [project]
 name = "pycode-kg"
-version = "0.19.1"
+version = "0.19.2"
 description = "A tool to build a searchable knowledge graph from Python repositories"
 readme = "README.md"
 license = "Elastic-2.0"
@@ -86,7 +81,6 @@ classifiers = [
 requires-python = ">=3.12,<3.14"
 dependencies = [
     "click>=8.1.0,<9",
-    "lancedb>=0.29.0",
     "mcp>=1.0.0",
     "numpy>=1.24.0",
     "pandas>=2.0.0",
@@ -95,7 +89,7 @@ dependencies = [
     "sentence-transformers>=5.4.1",
     "torch>=2.5.1",
     "transformers>=4.40.0,<4.57",
-    "kgmodule-utils>=0.2.1",
+    "kgmodule-utils[semantic]>=0.3.1",
 ]
 
 [project.optional-dependencies]
@@ -108,7 +102,7 @@ dev = [
     "pytest>=8.0.0",
     "pytest-cov>=5.0.0",
     "ruff>=0.4.0",
-    "doc-kg>=0.11.0",
+    "doc-kg>=0.15.2",
     # agent-kg not yet on PyPI — install manually: pip install git+https://github.com/Flux-Frontiers/agent_kg.git
 ]
 viz = [
@@ -127,7 +121,7 @@ viz3d = [
 
 # note that dockg is on pypi; agent-kg is not yet — install manually from git
 kgdeps = [
-    "doc-kg>=0.11.0",
+    "doc-kg>=0.15.2",
 ]
 all = [
     "detect-secrets>=1.5.0",

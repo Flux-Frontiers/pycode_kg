@@ -18,6 +18,7 @@ import tomllib
 from pathlib import Path
 
 import click
+from kg_utils.semantic import _local_model_path
 
 from pycode_kg.cli.cmd_build_full import _run_pipeline
 from pycode_kg.cli.cmd_hooks import _PRE_COMMIT_HOOK
@@ -28,7 +29,6 @@ from pycode_kg.cli.options import (
     model_option,
     repo_option,
 )
-from pycode_kg.index import _local_model_path
 from pycode_kg.kg import PyCodeKG
 from pycode_kg.pycodekg_thorough_analysis import PyCodeKGAnalyzer
 from pycode_kg.snapshots import SnapshotManager

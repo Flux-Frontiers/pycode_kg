@@ -9,9 +9,9 @@ CLI command for managing the PyCodeKG embedding model cache.
 from __future__ import annotations
 
 import click
+from kg_utils.semantic import _local_model_path
 
 from pycode_kg.cli.main import cli
-from pycode_kg.index import _local_model_path
 from pycode_kg.pycodekg import DEFAULT_MODEL
 
 

@@ -16,12 +16,12 @@ import click
 from pycode_kg.cli.main import cli
 from pycode_kg.cli.options import exclude_option, include_option, repo_option
 from pycode_kg.config import load_exclude_dirs, load_include_dirs
-from pycode_kg.graph import CodeGraph
 from pycode_kg.index import (
     SemanticIndex,
     SentenceTransformerEmbedder,
     suppress_ingestion_logging,
 )
+from pycode_kg.module.extractor import EdgeSpec, NodeSpec, PyCodeKGExtractor
 from pycode_kg.pycodekg import DEFAULT_MODEL
 from pycode_kg.store import GraphStore
 
@@ -53,19 +53,25 @@ def build_sqlite(
     include = load_include_dirs(repo_root) | set(include_dir)
     exclude = load_exclude_dirs(repo_root) | set(exclude_dir)
 
-    graph = CodeGraph(
+    extractor = PyCodeKGExtractor(
         repo_root,
         include=include if include else None,
         exclude=exclude if exclude else None,
     )
-    nodes, edges = graph.extract().result()
+    node_specs: list[NodeSpec] = []
+    edge_specs: list[EdgeSpec] = []
+    for item in extractor.extract():
+        if isinstance(item, NodeSpec):
+            node_specs.append(item)
+        else:
+            edge_specs.append(item)
 
     store = GraphStore(db_path)
-    store.write(nodes, edges, wipe=wipe)
+    store.write(node_specs, edge_specs, wipe=wipe)
     resolved = store.resolve_symbols()
     store.close()
 
-    print(f"OK: nodes={len(nodes)} edges={len(edges)} resolved={resolved} db={db_path}")
+    print(f"OK: nodes={len(node_specs)} edges={len(edge_specs)} resolved={resolved} db={db_path}")
 
 
 @cli.command("build-lancedb")

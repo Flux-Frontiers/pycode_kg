@@ -14,15 +14,17 @@ from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
+from kg_utils.semantic import (
+    _build_index_text,
+    _escape,
+    _extract_distance,
+    _local_model_path,
+)
 
 from pycode_kg.index import (
     Embedder,
     SeedHit,
     SemanticIndex,
-    _build_index_text,
-    _escape,
-    _extract_distance,
-    _local_model_path,
 )
 
 # ---------------------------------------------------------------------------
@@ -148,7 +150,7 @@ def test_local_model_path_fallback_under_pycodekg_models(tmp_path, monkeypatch):
     monkeypatch.delenv("KGRAG_MODEL_DIR", raising=False)
     monkeypatch.chdir(tmp_path)
     result = _local_model_path("BAAI/bge-small-en-v1.5")
-    assert result == tmp_path / ".pycodekg" / "models" / "BAAI--bge-small-en-v1.5"
+    assert result == tmp_path / ".kgcache" / "models" / "BAAI--bge-small-en-v1.5"
 
 
 def test_local_model_path_known_alias_resolved(tmp_path, monkeypatch):
@@ -189,7 +191,7 @@ def test_ste_loads_from_local_cache_when_exists(tmp_path, monkeypatch):
     fake_local.mkdir()
 
     with (
-        patch("pycode_kg.index._local_model_path", return_value=fake_local),
+        patch("kg_utils.semantic._local_model_path", return_value=fake_local),
         patch.dict(
             "sys.modules",
             {
@@ -212,7 +214,7 @@ def test_ste_uses_local_files_only_when_no_local_cache(tmp_path, monkeypatch):
     fake_local = tmp_path / "nonexistent"
 
     with (
-        patch("pycode_kg.index._local_model_path", return_value=fake_local),
+        patch("kg_utils.semantic._local_model_path", return_value=fake_local),
         patch.dict(
             "sys.modules",
             {
@@ -238,7 +240,7 @@ def test_ste_downloads_when_hf_cache_misses(tmp_path):
     mock_st.SentenceTransformer.side_effect = [OSError("no cache"), mock_model]
 
     with (
-        patch("pycode_kg.index._local_model_path", return_value=fake_local),
+        patch("kg_utils.semantic._local_model_path", return_value=fake_local),
         patch.dict(
             "sys.modules",
             {
@@ -275,7 +277,7 @@ def test_ste_tqdm_disable_set_during_loading(tmp_path):
     mock_st.SentenceTransformer.side_effect = capture_env
 
     with (
-        patch("pycode_kg.index._local_model_path", return_value=fake_local),
+        patch("kg_utils.semantic._local_model_path", return_value=fake_local),
         patch.dict(
             "sys.modules",
             {
@@ -306,7 +308,7 @@ def test_ste_tqdm_disable_restored_after_loading(tmp_path):
     original = _os.environ.get("TQDM_DISABLE")
 
     with (
-        patch("pycode_kg.index._local_model_path", return_value=fake_local),
+        patch("kg_utils.semantic._local_model_path", return_value=fake_local),
         patch.dict(
             "sys.modules",
             {
@@ -333,7 +335,7 @@ def test_ste_tqdm_disable_restored_on_load_failure(tmp_path):
     _os.environ.pop("TQDM_DISABLE", None)
 
     with (
-        patch("pycode_kg.index._local_model_path", return_value=fake_local),
+        patch("kg_utils.semantic._local_model_path", return_value=fake_local),
         patch.dict(
             "sys.modules",
             {
@@ -357,7 +359,7 @@ def test_ste_calls_disable_progress_bar(tmp_path):
     fake_local = tmp_path / "nonexistent"
 
     with (
-        patch("pycode_kg.index._local_model_path", return_value=fake_local),
+        patch("kg_utils.semantic._local_model_path", return_value=fake_local),
         patch.dict(
             "sys.modules",
             {
@@ -385,7 +387,7 @@ def test_ste_task_prompts_detected_when_present(tmp_path):
     fake_local = tmp_path / "nonexistent"
 
     with (
-        patch("pycode_kg.index._local_model_path", return_value=fake_local),
+        patch("kg_utils.semantic._local_model_path", return_value=fake_local),
         patch.dict(
             "sys.modules",
             {
@@ -409,7 +411,7 @@ def test_ste_task_prompts_none_when_absent(tmp_path):
     fake_local = tmp_path / "nonexistent"
 
     with (
-        patch("pycode_kg.index._local_model_path", return_value=fake_local),
+        patch("kg_utils.semantic._local_model_path", return_value=fake_local),
         patch.dict(
             "sys.modules",
             {
@@ -548,7 +550,7 @@ def test_semanticindex_repr(tmp_path):
     idx = SemanticIndex(tmp_path, embedder=emb)
     r = repr(idx)
     assert "SemanticIndex" in r
-    assert "pycodekg_nodes" in r
+    assert "kg_nodes" in r
 
 
 def test_semanticindex_read_nodes_empty_store(tmp_path):
@@ -568,7 +570,7 @@ def test_semanticindex_read_nodes_empty_store(tmp_path):
 
 def _make_populated_store(tmp_path: Path):
     """Build a small real graph in a GraphStore."""
-    from pycode_kg.graph import CodeGraph
+    from pycode_kg.module.extractor import EdgeSpec, NodeSpec, PyCodeKGExtractor
     from pycode_kg.store import GraphStore
 
     repo = tmp_path / "repo"
@@ -585,10 +587,16 @@ def _make_populated_store(tmp_path: Path):
             """
         )
     )
-    graph = CodeGraph(repo)
-    nodes, edges = graph.extract(force=True).result()
+    extractor = PyCodeKGExtractor(repo)
+    node_specs: list[NodeSpec] = []
+    edge_specs: list[EdgeSpec] = []
+    for item in extractor.extract():
+        if isinstance(item, NodeSpec):
+            node_specs.append(item)
+        else:
+            edge_specs.append(item)
     store = GraphStore(tmp_path / "pycodekg.sqlite")
-    store.write(nodes, edges, wipe=True)
+    store.write(node_specs, edge_specs, wipe=True)
     return store
 
 
@@ -605,7 +613,7 @@ def test_semanticindex_build_returns_stats(tmp_path):
 
     assert stats["indexed_rows"] > 0
     assert stats["dim"] == 4
-    assert stats["table"] == "pycodekg_nodes"
+    assert stats["table"] == "kg_nodes"
     assert "lancedb_dir" in stats
     assert "kinds" in stats
     store.close()
