@@ -1,29 +1,44 @@
-# Release Notes — v0.19.0
+# Release Notes — v0.19.3
 
-> Released: 2026-05-02
-
-### Added
-
-- **`src/pycode_kg/explain.py` — shared `render_explain()` presenter** — single source of truth for the Markdown explanation rendered by the `pycodekg explain` CLI and the MCP `explain` tool. Both surfaces previously rendered independently and had drifted: the MCP version used relative thresholds (top-5%/2%) while the CLI used hard-coded `50`/`10`, and only the MCP version had the kind-aware role labels and orchestrator branch. Centralizing prevents future drift; the footer call-to-action is parameterized so MCP shows `pack_snippets()` and CLI shows `pycodekg pack`.
-- **`list_nodes(include_symbols=False)` parameter** — `mcp__pycodekg__list_nodes` now excludes `sym:` import-stub nodes by default; pass `include_symbols=True` to restore the previous noisy output. Module docstring and `FastMCP` instructions block updated to match.
-- **`tests/test_explain.py`** — six tests covering the presenter: not-found header, class-aware role labels (regression guard for the "Utility function" misclassification), zero-caller orphan branch, protocol-method dunder branch, parameterized footer hint, and standard-section smoke test.
-- **`tests/test_module_coupling.py`** — three regression tests for `PyCodeKGAnalyzer._analyze_module_coupling` cohesion calculation: a leaf entry-point module must score ~0, a widely-imported module must score high, and the formula must match the documented `incoming / (incoming + outgoing + 1)`.
+> Released: 2026-06-01
 
 ### Changed
 
-- **`framework_nodes()` — module-only ranking with corrected key-space join** — the tool advertises "Framework-like Modules" but previously mixed two key spaces in its scoring: `sir_pagerank` rows are keyed by typed node IDs (`mod:...`, `m:...:method`, `fn:...:func`) while `module_connectivity` rows are keyed by bare paths (`src/...`). The accidental union let methods like `GraphStore.con` and functions like `parse_args` appear alongside genuine modules. Now aggregates node-level SIR up to module level via the existing `aggregate_module_scores()`, joins on bare paths, and emits `(mod:<path>, score, <path>)` tuples — guaranteed module-only output. Top-of-list is now `store.py`, `viz3d.py`, `module/base.py`, `snapshots.py`, `visitor.py`, `mcp_server.py`.
-- **Concern-based hybrid ranking — decoupled display label from embedding query** — concern entries in `_analyze_concerns` are now `(label, query)` tuples. The "graph traversal node edge" concern previously surfaced 3-D layout `compute()` methods (`FunnelLayout.compute`, `AlliumLayout.compute`, `Layout3D.compute`) because their docstrings happen to say "nodes" / "edges" / "graph"; the embedding query was a pure noun phrase with no verb anchor. The query is now `"graph expansion traverse callers neighbors edges from seeds"` — verb anchors that 3-D layout code does not contain — while the section heading in the report stays the original short label. New top results: `GraphStore.expand`, `PyCodeKGVisitor._add_edge`, `GraphStore.callers_of`, `induce_query_subgraph`, `query_codebase` — actual graph-traversal/expansion code.
+- **Migrated type checker from mypy → [ty](https://github.com/astral-sh/ty)** (`^0.0.41`) across `pyproject.toml`, `.pre-commit-config.yaml`, and CI (`poetry run ty check src/`). Resolved the resulting diagnostics:
+  - `graph.py`: narrow `nodes`/`edges` properties with `assert ... is not None` instead of `# type: ignore[return-value]`.
+  - `viz3d.py` / `snapshots.py`: converted the remaining mypy `# type: ignore[code]` suppressions to ty `# ty: ignore[code]` for third-party false positives (pyvista `functools.wraps` self-binding, PyQt5 `Qt` enum attributes, `param` descriptor declarations, and intentional `closeEvent`/`capture` LSP overrides).
+  - `pyproject.toml`: replaced `[tool.mypy]` with `[tool.ty.environment]`/`[tool.ty.rules]` (`unresolved-import = "ignore"` mirrors mypy's `ignore_missing_imports`; `unused-ignore-comment = "ignore"` so the optional-dependency `# ty: ignore` suppressions in `viz3d.py` don't fail the lean CI install, where `param`/`PyQt5`/`pyvista` are absent); bumped the `ruff-pre-commit` hook to `v0.15.13` (`ruff` → `ruff-check`).
 
-### Fixed
-
-- **`explain()` — kind-aware role labels** — a class with N callers was previously labeled a "Utility function" regardless of node kind. The role assessment now branches on `node.get("kind")` to pick a noun (`class` / `module` / `function`) and verb (`Constructed` / `Imported` / `Called`). `GraphStore` (9 callers) now correctly reads as **"Important class: Constructed 9 times (≥9 = top 2% of this codebase)"** instead of "Utility function: Called 9 time(s)…". Both the CLI and MCP surfaces inherit the fix via the new shared presenter.
-- **`explain()` — off-by-one in threshold comparisons** — the "High-value" and "Important" branches used `>` instead of `>=`, so a node sitting exactly at the top-5% / top-2% boundary fell through to the "Utility" branch. Now uses `>=`. Surfaced by GPT-5.4's PyCodeKG assessment (2026-05-02).
-- **Module cohesion formula was inverted** — `PyCodeKGAnalyzer._analyze_module_coupling` documented `cohesion = incoming / (incoming + outgoing + 1)` ("higher = more internally focused") but the code used `outgoing` in the numerator, which inverted the meaning. A leaf entry-point like `mcp_server.py` (`incoming=0, outgoing=3`) read as `0.75` cohesion when it should read `0.00`. After the fix, the top-cohesion modules in this repo are `cli/main.py` (0.94), `index.py` and `snapshots.py` (0.86), and `store.py` (0.77) — the modules that everything depends on but that do not sprawl outward, which is what cohesion is supposed to measure.
-- **Stale `query`/`pack` CLI flags in docs and tasks** — `pycodekg query` and `pycodekg pack` take the query string as a positional `QUERY` argument, not `--q`, and they accept `--k` for top-k, not `--top` (which is a `centrality`-only flag). Five files referenced the old forms: `.claude/commands/setup-pycodekg-mcp.md`, `.claude/skills/pycodekg/references/installation.md`, `.vscode/tasks.json`, `article/pycode_kg_medium.md`, and `docs/pycode_kg_workflow.md`. All updated to match the actual signatures in `cli/cmd_query.py`.
+- **Migrated infrastructure to `kgmodule-utils>=0.3.0`** — `store.py`, `index.py`, `module/base.py`, `module/types.py`, and `module/extractor.py` now delegate to `kg_utils` instead of carrying duplicate implementations. Net reduction of ~2,660 lines. All public APIs are preserved via re-export shims so existing callers are unaffected.
+  - `store.py` (766 → 7 lines): re-exports `GraphStore`, `DEFAULT_RELS`, `ProvMeta` from `kg_utils.store`.
+  - `index.py` (575 → 11 lines): re-exports `SemanticIndex`, `Embedder`, `SentenceTransformerEmbedder`, `SeedHit`, `DEFAULT_MODEL`, and helpers from `kg_utils.semantic`.
+  - `module/base.py` (720 → 34 lines): thin `KGModule` subclass of `kg_utils.pipeline.KGModule`; retains `.pycodekg` default dir and `resolve_symbols()` post-build hook.
+  - `module/types.py` (532 → 31 lines): re-exports `BuildStats`, `QueryResult`, `SnippetPack` from `kg_utils.specs` and pipeline utilities from `kg_utils.pipeline`; keeps `Snippet` dataclass as a backward-compat shim.
+  - `module/extractor.py` (276 → 129 lines): `NodeSpec`, `EdgeSpec`, `KGExtractor` now imported from `kg_utils.specs`/`kg_utils.extractor`; `PyCodeKGExtractor` body unchanged.
+- **`pyproject.toml`** — bumped `kgmodule-utils` to `[semantic]>=0.3.0`; dropped `lancedb` direct dependency (pulled in transitively); updated `doc-kg` floor to `>=0.15.2`.
+- **CLI build commands** — `cmd_build.py` and `cmd_build_full.py` now use `PyCodeKGExtractor` to produce `NodeSpec`/`EdgeSpec` before writing to `GraphStore`, replacing the old `CodeGraph` → raw `Node`/`Edge` path.
+- **`pycodekg.py`** — `DEFAULT_MODEL` now imported directly from `kg_utils.semantic` instead of the local `index.py` shim.
+- **`cli/cmd_model.py`, `cli/cmd_init.py`** — `_local_model_path` now imported from `kg_utils.semantic`.
 
 ### Removed
 
-- **Duplicated `_explain_node()` from `cli/cmd_explain.py` and the inlined explain-rendering block from `mcp_server.py`** — ~322 lines of duplicated Markdown-rendering and role-classification logic, replaced by single-line delegations into `pycode_kg.explain.render_explain()`.
+- **Stray `uv.lock`** — removed an accidental uv-generated lockfile (the project is Poetry-managed; `poetry.lock` is the source of truth) and added `uv.lock` to `.gitignore` to prevent it returning.
+
+### Added
+
+- **`docs/exercises.md` + `scripts/exercise_runner.py`** — guided exercise set and runner script for hands-on PyCodeKG exploration; covers orientation, query, pack, callers, analyze, and snapshot workflows.
+- **`docs/case_study_refactor_validation.md`** — case study documenting the refactor validation workflow using PyCodeKG snapshots and structural analysis.
+- **Six new metric snapshots** in `.pycodekg/snapshots/` — temporal coverage extended with snapshots from earlier in the v0.19.0 cycle.
+
+### Changed (prior)
+
+- **`README.md` — `pycodekg analyze` section expanded** — replaced the bullet-list summary with the full 15-phase pipeline table (baseline → CodeRank → fan-in/out → dependencies → patterns → coupling → critical paths → public API → docstring coverage → inheritance → insights → snapshots → centrality → concern ranking); added personal origin note and numpy/matplotlib anecdote; added viz3d active-development caveat to the feature table.
+- **Announcements updated to v0.19.0** — all three announcement files (`GITHUB.md`, `HACKERNEWS.md`, `REDDIT.md`) now reference the current version, use `pip install pycode-kg` instead of stale git-URL installs, lead with the 15-phase analyze pipeline, and note that `viz3d` is actively in development.
+- **Asset files renamed** — `assets/codeKG_arch_*.{png,jpg}` renamed to `assets/PyCodeKG_arch_*` (four files: `_9x16.png`, `_banana.png`, `_square-web.jpg`, `_square.png`) for naming consistency; references updated in `article/pycode_kg.tex` and `article/pycode_kg_medium.md`.
+
+### Fixed
+
+- **`scripts/exercise_runner.py`** — removed unused `snap_keys: list[str] = []` local variable (ruff F841).
 
 ---
 
