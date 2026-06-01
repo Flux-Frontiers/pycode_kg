@@ -14,7 +14,7 @@ Note: older entries preserve the API names used at that release (for example com
 - **Migrated type checker from mypy → [ty](https://github.com/astral-sh/ty)** (`^0.0.41`) across `pyproject.toml`, `.pre-commit-config.yaml`, and CI (`poetry run ty check src/`). Resolved the resulting diagnostics:
   - `graph.py`: narrow `nodes`/`edges` properties with `assert ... is not None` instead of `# type: ignore[return-value]`.
   - `viz3d.py` / `snapshots.py`: converted the remaining mypy `# type: ignore[code]` suppressions to ty `# ty: ignore[code]` for third-party false positives (pyvista `functools.wraps` self-binding, PyQt5 `Qt` enum attributes, `param` descriptor declarations, and intentional `closeEvent`/`capture` LSP overrides).
-  - `pyproject.toml`: replaced `[tool.mypy]` with `[tool.ty.environment]`/`[tool.ty.rules]` (`unresolved-import = "ignore"` mirrors mypy's `ignore_missing_imports`); bumped the `ruff-pre-commit` hook to `v0.15.13` (`ruff` → `ruff-check`).
+  - `pyproject.toml`: replaced `[tool.mypy]` with `[tool.ty.environment]`/`[tool.ty.rules]` (`unresolved-import = "ignore"` mirrors mypy's `ignore_missing_imports`; `unused-ignore-comment = "ignore"` so the optional-dependency `# ty: ignore` suppressions in `viz3d.py` don't fail the lean CI install, where `param`/`PyQt5`/`pyvista` are absent); bumped the `ruff-pre-commit` hook to `v0.15.13` (`ruff` → `ruff-check`).
 
 ### Removed
 

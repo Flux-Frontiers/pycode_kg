@@ -184,6 +184,12 @@ root = ["src"]
 [tool.ty.rules]
 # Be lenient about third-party stubs (mirrors mypy's ignore_missing_imports).
 unresolved-import = "ignore"
+# viz3d.py carries `# ty: ignore` suppressions for param/PyQt5/pyvista false
+# positives. Those libraries live in the optional viz/viz3d extras, so in the
+# lean CI install the imports are Unknown, the errors don't fire, and the
+# ignores look "unused". Don't fail the build on that — the suppressions are
+# still honored locally where the extras (and the errors) are present.
+unused-ignore-comment = "ignore"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
