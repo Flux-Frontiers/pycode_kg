@@ -11,6 +11,14 @@ Note: older entries preserve the API names used at that release (for example com
 
 ### Changed
 
+- **Migrated type checker from mypy → [ty](https://github.com/astral-sh/ty)** (`^0.0.41`) across `pyproject.toml`, `.pre-commit-config.yaml`, and CI (`poetry run ty check src/`). Resolved the resulting diagnostics:
+  - `graph.py`: narrow `nodes`/`edges` properties with `assert ... is not None` instead of `# type: ignore[return-value]`.
+  - `viz3d.py` / `snapshots.py`: converted the remaining mypy `# type: ignore[code]` suppressions to ty `# ty: ignore[code]` for third-party false positives (pyvista `functools.wraps` self-binding, PyQt5 `Qt` enum attributes, `param` descriptor declarations, and intentional `closeEvent`/`capture` LSP overrides).
+  - `pyproject.toml`: replaced `[tool.mypy]` with `[tool.ty.environment]`/`[tool.ty.rules]` (`unresolved-import = "ignore"` mirrors mypy's `ignore_missing_imports`); bumped the `ruff-pre-commit` hook to `v0.15.13` (`ruff` → `ruff-check`).
+
+### Removed
+
+- **Stray `uv.lock`** — removed an accidental uv-generated lockfile (the project is Poetry-managed; `poetry.lock` is the source of truth) and added `uv.lock` to `.gitignore` to prevent it returning.
 - **Migrated infrastructure to `kgmodule-utils>=0.3.0`** — `store.py`, `index.py`, `module/base.py`, `module/types.py`, and `module/extractor.py` now delegate to `kg_utils` instead of carrying duplicate implementations. Net reduction of ~2,660 lines. All public APIs are preserved via re-export shims so existing callers are unaffected.
   - `store.py` (766 → 7 lines): re-exports `GraphStore`, `DEFAULT_RELS`, `ProvMeta` from `kg_utils.store`.
   - `index.py` (575 → 11 lines): re-exports `SemanticIndex`, `Embedder`, `SentenceTransformerEmbedder`, `SeedHit`, `DEFAULT_MODEL`, and helpers from `kg_utils.semantic`.

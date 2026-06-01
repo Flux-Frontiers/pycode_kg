@@ -251,3 +251,4 @@ assets/pycode_kg_arch_*.png
 commit.txt
 
 bundles/
+uv.lock

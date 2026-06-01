@@ -228,7 +228,7 @@ def _remove_highlight_actors(plotter: pv.Plotter) -> None:
     """Remove any leftover pink highlight or outline actors from the plotter."""
     for name in list(plotter.actors.keys()):
         if "highlight" in name.lower() or "bounds" in name.lower() or "outline" in name.lower():
-            plotter.remove_actor(name, reset_camera=False)  # type: ignore[arg-type]
+            plotter.remove_actor(name, reset_camera=False)  # ty: ignore[invalid-argument-type]
 
 
 # ---------------------------------------------------------------------------
@@ -256,7 +256,7 @@ class DocstringPopup(QDialog):
         self.setWindowTitle(title)
         self.setMinimumSize(600, 400)
         self.on_close_callback = on_close_callback
-        self.setWindowModality(Qt.NonModal)  # type: ignore[attr-defined]
+        self.setWindowModality(Qt.NonModal)  # ty: ignore[unresolved-attribute]
 
         if parent:
             geo = parent.screen().geometry()
@@ -269,10 +269,10 @@ class DocstringPopup(QDialog):
         layout.addWidget(browser)
 
         close_btn = QPushButton("Close", self)
-        close_btn.clicked.connect(self.close)  # type: ignore[arg-type]
+        close_btn.clicked.connect(self.close)  # ty: ignore[invalid-argument-type]
         layout.addWidget(close_btn)
 
-    def closeEvent(self, event):
+    def closeEvent(self, event):  # ty: ignore[invalid-method-override]
         """Trigger the close callback if set."""
         if self.on_close_callback:
             self.on_close_callback()
@@ -311,9 +311,9 @@ def create_kg_visualization(
 
     plotter.clear_actors()
     plotter.enable_anti_aliasing("msaa")
-    plotter.enable_terrain_style()  # type: ignore[call-arg]
-    plotter.set_background("white", top="lightblue")  # type: ignore[arg-type]
-    plotter.add_axes(  # type: ignore[call-arg]
+    plotter.enable_terrain_style()  # ty: ignore[missing-argument]
+    plotter.set_background("white", top="lightblue")  # ty: ignore[invalid-argument-type]
+    plotter.add_axes(  # ty: ignore[missing-argument]
         interactive=False,
         viewport=(0.75, 0.75, 1.0, 1.0),
     )
@@ -457,7 +457,7 @@ def create_kg_visualization(
         )
 
     # -- Ground plane: auto-sized to scene bounds, added after all meshes
-    plotter.add_floor(  # type: ignore[call-arg]
+    plotter.add_floor(  # ty: ignore[missing-argument]
         face="-z",
         color="lightgray",
         opacity=0.85,
@@ -485,10 +485,10 @@ def create_kg_visualization(
         f"Faces: {total_faces}"
     )
 
-    plotter.reset_camera()  # type: ignore[call-arg]
+    plotter.reset_camera()  # ty: ignore[missing-argument]
     # Front-elevated perspective: mostly looking along +Y, tilted ~25° down,
     # with a slight rightward rotation so the scene reads with depth.
-    plotter.view_vector((0.0, 1.0, 0.35), viewup=(0, 0, 1))  # type: ignore[call-arg, arg-type]
+    plotter.view_vector((0.0, 1.0, 0.35), viewup=(0, 0, 1))  # ty: ignore[invalid-argument-type]
     plotter.camera.zoom(1.6)
     plotter.render()
 
@@ -512,40 +512,40 @@ class KGVisualizer(param.Parameterized):
     watched parameters trigger graph reload or UI updates automatically.
     """
 
-    db_path: str = param.String(default=DEFAULT_DB, doc="SQLite database path")
-    layout_name: str = param.Selector(
+    db_path: str = param.String(default=DEFAULT_DB, doc="SQLite database path")  # ty: ignore[invalid-assignment]
+    layout_name: str = param.Selector(  # ty: ignore[invalid-assignment]
         objects=["allium", "funnel"], default="allium", doc="3-D layout strategy"
     )
-    save_path: str = param.String(default=DEFAULT_SAVE, doc="Save path stem")
-    save_format: str = param.Selector(
+    save_path: str = param.String(default=DEFAULT_SAVE, doc="Save path stem")  # ty: ignore[invalid-assignment]
+    save_format: str = param.Selector(  # ty: ignore[invalid-assignment]
         objects=["html", "png", "jpg"], default="html", doc="Export format"
     )
 
     # Node kind visibility
-    show_methods: bool = param.Boolean(default=True, doc="Render method nodes")
-    show_symbols: bool = param.Boolean(default=False, doc="Render symbol stub nodes")
+    show_methods: bool = param.Boolean(default=True, doc="Render method nodes")  # ty: ignore[invalid-assignment]
+    show_symbols: bool = param.Boolean(default=False, doc="Render symbol stub nodes")  # ty: ignore[invalid-assignment]
     # Edge visibility
-    show_calls: bool = param.Boolean(default=True, doc="Render CALLS edges")
-    show_imports: bool = param.Boolean(default=True, doc="Render IMPORTS edges")
-    show_inherits: bool = param.Boolean(default=True, doc="Render INHERITS edges")
-    show_contains: bool = param.Boolean(default=True, doc="Render CONTAINS edges")
+    show_calls: bool = param.Boolean(default=True, doc="Render CALLS edges")  # ty: ignore[invalid-assignment]
+    show_imports: bool = param.Boolean(default=True, doc="Render IMPORTS edges")  # ty: ignore[invalid-assignment]
+    show_inherits: bool = param.Boolean(default=True, doc="Render INHERITS edges")  # ty: ignore[invalid-assignment]
+    show_contains: bool = param.Boolean(default=True, doc="Render CONTAINS edges")  # ty: ignore[invalid-assignment]
     # Layout spacing (funnel only)
-    node_spacing: float = param.Number(default=2.0, bounds=(0.5, 10.0), doc="Funnel node spacing")
+    node_spacing: float = param.Number(default=2.0, bounds=(0.5, 10.0), doc="Funnel node spacing")  # ty: ignore[invalid-assignment]
 
     # Status / title
-    status: str = param.String(default="Ready", doc="Status bar text")
-    window_title: str = param.String(default=f"PyCodeKG 3D v{__version__}", doc="Window title")
+    status: str = param.String(default="Ready", doc="Status bar text")  # ty: ignore[invalid-assignment]
+    window_title: str = param.String(default=f"PyCodeKG 3D v{__version__}", doc="Window title")  # ty: ignore[invalid-assignment]
 
     # Stats
-    num_modules: int = param.Integer(default=0)
-    num_classes: int = param.Integer(default=0)
-    num_functions: int = param.Integer(default=0)
-    num_methods: int = param.Integer(default=0)
-    num_faces: int = param.Integer(default=0)
+    num_modules: int = param.Integer(default=0)  # ty: ignore[invalid-assignment]
+    num_classes: int = param.Integer(default=0)  # ty: ignore[invalid-assignment]
+    num_functions: int = param.Integer(default=0)  # ty: ignore[invalid-assignment]
+    num_methods: int = param.Integer(default=0)  # ty: ignore[invalid-assignment]
+    num_faces: int = param.Integer(default=0)  # ty: ignore[invalid-assignment]
 
     # Module selector data
-    available_modules: list[str] = param.List(default=[], doc="Available module names")
-    selected_modules: list[str] = param.ListSelector(
+    available_modules: list[str] = param.List(default=[], doc="Available module names")  # ty: ignore[invalid-assignment]
+    selected_modules: list[str] = param.ListSelector(  # ty: ignore[invalid-assignment]
         default=[], objects=[], doc="Selected module names"
     )
 
@@ -563,7 +563,7 @@ class KGVisualizer(param.Parameterized):
         self.actor_to_node: dict[str, dict] = {}
         self._load_graph()
 
-    @param.depends("db_path", watch=True)
+    @param.depends("db_path", watch=True)  # ty: ignore[invalid-argument-type]
     def _load_graph(self) -> None:
         """Reload nodes and edges from the SQLite database."""
         from pycode_kg.layout3d import LayoutEdge, LayoutNode
@@ -717,7 +717,7 @@ class MainWindow(QMainWindow):
 
         self.vtk_plotter: QtInteractor = QtInteractor(self)
         self.visualizer: KGVisualizer = KGVisualizer(
-            plotter=self.vtk_plotter,
+            plotter=self.vtk_plotter,  # ty: ignore[invalid-argument-type]
             db_path=db_path,
             save_path=save_path,
         )
@@ -957,7 +957,7 @@ class MainWindow(QMainWindow):
         btn_row.addWidget(self.reset_settings_button)
 
         self.status_display = QLabel("Ready")
-        self.status_display.setTextInteractionFlags(Qt.TextBrowserInteraction)  # type: ignore[attr-defined]
+        self.status_display.setTextInteractionFlags(Qt.TextBrowserInteraction)  # ty: ignore[unresolved-attribute]
         self.status_display.setStyleSheet(
             "font-weight:bold; font-size:13px; background-color:white; color:black;"
         )
@@ -1004,22 +1004,22 @@ class MainWindow(QMainWindow):
         self.module_selector.itemSelectionChanged.connect(self.update_selected_modules)
 
         self.cb_methods.stateChanged.connect(
-            lambda s: setattr(self.visualizer, "show_methods", s == Qt.Checked)  # type: ignore[attr-defined]
+            lambda s: setattr(self.visualizer, "show_methods", s == Qt.Checked)  # ty: ignore[unresolved-attribute]
         )
         self.cb_symbols.stateChanged.connect(
-            lambda s: setattr(self.visualizer, "show_symbols", s == Qt.Checked)  # type: ignore[attr-defined]
+            lambda s: setattr(self.visualizer, "show_symbols", s == Qt.Checked)  # ty: ignore[unresolved-attribute]
         )
         self.cb_contains.stateChanged.connect(
-            lambda s: setattr(self.visualizer, "show_contains", s == Qt.Checked)  # type: ignore[attr-defined]
+            lambda s: setattr(self.visualizer, "show_contains", s == Qt.Checked)  # ty: ignore[unresolved-attribute]
         )
         self.cb_calls.stateChanged.connect(
-            lambda s: setattr(self.visualizer, "show_calls", s == Qt.Checked)  # type: ignore[attr-defined]
+            lambda s: setattr(self.visualizer, "show_calls", s == Qt.Checked)  # ty: ignore[unresolved-attribute]
         )
         self.cb_imports.stateChanged.connect(
-            lambda s: setattr(self.visualizer, "show_imports", s == Qt.Checked)  # type: ignore[attr-defined]
+            lambda s: setattr(self.visualizer, "show_imports", s == Qt.Checked)  # ty: ignore[unresolved-attribute]
         )
         self.cb_inherits.stateChanged.connect(
-            lambda s: setattr(self.visualizer, "show_inherits", s == Qt.Checked)  # type: ignore[attr-defined]
+            lambda s: setattr(self.visualizer, "show_inherits", s == Qt.Checked)  # ty: ignore[unresolved-attribute]
         )
 
         self.visualize_button.clicked.connect(self.on_visualize_clicked)
@@ -1345,7 +1345,7 @@ class MainWindow(QMainWindow):
                 pass
         gc.collect()
 
-    def closeEvent(self, event) -> None:
+    def closeEvent(self, event) -> None:  # ty: ignore[invalid-method-override]
         """Handle window close with cleanup."""
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")

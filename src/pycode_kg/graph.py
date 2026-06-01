@@ -78,14 +78,16 @@ class CodeGraph:
         """Extracted nodes (calls :meth:`extract` if needed)."""
         if self._nodes is None:
             self.extract()
-        return self._nodes  # type: ignore[return-value]
+        assert self._nodes is not None
+        return self._nodes
 
     @property
     def edges(self) -> list[Edge]:
         """Extracted edges (calls :meth:`extract` if needed)."""
         if self._edges is None:
             self.extract()
-        return self._edges  # type: ignore[return-value]
+        assert self._edges is not None
+        return self._edges
 
     def result(self) -> tuple[list[Node], list[Edge]]:
         """Return the extracted nodes and edges as a tuple.
@@ -120,6 +122,6 @@ class CodeGraph:
         if extracted:
             return (
                 f"CodeGraph(repo_root={self.repo_root!r}, "
-                f"nodes={len(self._nodes)}, edges={len(self._edges)})"  # type: ignore[arg-type]
+                f"nodes={len(self._nodes)}, edges={len(self._edges)})"  # ty: ignore[invalid-argument-type]
             )
         return f"CodeGraph(repo_root={self.repo_root!r}, not yet extracted)"

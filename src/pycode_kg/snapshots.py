@@ -284,7 +284,7 @@ class SnapshotManager(_BaseSnapshotManager):
     # capture — backwards-compat wrapper
     # ------------------------------------------------------------------
 
-    def capture(  # type: ignore[override]
+    def capture(  # ty: ignore[invalid-method-override]
         self,
         version: str | None = None,
         branch: str | None = None,

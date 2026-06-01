@@ -7,7 +7,7 @@
 #
 # Quick install (pip)
 # -------------------
-#   pip install -e ".[dev]"             core + dev tools (pytest, ruff, mypy, etc.)
+#   pip install -e ".[dev]"             core + dev tools (pytest, ruff, ty, etc.)
 #   pip install -e ".[viz]"             core + Streamlit/Plotly/PyVis visualizer
 #   pip install -e ".[viz3d]"           core + PyVista 3D visualizer
 #   pip install -e ".[kgdeps]"          core + KG integrations (doc-kg, agent-kg)
@@ -48,7 +48,7 @@ packages = [{ include = "pycode_kg", from = "src" }]
 
 [tool.poetry.group.dev.dependencies]
 detect-secrets = ">=1.5.0"
-mypy = ">=1.10.0"
+ty = "^0.0.41"
 pdoc = ">=14.0.0"
 pre-commit = ">=4.5.1"
 pylint = ">=4.0.5"
@@ -61,7 +61,7 @@ ruff = ">=0.4.0"
 # ---------------------------------------------------------------------------
 [project]
 name = "pycode-kg"
-version = "0.19.2"
+version = "0.19.3"
 description = "A tool to build a searchable knowledge graph from Python repositories"
 readme = "README.md"
 license = "Elastic-2.0"
@@ -95,7 +95,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "detect-secrets>=1.5.0",
-    "mypy>=1.10.0",
+    "ty>=0.0.41",
     "pdoc>=14.0.0",
     "pre-commit>=4.5.1",
     "pylint>=4.0.5",
@@ -126,7 +126,6 @@ kgdeps = [
 all = [
     "detect-secrets>=1.5.0",
     "markdown>=3.6",
-    "mypy>=1.10.0",
     "param>=2.0.0",
     "pdoc>=14.0.0",
     "plotly>=5.14.0",
@@ -141,6 +140,7 @@ all = [
     "ruff>=0.4.0",
     "streamlit>=1.35.0",
     "trame-vtk>=2.0.0",
+    "ty>=0.0.41",
 ]
 
 [project.urls]
@@ -177,12 +177,13 @@ target-version = "py312"
 select = ["E", "F", "W", "I", "UP"]
 ignore = ["E501"]
 
-[tool.mypy]
-python_version        = "3.12"
-strict                = false
-ignore_missing_imports = true
-mypy_path             = "src"
-explicit_package_bases = true
+[tool.ty.environment]
+python-version = "3.12"
+root = ["src"]
+
+[tool.ty.rules]
+# Be lenient about third-party stubs (mirrors mypy's ignore_missing_imports).
+unresolved-import = "ignore"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
