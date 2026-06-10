@@ -1,6 +1,6 @@
 # I got tired of watching my AI coding agent grep blindly through my repo, so we built it a knowledge graph (PyCodeKG)
 
-*Target: r/Python. Could also fit r/LocalLLaMA or r/ClaudeAI given the local-first + MCP angle.*
+*Target: r/Python. Could also fit r/LocalLLaMA, or the r/ClaudeAI "Built with Claude" megathread (short version at the bottom of this file).*
 
 ---
 
@@ -27,6 +27,14 @@ Heads up: the first run downloads the embedding model, so give it a minute. Ever
 
 Python 3.12–3.13. Runs entirely on your laptop — no API keys, no code leaving the machine, which is why I think r/LocalLLaMA folks might like it too.
 
-Full disclosure on the "we": I'm Eric Suchanek, and this is a human + Claude partnership — to the point where Claude's clone wrote this post announcing itself (I reviewed and edited it). We also used PyCodeKG to analyze and improve PyCodeKG — several of the analysis passes exist because the tool flagged its own weaknesses.
+Full disclosure on the "we": I'm Eric Suchanek, and this is a human + Claude partnership — to the point where Claude's clone wrote this post announcing itself (I reviewed and edited it). We also used PyCodeKG to analyze and improve PyCodeKG — several of the analysis passes exist because the tool flagged its own weaknesses. And since the target users are AI agents, we let the agents review it: the `assessments/` dir in the repo has hands-on evaluations written by Claude Opus, Sonnet, Haiku, GPT-5, and GPT-4.1, each exercising every MCP tool and writing up its own verdict, criticism included.
 
 It's source-available under the Elastic License 2.0 (free for personal and internal use). Code, docs, and a technical paper are at https://github.com/Flux-Frontiers/pycode_kg — issues, feedback, and brutal honesty all welcome. If you point it at a gnarly codebase and it falls over, I genuinely want to hear about it.
+
+---
+
+## Short version for the r/ClaudeAI "Built with Claude" megathread
+
+**PyCodeKG** — built with Claude Code, for Claude Code. It indexes a Python repo into a knowledge graph (AST → typed SQLite graph + local LanceDB embeddings) and serves it to Claude over MCP: 19 tools including hybrid `query_codebase`, `callers` with import-alias resolution, PageRank-style `centrality`, and source-grounded snippet packs with real line numbers. No more watching the agent grep blindly — it gets a map. Fully local, no API keys. The fun part: we had Claude (Opus, Sonnet, Haiku — plus GPT-5 for balance) run a hands-on assessment protocol against the tool and publish their own verdicts in the repo's `assessments/` dir, criticism included. Opus gave it 4.5/5. This announcement was drafted by a Claude clone, too.
+
+`pip install pycode-kg` → https://github.com/Flux-Frontiers/pycode_kg
