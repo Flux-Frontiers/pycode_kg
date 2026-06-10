@@ -27,6 +27,6 @@ Heads up: the first run downloads the embedding model, so give it a minute. Ever
 
 Python 3.12–3.13. Runs entirely on your laptop — no API keys, no code leaving the machine, which is why I think r/LocalLLaMA folks might like it too.
 
-Full disclosure on the "we": I'm Eric Suchanek, and this is a human + Claude partnership — to the point where Claude's clone wrote this post announcing itself (I reviewed and edited it). It dogfoods hard: PyCodeKG was used to analyze and improve PyCodeKG, and several analysis passes exist because the tool flagged its own weaknesses.
+Full disclosure on the "we": I'm Eric Suchanek, and this is a human + Claude partnership — to the point where Claude's clone wrote this post announcing itself (I reviewed and edited it). We also used PyCodeKG to analyze and improve PyCodeKG — several of the analysis passes exist because the tool flagged its own weaknesses.
 
 It's source-available under the Elastic License 2.0 (free for personal and internal use). Code, docs, and a technical paper are at https://github.com/Flux-Frontiers/pycode_kg — issues, feedback, and brutal honesty all welcome. If you point it at a gnarly codebase and it falls over, I genuinely want to hear about it.
