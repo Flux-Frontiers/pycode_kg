@@ -10,7 +10,7 @@ PyCodeKG fixes that by giving agents (and you) an actual map. It walks the AST o
 
 What you get:
 
-- **`pycodekg analyze`** — a 15-phase architectural report: PageRank-style ranking of your most structurally important symbols, fan-in/fan-out, dead code candidates, circular imports, coupling, docstring coverage, inheritance depth. Markdown for your LLM, JSON for CI.
+- **`pycodekg analyze`** — a 15-phase architectural report: PageRank-style ranking of your most structurally important symbols, fan-in/fan-out, dead code candidates, circular imports, coupling, docstring coverage, inheritance depth. Markdown for your LLM, JSON for CI. I ran it against numpy and matplotlib for fun — the reports are in `analysis/` in the repo if you want to see what it produces on a large codebase you actually know.
 - **MCP server** — 19 tools for Claude Code / Claude Desktop / Cursor / Continue / Cline / Copilot: `query_codebase`, `pack_snippets` (source-grounded context packs with line numbers), `callers` (real fan-in, resolved across import aliases — something grep flatly cannot do with same-named symbols), `centrality`, snapshot diffing across releases, and more.
 - **Visualizers** — a Streamlit graph browser, plus a 3D PyVista call-graph viewer (functional but still rough, fair warning).
 
@@ -23,8 +23,10 @@ pycodekg init --repo .     # downloads the model, builds the graph, installs hoo
 pycodekg analyze .
 ```
 
+Heads up: the first run downloads the embedding model, so give it a minute. Everything after that is fast.
+
 Python 3.12–3.13. Runs entirely on your laptop — no API keys, no code leaving the machine, which is why I think r/LocalLLaMA folks might like it too.
 
-Full disclosure on the "we": this is a human + Claude partnership, to the point where Claude's clone wrote this post announcing itself. It dogfoods hard — PyCodeKG was used to analyze and improve PyCodeKG, and several analysis passes exist because the tool flagged its own weaknesses.
+Full disclosure on the "we": I'm Eric Suchanek, and this is a human + Claude partnership — to the point where Claude's clone wrote this post announcing itself (I reviewed and edited it). It dogfoods hard: PyCodeKG was used to analyze and improve PyCodeKG, and several analysis passes exist because the tool flagged its own weaknesses.
 
 It's source-available under the Elastic License 2.0 (free for personal and internal use). Code, docs, and a technical paper are at https://github.com/Flux-Frontiers/pycode_kg — issues, feedback, and brutal honesty all welcome. If you point it at a gnarly codebase and it falls over, I genuinely want to hear about it.
