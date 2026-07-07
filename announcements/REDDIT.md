@@ -60,7 +60,7 @@ We built PyCodeKG to fix that.
 
 ## The Killer Feature: `pycodekg analyze`
 
-Honest confession: this single command is the actual reason I built PyCodeKG. I got tired of watching my LLM grep through `src/` every time I asked for a codebase analysis. So I built a proper 15-phase structural pipeline that runs in seconds and hands the LLM something it can actually reason about.
+Confession: this single command is the actual reason I built PyCodeKG. I got tired of watching my LLM grep through `src/` every time I asked for a codebase analysis. So I built a proper 15-phase structural pipeline that runs in seconds and hands the LLM something it can actually reason about.
 
 I ran it against **numpy** and **matplotlib** for fun. The reports are in `analysis/` if you want to see what the output looks like on a large, real-world codebase.
 
