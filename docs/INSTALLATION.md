@@ -83,7 +83,7 @@ pycode-kg = {version = ">=0.18.0", extras = ["viz"]}
 pycode-kg = {version = ">=0.18.0", extras = ["viz3d"]}
 ```
 
-> **PyCodeKG developers:** Use `poetry install --with dev` for the full dev environment. Add `-E viz` or `-E viz3d` for visualizer extras. The `extras` mechanism above is for *consumers* of the package.
+> **PyCodeKG developers:** Use `poetry install --extras dev` for the full dev environment. Add `-E viz` or `-E viz3d` for visualizer extras. The `extras` mechanism above is for *consumers* of the package.
 
 ---
 
@@ -92,10 +92,10 @@ pycode-kg = {version = ">=0.18.0", extras = ["viz3d"]}
 ```bash
 git clone https://github.com/Flux-Frontiers/pycode_kg.git
 cd pycode_kg
-poetry install --with dev          # core + dev
-poetry install --with dev -E viz   # + Streamlit visualizer
-poetry install --with dev -E viz3d # + 3D visualizer
-poetry install --all-extras --with dev  # everything
+poetry install --extras dev          # core + dev
+poetry install --extras dev -E viz   # + Streamlit visualizer
+poetry install --extras dev -E viz3d # + 3D visualizer
+poetry install --all-extras          # everything, including dev
 ```
 
 Run the test suite:
