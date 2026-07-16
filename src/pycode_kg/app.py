@@ -161,7 +161,7 @@ def _load_kg(repo_root: str, db_path: str, vectors_path: str, model: str):
     :param model: Name of the sentence-transformer embedding model to use.
     :return: An initialised ``PyCodeKG`` instance.
     """
-    from pycode_kg import PyCodeKG  # pylint: disable=import-outside-toplevel
+    from pycode_kg import PyCodeKG  # noqa: PLC0415
 
     return PyCodeKG(
         repo_root=repo_root,
@@ -592,7 +592,7 @@ def _render_node_detail(node: dict, store: GraphStore | None = None) -> None:
                 (node_id, node_id),
             ).fetchall()
             if rows:
-                import pandas as pd  # pylint: disable=import-outside-toplevel  # pylint: disable=import-outside-toplevel
+                import pandas as pd  # noqa: PLC0415
 
                 edf = pd.DataFrame([{"src": r[0], "rel": r[1], "dst": r[2]} for r in rows])
                 st.dataframe(edf, use_container_width=True, hide_index=True)
@@ -803,7 +803,7 @@ def _render_sidebar() -> dict:
         with st.sidebar:
             with st.spinner("Building graph (AST → SQLite)…"):
                 try:
-                    from pycode_kg import (  # pylint: disable=import-outside-toplevel
+                    from pycode_kg import (  # noqa: PLC0415
                         PyCodeKG,
                     )
 
@@ -837,7 +837,7 @@ def _render_sidebar() -> dict:
         with st.sidebar:
             with st.spinner("Building semantic index (SQLite → sqlite-vec)…"):
                 try:
-                    from pycode_kg import (  # pylint: disable=import-outside-toplevel
+                    from pycode_kg import (  # noqa: PLC0415
                         PyCodeKG,
                     )
 
@@ -945,7 +945,7 @@ def _tab_graph(cfg: dict) -> None:
     st.iframe(html, height=int(cfg["graph_height"].replace("px", "")))
 
     with st.expander("📋 Node table"):
-        import pandas as pd  # pylint: disable=import-outside-toplevel
+        import pandas as pd  # noqa: PLC0415
 
         df = pd.DataFrame(
             [
@@ -1052,7 +1052,7 @@ def _tab_query(cfg: dict) -> None:
             st.info("No nodes to display.")
 
     with tab_table:
-        import pandas as pd  # pylint: disable=import-outside-toplevel
+        import pandas as pd  # noqa: PLC0415
 
         df = pd.DataFrame(
             [
@@ -1075,7 +1075,7 @@ def _tab_query(cfg: dict) -> None:
 
     with tab_edges:
         if result.edges:
-            import pandas as pd  # pylint: disable=import-outside-toplevel
+            import pandas as pd  # noqa: PLC0415
 
             edf = pd.DataFrame(
                 [
@@ -1249,7 +1249,7 @@ def _tab_snippets(cfg: dict) -> None:
     # Edges table
     if pack.edges:
         with st.expander(f"🔗 Edges ({len(pack.edges)})"):
-            import pandas as pd  # pylint: disable=import-outside-toplevel
+            import pandas as pd  # noqa: PLC0415
 
             edf = pd.DataFrame(
                 [

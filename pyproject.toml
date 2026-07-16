@@ -88,7 +88,6 @@ dev = [
     "ty>=0.0.41",
     "pdoc>=14.0.0",
     "pre-commit>=4.5.1",
-    "pylint>=4.0.5",
     "pytest>=8.0.0",
     "pytest-cov>=5.0.0",
     "ruff>=0.4.0",
@@ -120,7 +119,6 @@ all = [
     "pdoc>=14.0.0",
     "plotly>=5.14.0",
     "pre-commit>=4.5.1",
-    "pylint>=4.0.5",
     "PyQt5>=5.15.0",
     "pytest>=8.0.0",
     "pytest-cov>=5.0.0",
@@ -162,10 +160,23 @@ pycodekg-viz3d          = "pycode_kg.cli.cmd_viz:viz3d"
 [tool.ruff]
 line-length    = 100
 target-version = "py312"
+# Vendored Claude Code skills — not project code. The pre-commit hook's
+# exclude can't cover these (it runs with pass_filenames: false), so the
+# exclusion must live here.
+extend-exclude = [".claude"]
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "I", "UP"]
+# B023, BLE001, PLC0415 replace the retired pylint hook's cell-var-from-loop,
+# broad-exception-caught, and import-outside-toplevel checks.
+select = ["E", "F", "W", "I", "UP", "B023", "BLE001", "PLC0415"]
 ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+# viz3d is GUI code full of deliberate lazy imports (optional Qt/pyvista deps).
+"src/pycode_kg/viz3d.py" = ["PLC0415"]
+# Test imports are often deliberately lazy — they must run after sys.modules
+# mocks are installed.
+"tests/**" = ["PLC0415"]
 
 [tool.ty.environment]
 python-version = "3.12"
@@ -189,21 +200,6 @@ markers = [
     "slow: marks tests as slow (deselect with '-m not slow')",
     "integration: marks tests that exercise real external dependencies (model, LanceDB)",
 ]
-
-[tool.pylint.messages_control]
-disable = ["all"]
-enable = [
-    "broad-exception-caught",   # W0718
-    "cell-var-from-loop",       # W0640
-    "cyclic-import",            # R0401
-    "import-outside-toplevel",  # C0415
-    "undefined-variable",       # E0602
-]
-
-[tool.pylint.imports]
-# The kg → pycodekg_thorough_analysis cycle is broken at runtime by a lazy
-# import inside PyCodeKG.analyze().  Pylint's static analysis can't see that.
-ignored-modules = ["pycode_kg.pycodekg_thorough_analysis"]
 
 # ---------------------------------------------------------------------------
 # PyCodeKG / DocKG index configuration

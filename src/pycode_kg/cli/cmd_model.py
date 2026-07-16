@@ -35,7 +35,7 @@ def download_model(model: str, force: bool) -> None:
     variable).  Once cached, ``pycodekg build-index`` and ``pycodekg query``
     will use this local copy without any network access.
     """
-    from sentence_transformers import (  # pylint: disable=import-outside-toplevel
+    from sentence_transformers import (  # noqa: PLC0415
         SentenceTransformer,
     )
 

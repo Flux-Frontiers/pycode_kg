@@ -62,7 +62,7 @@ def detect_framework_nodes(
     # against the module_connectivity metric.  Both signals end up keyed by
     # bare module path (e.g. "src/pycode_kg/store.py"), which we map to "mod:..."
     # IDs for output.
-    from pycode_kg.analysis.centrality import (  # pylint: disable=import-outside-toplevel
+    from pycode_kg.analysis.centrality import (  # noqa: PLC0415
         StructuralImportanceRanker,
         aggregate_module_scores,
     )

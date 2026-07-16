@@ -62,7 +62,7 @@ def test_leaf_entry_point_module_scores_zero(tmp_path):
         },
     )
     analyzer = PyCodeKGAnalyzer(kg)
-    analyzer._analyze_module_coupling()  # pylint: disable=protected-access
+    analyzer._analyze_module_coupling()
 
     # main.py: incoming=0, outgoing=2, cohesion = 0 / (0+2+1) = 0.0
     assert _cohesion_for(analyzer.module_metrics, "main.py") == pytest.approx(0.0)
@@ -81,7 +81,7 @@ def test_central_imported_module_scores_high(tmp_path):
         },
     )
     analyzer = PyCodeKGAnalyzer(kg)
-    analyzer._analyze_module_coupling()  # pylint: disable=protected-access
+    analyzer._analyze_module_coupling()
 
     # core.py: incoming=3, outgoing=0, cohesion = 3 / (3+0+1) = 0.75
     assert _cohesion_for(analyzer.module_metrics, "core.py") == pytest.approx(0.75)
@@ -98,7 +98,7 @@ def test_cohesion_formula_matches_documentation(tmp_path):
         },
     )
     analyzer = PyCodeKGAnalyzer(kg)
-    analyzer._analyze_module_coupling()  # pylint: disable=protected-access
+    analyzer._analyze_module_coupling()
 
     # core.py: incoming=1, outgoing=0 → 1/(1+0+1) = 0.5
     # leaf.py: incoming=0, outgoing=1 → 0/(0+1+1) = 0.0

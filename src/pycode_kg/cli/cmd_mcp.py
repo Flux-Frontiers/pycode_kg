@@ -47,7 +47,7 @@ from pycode_kg.pycodekg import DEFAULT_MODEL
 def mcp(repo: str, db: str, vectors: str, model: str, transport: str) -> None:
     """Start the PyCodeKG MCP server."""
     try:
-        from mcp.server.fastmcp import (  # pylint: disable=import-outside-toplevel
+        from mcp.server.fastmcp import (  # noqa: PLC0415
             FastMCP,  # noqa: F401
         )
     except ImportError:
@@ -66,6 +66,6 @@ def mcp(repo: str, db: str, vectors: str, model: str, transport: str) -> None:
         transport,
     ]
 
-    from pycode_kg.mcp_server import main  # pylint: disable=import-outside-toplevel
+    from pycode_kg.mcp_server import main  # noqa: PLC0415
 
     main(argv=argv)

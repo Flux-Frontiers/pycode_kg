@@ -147,11 +147,11 @@ class PyCodeKG(KGModule):
         :return: Markdown-formatted architectural analysis report.
         """
         try:
-            from io import StringIO  # pylint: disable=import-outside-toplevel
+            from io import StringIO  # noqa: PLC0415
 
-            from rich.console import Console  # pylint: disable=import-outside-toplevel
+            from rich.console import Console  # noqa: PLC0415
 
-            from pycode_kg.pycodekg_thorough_analysis import (  # pylint: disable=import-outside-toplevel
+            from pycode_kg.pycodekg_thorough_analysis import (  # noqa: PLC0415
                 PyCodeKGAnalyzer,
             )
 
@@ -159,7 +159,7 @@ class PyCodeKG(KGModule):
             analyzer = PyCodeKGAnalyzer(self, console=silent)
             analyzer.run_analysis()
             return analyzer.to_markdown()
-        except Exception as exc:  # noqa: BLE001  # pylint: disable=broad-exception-caught
+        except Exception as exc:  # noqa: BLE001
             return f"# PyCodeKG Analysis\n\nAnalysis failed: {exc}\n"
 
     # ------------------------------------------------------------------

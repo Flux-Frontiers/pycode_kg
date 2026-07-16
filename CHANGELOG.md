@@ -36,6 +36,18 @@ Note: older entries preserve the API names used at that release (for example com
   - MCP server: `--lancedb`/`--vector-backend` → `--vectors`; startup now
     warns when `vectors.sqlite` is missing.
   - Streamlit app: `PYCODEKG_LANCEDB` env → `PYCODEKG_VECTORS`.
+- **Linting consolidated on ruff — pylint retired.** The pre-commit pylint
+  hook is gone; its checks now run via ruff (`B023` cell-var-from-loop,
+  `BLE001` broad-exception-caught, `PLC0415` import-outside-toplevel;
+  `undefined-variable` was already covered by `F821`). All
+  `# pylint: disable=` comments were converted to the equivalent `# noqa`
+  codes, with per-file ignores for `viz3d.py` and `tests/` (deliberate lazy
+  imports). The one check without a ruff equivalent, `cyclic-import`, is
+  covered by `pycodekg analyze`'s own circular-import detection.
+- **`.gitignore` cleaned up** — removed inapplicable GitHub-template
+  boilerplate (Django/Flask/Scrapy, PyInstaller, Celery, pipenv/pdm/pixi,
+  Spyder/Rope, Pyre/pytype, …), deduplicated `commit.txt`, and fixed the
+  copy-pasted DiaryKG section comment.
 - **Test suite adapted to the `kgmodule-utils` 0.6.1 embedder API** —
   `SentenceTransformerEmbedder` tests now patch `kg_utils.embedder.resolve_device`
   / `resolve_model_path` (pinning the device to CPU so mocked-module contexts
@@ -44,6 +56,9 @@ Note: older entries preserve the API names used at that release (for example com
 
 ### Removed
 
+- **pylint** — dropped from the `dev` and `all` extras and from
+  `pre-commit`; `[tool.pylint.*]` configuration removed from
+  `pyproject.toml`.
 - **LanceDB code path and surface.** Deleted the legacy
   `pycode_kg.build_pycodekg_lancedb` shim module, the `pycode-kg[sqlite-vec]`
   extra (sqlite-vec is core now), and all `--lancedb` options. The `lancedb`

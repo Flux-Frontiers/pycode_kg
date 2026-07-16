@@ -237,7 +237,7 @@ class PyCodeKGAnalyzer:
             self._run_phase(13, "Snapshot history", self._analyze_snapshots)
             self._run_phase(14, "Structural centrality (SIR)", self._analyze_centrality)
             if persist_centrality and self.centrality_records:
-                from pycode_kg.analysis.centrality import (  # pylint: disable=import-outside-toplevel
+                from pycode_kg.analysis.centrality import (  # noqa: PLC0415
                     StructuralImportanceRanker,
                 )
 
@@ -794,7 +794,7 @@ class PyCodeKGAnalyzer:
         """
 
         try:
-            import ast as _ast  # pylint: disable=import-outside-toplevel
+            import ast as _ast  # noqa: PLC0415
 
             already_ids: set[str] = set()
 
@@ -1116,7 +1116,7 @@ class PyCodeKGAnalyzer:
         """
 
         try:
-            from pycode_kg.ranking.coderank import (  # pylint: disable=import-outside-toplevel
+            from pycode_kg.ranking.coderank import (  # noqa: PLC0415
                 build_code_graph,
                 compute_coderank,
             )
@@ -1236,7 +1236,7 @@ class PyCodeKGAnalyzer:
         ]
 
         try:
-            from pycode_kg.ranking.coderank import (  # pylint: disable=import-outside-toplevel
+            from pycode_kg.ranking.coderank import (  # noqa: PLC0415
                 build_code_graph,
                 rank_query_hybrid,
             )
@@ -1255,7 +1255,7 @@ class PyCodeKGAnalyzer:
                 try:
                     # Get semantic scores from the vector index.
                     # Suppress tqdm progress bars from LanceDB embedding model loading.
-                    import os as _os  # pylint: disable=import-outside-toplevel
+                    import os as _os  # noqa: PLC0415
 
                     _old_disable = _os.environ.get("TQDM_DISABLE")
                     _os.environ["TQDM_DISABLE"] = "1"
@@ -1330,7 +1330,7 @@ class PyCodeKGAnalyzer:
         """
 
         try:
-            from pycode_kg.analysis.centrality import (  # pylint: disable=import-outside-toplevel
+            from pycode_kg.analysis.centrality import (  # noqa: PLC0415
                 StructuralImportanceRanker,
                 aggregate_module_scores,
             )
@@ -1701,14 +1701,14 @@ class PyCodeKGAnalyzer:
         # --- version ---
         version = "unknown"
         try:
-            from pycode_kg import (  # noqa: PLC0415  # pylint: disable=import-outside-toplevel
+            from pycode_kg import (  # noqa: PLC0415
                 __version__ as _v,
             )
 
             version = f"pycode-kg {_v}"
         except (ImportError, AttributeError):
             try:
-                from importlib.metadata import (  # noqa: PLC0415  # pylint: disable=import-outside-toplevel
+                from importlib.metadata import (  # noqa: PLC0415
                     version as _pkg_version,
                 )
 
@@ -1770,7 +1770,7 @@ class PyCodeKGAnalyzer:
             _host = platform.node()
             _py = platform.python_version()
             plat = f"{_os} | {_arch} ({_cpu}) | {_host} | Python {_py}"
-        except Exception:  # noqa: BLE001  # pylint: disable=broad-exception-caught
+        except Exception:  # noqa: BLE001
             plat = "unknown"
 
         # --- graph snapshot metrics ---
@@ -2725,7 +2725,7 @@ def main(
         return
 
     try:
-        from pycode_kg import PyCodeKG  # pylint: disable=import-outside-toplevel
+        from pycode_kg import PyCodeKG  # noqa: PLC0415
 
         console.print(f"[dim]Repo   : {root}[/dim]")
         console.print(f"[dim]DB     : {db}[/dim]")
@@ -2739,7 +2739,7 @@ def main(
         snap_mgr = SnapshotManager(snapshots_dir) if snapshots_dir.exists() else None
 
         # Resolve effective include/exclude dirs: prefer explicit args, fall back to pyproject.toml
-        from pycode_kg.config import (  # pylint: disable=import-outside-toplevel
+        from pycode_kg.config import (  # noqa: PLC0415
             load_exclude_dirs,
             load_include_dirs,
         )

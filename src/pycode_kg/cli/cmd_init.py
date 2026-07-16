@@ -145,7 +145,7 @@ def init(
         click.echo(f"  [1/4]  Model already cached at {local_path}")
     else:
         click.echo(f"  [1/4]  Downloading embedding model '{model}'...")
-        from sentence_transformers import (  # noqa: PLC0415  # pylint: disable=import-outside-toplevel
+        from sentence_transformers import (  # noqa: PLC0415
             SentenceTransformer,
         )
 
@@ -280,7 +280,7 @@ def init(
             )
             snap_mgr.save_snapshot(snapshot_obj)
             click.echo(f"  [4/4]  OK: snapshot saved (key={snapshot_obj.key[:12]})")
-        except Exception as exc:  # noqa: BLE001  # pylint: disable=broad-exception-caught
+        except Exception as exc:  # noqa: BLE001
             click.echo(f"  [4/4]  Snapshot skipped: {exc}", err=True)
 
     # ------------------------------------------------------------------

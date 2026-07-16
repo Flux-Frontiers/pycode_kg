@@ -101,7 +101,7 @@ class PyCodeKGExtractor(KGExtractor):
 
         :return: Iterator of :class:`NodeSpec` and :class:`EdgeSpec` objects.
         """
-        from pycode_kg.graph import CodeGraph  # pylint: disable=import-outside-toplevel
+        from pycode_kg.graph import CodeGraph  # noqa: PLC0415
 
         graph = CodeGraph(self.repo_path, include=self._include, exclude=self._exclude)
         nodes, edges = graph.result()
