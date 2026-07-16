@@ -2269,14 +2269,14 @@ files = [
 
 [[package]]
 name = "kgmodule-utils"
-version = "0.6.1"
+version = "0.6.2"
 description = "Shared types, graph store, semantic index, and pipeline base for the KGModule SDK"
 optional = false
 python-versions = "<3.14,>=3.12"
 groups = ["main"]
 files = [
-    {file = "kgmodule_utils-0.6.1-py3-none-any.whl", hash = "sha256:dce93e0697f54ae89728d892be2d162833bcec37e513d6cd498ada05aaf032d9"},
-    {file = "kgmodule_utils-0.6.1.tar.gz", hash = "sha256:ee47de592734ac311fcb18fb4b292ac91714433978f234989feeffefd69d9266"},
+    {file = "kgmodule_utils-0.6.2-py3-none-any.whl", hash = "sha256:c0c1ee8eb49cf3e0026332a54ce8fa997e37ebc39c034fc330bfe3ebe241a14b"},
+    {file = "kgmodule_utils-0.6.2.tar.gz", hash = "sha256:10889bf394c5164b06b149d739456fbe3bb14bf5554d76acc575a4181511d301"},
 ]
 
 [package.dependencies]
@@ -2287,7 +2287,6 @@ sentence-transformers = {version = ">=5.4.1", optional = true, markers = "extra 
 sqlite-vec = {version = "0.1.9", optional = true, markers = "extra == \"sqlite-vec\""}
 torch = {version = ">=2.5.1", optional = true, markers = "extra == \"semantic\""}
 transformers = {version = ">=4.40.0,<4.57", optional = true, markers = "extra == \"semantic\""}
-ty = ">=0.0.44,<0.0.45"
 
 [package.extras]
 semantic = ["lancedb (>=0.19.0)", "numpy (>=1.24.0)", "rich (>=13.0.0)", "sentence-transformers (>=5.4.1)", "torch (>=2.5.1)", "transformers (>=4.40.0,<4.57)"]
@@ -6463,9 +6462,10 @@ tutorials = ["matplotlib", "pandas", "tabulate"]
 name = "ty"
 version = "0.0.44"
 description = "An extremely fast Python type checker, written in Rust."
-optional = false
+optional = true
 python-versions = ">=3.8"
 groups = ["main"]
+markers = "extra == \"dev\" or extra == \"all\""
 files = [
     {file = "ty-0.0.44-py3-none-linux_armv6l.whl", hash = "sha256:272d31e7ad49b1dc5e8465a9fe700354e14c755b40d9c75f08f031d786903df3"},
     {file = "ty-0.0.44-py3-none-macosx_10_12_x86_64.whl", hash = "sha256:b92c4ddd7a3daf2049715edec9dc70cf6fd31a5a318ee647258f90dd75495eed"},
@@ -6987,4 +6987,4 @@ viz3d = ["PyQt5", "markdown", "param", "pyvista", "pyvistaqt", "trame-vtk"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12,<3.14"
-content-hash = "3bda5798eb3c527c1d1852073bf0ebe20c2ccf232b7a9154165108da5e990419"
+content-hash = "e2139734f4f1899c62168c8907c42281935545af83e48efe2b885dbae51fc978"

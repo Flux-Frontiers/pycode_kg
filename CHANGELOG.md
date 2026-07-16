@@ -21,7 +21,7 @@ Note: older entries preserve the API names used at that release (for example com
 
 - **BREAKING: vector store migrated from LanceDB to sqlite-vec.** PyCodeKG is
   now sqlite-vec-only, via `kg_utils.pipeline.KGModule`'s `VectorBackend` seam
-  (`kgmodule-utils[semantic,sqlite-vec]>=0.6.1`, now a core dependency).
+  (`kgmodule-utils[semantic,sqlite-vec]>=0.6.2`, now a core dependency).
   Vectors live in a single `.pycodekg/vectors.sqlite` file; the store is an
   exact scan (recall 1.0). **Migration: run `pycodekg build` once after
   upgrading** — code-KG indexes rebuild in seconds, no conversion step.
@@ -48,7 +48,7 @@ Note: older entries preserve the API names used at that release (for example com
   boilerplate (Django/Flask/Scrapy, PyInstaller, Celery, pipenv/pdm/pixi,
   Spyder/Rope, Pyre/pytype, …), deduplicated `commit.txt`, and fixed the
   copy-pasted DiaryKG section comment.
-- **Test suite adapted to the `kgmodule-utils` 0.6.1 embedder API** —
+- **Test suite adapted to the `kgmodule-utils` 0.6.x embedder API** —
   `SentenceTransformerEmbedder` tests now patch `kg_utils.embedder.resolve_device`
   / `resolve_model_path` (pinning the device to CPU so mocked-module contexts
   never touch real torch), index tests run against `SqliteVecBackend`, and the
