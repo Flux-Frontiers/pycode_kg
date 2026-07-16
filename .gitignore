@@ -216,6 +216,8 @@ cython_debug/
 # This is the correct pattern
 .pycodekg/lancedb/
 .pycodekg/lancedb-*
+.pycodekg/vectors.sqlite
+.pycodekg/vectors.sqlite*
 .pycodekg/graph.sqlite
 .pycodekg/graph.sqlite*
 .pycodekg/models
@@ -225,6 +227,7 @@ cython_debug/
 .dockg/lancedb-*
 .dockg/graph.sqlite
 .dockg/graph.sqlite*
+.dockg/embeddings.json
 .dockg/models
 
 # DiaryKG

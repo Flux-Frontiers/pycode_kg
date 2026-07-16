@@ -9,7 +9,7 @@ knowledge graph directly.
 
 Operational notes:
 - Entry points and configuration: the CLI ``main()`` resolves repo, SQLite,
-    and LanceDB paths with sensible defaults under ``.pycodekg/``.
+    and sqlite-vec store paths with sensible defaults under ``.pycodekg/``.
 - Logging approach: startup diagnostics and warnings are written to stderr so
     host MCP clients can capture runtime state.
 - Error handling strategy: startup reports misconfiguration warnings clearly
@@ -117,8 +117,9 @@ Install the package, then run::
 
     pycodekg mcp --repo /path/to/repo
 
-``--db`` and ``--lancedb`` are optional; they default to
-``.pycodekg/graph.sqlite`` and ``.pycodekg/lancedb`` relative to ``--repo``.
+``--db`` and ``--vectors`` are optional; they default to
+``.pycodekg/graph.sqlite`` and ``.pycodekg/vectors.sqlite`` relative to
+``--repo``.
 
 Per-project config for Claude Code and Kilo Code (``.mcp.json``)::
 
@@ -1729,9 +1730,9 @@ def _parse_args(argv: list | None = None) -> argparse.Namespace:
         help="Path to the SQLite knowledge graph (default: .pycodekg/graph.sqlite)",
     )
     p.add_argument(
-        "--lancedb",
-        default=".pycodekg/lancedb",
-        help="Path to the LanceDB vector index directory (default: .pycodekg/lancedb)",
+        "--vectors",
+        default=".pycodekg/vectors.sqlite",
+        help="Path to the sqlite-vec vector store (default: .pycodekg/vectors.sqlite)",
     )
     p.add_argument(
         "--model",
@@ -1774,12 +1775,18 @@ def main(argv: list | None = None) -> None:
 
     repo = Path(args.repo).resolve()
     db = Path(args.db) if Path(args.db).is_absolute() else repo / args.db
-    lancedb_dir = Path(args.lancedb) if Path(args.lancedb).is_absolute() else repo / args.lancedb
+    vectors = Path(args.vectors) if Path(args.vectors).is_absolute() else repo / args.vectors
 
     if not db.exists():
         print(
-            f"WARNING: SQLite database not found at '{db}'.\n"
-            "Run 'pycodekg-build-sqlite' and 'pycodekg-build-lancedb' first.",
+            f"WARNING: SQLite database not found at '{db}'.\nRun 'pycodekg build' first.",
+            file=sys.stderr,
+        )
+    if not vectors.exists():
+        print(
+            f"WARNING: sqlite-vec store not found at '{vectors}'.\n"
+            "Run 'pycodekg build' (or 'pycodekg build-index') first — "
+            "semantic queries will fail until it exists.",
             file=sys.stderr,
         )
 
@@ -1787,7 +1794,7 @@ def main(argv: list | None = None) -> None:
         f"PyCodeKG MCP server starting\n"
         f"  repo     : {repo}\n"
         f"  db       : {db}\n"
-        f"  lancedb  : {lancedb_dir}\n"
+        f"  vectors  : {vectors}\n"
         f"  model    : {args.model}\n"
         f"  transport: {args.transport}",
         file=sys.stderr,
@@ -1796,7 +1803,7 @@ def main(argv: list | None = None) -> None:
     _kg = PyCodeKG(
         repo_root=repo,
         db_path=db,
-        lancedb_dir=lancedb_dir,
+        vectors_path=vectors,
         model=args.model,
     )
 

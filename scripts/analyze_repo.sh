@@ -113,8 +113,8 @@ echo
 info "Building PyCodeKG SQLite index..."
 pycodekg-build-sqlite --repo "$CLONE_DIR" --wipe "${EXTRA_BUILD_ARGS[@]+"${EXTRA_BUILD_ARGS[@]}"}" 2>&1 | sed 's/^/  /'
 
-info "Building PyCodeKG LanceDB (semantic) index..."
-pycodekg-build-lancedb --repo "$CLONE_DIR" 2>&1 | sed 's/^/  /'
+info "Building PyCodeKG semantic (sqlite-vec) index..."
+pycodekg-build-index --repo "$CLONE_DIR" 2>&1 | sed 's/^/  /'
 
 success "Knowledge graph built"
 echo

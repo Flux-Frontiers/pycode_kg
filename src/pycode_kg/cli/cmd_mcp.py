@@ -28,10 +28,10 @@ from pycode_kg.pycodekg import DEFAULT_MODEL
     help="SQLite database path.",
 )
 @click.option(
-    "--lancedb",
-    default=".pycodekg/lancedb",
+    "--vectors",
+    default=".pycodekg/vectors.sqlite",
     type=click.Path(),
-    help="LanceDB directory path.",
+    help="sqlite-vec vector store path.",
 )
 @click.option(
     "--model",
@@ -44,7 +44,7 @@ from pycode_kg.pycodekg import DEFAULT_MODEL
     default="stdio",
     help="MCP transport protocol.",
 )
-def mcp(repo: str, db: str, lancedb: str, model: str, transport: str) -> None:
+def mcp(repo: str, db: str, vectors: str, model: str, transport: str) -> None:
     """Start the PyCodeKG MCP server."""
     try:
         from mcp.server.fastmcp import (  # pylint: disable=import-outside-toplevel
@@ -58,8 +58,8 @@ def mcp(repo: str, db: str, lancedb: str, model: str, transport: str) -> None:
         repo,
         "--db",
         db,
-        "--lancedb",
-        lancedb,
+        "--vectors",
+        vectors,
         "--model",
         model,
         "--transport",

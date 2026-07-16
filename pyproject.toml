@@ -51,14 +51,14 @@ packages = [{ include = "pycode_kg", from = "src" }]
 # ---------------------------------------------------------------------------
 [project]
 name = "pycode-kg"
-version = "0.19.3"
+version = "0.20.0"
 description = "A tool to build a searchable knowledge graph from Python repositories"
 readme = "README.md"
 license = "Elastic-2.0"
 authors = [
     { name = "Eric G. Suchanek, PhD", email = "suchanek@flux-frontiers.com" }
 ]
-keywords = ["knowledge-graph", "code-analysis", "ast", "lancedb", "sqlite", "semantic-search"]
+keywords = ["knowledge-graph", "code-analysis", "ast", "sqlite-vec", "sqlite", "semantic-search"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
@@ -79,7 +79,7 @@ dependencies = [
     "sentence-transformers>=5.4.1",
     "torch>=2.5.1",
     "transformers>=4.40.0,<4.57",
-    "kgmodule-utils[semantic]>=0.3.1",
+    "kgmodule-utils[semantic,sqlite-vec]>=0.6.1",
 ]
 
 [project.optional-dependencies]
@@ -142,7 +142,7 @@ pycodekg                = "pycode_kg.cli.main:cli"
 pycodekg-analyze        = "pycode_kg.cli.cmd_analyze:analyze"
 pycodekg-architecture   = "pycode_kg.cli.cmd_architecture:architecture"
 pycodekg-build          = "pycode_kg.cli.cmd_build_full:build"
-pycodekg-build-lancedb  = "pycode_kg.cli.cmd_build:build_lancedb"
+pycodekg-build-index    = "pycode_kg.cli.cmd_build:build_index"
 pycodekg-build-sqlite   = "pycode_kg.cli.cmd_build:build_sqlite"
 pycodekg-centrality     = "pycode_kg.cli.cmd_centrality:cmd_centrality"
 pycodekg-download-model = "pycode_kg.cli.cmd_model:download_model"

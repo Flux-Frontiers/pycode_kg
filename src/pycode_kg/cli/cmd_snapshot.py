@@ -97,7 +97,6 @@ def save_snapshot(
     kg = PyCodeKG(
         repo_root=repo_root,
         db_path=db_path,
-        lancedb_dir=repo_root / ".pycodekg" / "lancedb",
         model=DEFAULT_MODEL,
     )
     snap_mgr = SnapshotManager(snapshots_path, db_path=db_path)

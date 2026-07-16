@@ -6,7 +6,7 @@ enable any knowledge domain (Python code, TypeScript, genomics, legal text, …)
 to be expressed as a full-featured knowledge graph with:
 
   - SQLite graph storage  (:class:`~pycode_kg.store.GraphStore`)
-  - LanceDB vector index  (:class:`~pycode_kg.index.SemanticIndex`)
+  - sqlite-vec vector index  (:class:`~pycode_kg.index.SemanticIndex`)
   - Hybrid semantic + structural query (:meth:`~KGModule.query`)
   - Source-grounded snippet packing (:meth:`~KGModule.pack`)
   - Snapshot management  (:class:`~pycode_kg.snapshots.SnapshotManager`)

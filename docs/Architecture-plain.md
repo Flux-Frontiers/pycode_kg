@@ -81,13 +81,13 @@ For each retained node: resolve module_path to absolute path (path-traversal saf
 
 INTERFACES
 
-Streamlit Web App (pycodekg viz): Three tabs: Graph Browser (pyvis interactive graph, filter by kind or module, click for detail panels), Hybrid Query (NL query to semantic seeds to graph expansion to ranked results with graph/table/edge/JSON views), Snippet Pack (source-grounded snippets with Markdown and JSON download). Sidebar: Build Graph, Build Index, Build All controls. Reads PYCODEKG_DB and PYCODEKG_LANCEDB environment variables.
+Streamlit Web App (pycodekg viz): Three tabs: Graph Browser (pyvis interactive graph, filter by kind or module, click for detail panels), Hybrid Query (NL query to semantic seeds to graph expansion to ranked results with graph/table/edge/JSON views), Snippet Pack (source-grounded snippets with Markdown and JSON download). Sidebar: Build Graph, Build Index, Build All controls. Reads PYCODEKG_DB and PYCODEKG_VECTORS environment variables.
 
 3D Visualizer (pycodekg viz3d): Optional PyVista/PyQt5 visualizer. Requires the viz3d dependency group (pyvista, pyvistaqt, PyQt5, param, markdown, trame-vtk). KGVisualizer is the param-reactive data model. MainWindow is the full Qt window with left control panel and right PyVista QtInteractor. DocstringPopup renders docstrings as HTML/Markdown. create_kg_visualization() renders the 3D scene with per-kind meshes and Bezier arc edges. Layouts: allium (hierarchical cluster, default), cake (layered by node kind). Right-click a node to highlight, focus camera, and show its docstring popup.
 
 Thorough Analysis Tool (pycodekg analyze): PyCodeKGAnalyzer runs 7 analysis phases using the live knowledge graph: complexity hotspots (fan-in/fan-out), entry points (no callers), dead code candidates (unreachable), docstring coverage, module cohesion (internal coupling), module coupling (IMPORTS-based dependencies), and critical paths (deepest call chains). FunctionMetrics captures per-function fan-in, fan-out, line count, docstring, and risk level. ModuleMetrics captures per-module function/class counts, incoming/outgoing deps, and cohesion score. CallChain represents a critical path with chain, depth, and total callers. Outputs a Markdown report and a JSON snapshot.
 
-MCP Server (pycodekg-mcp): Thin wrapper around PyCodeKG. Stateful (one PyCodeKG instance per server process). Read-only. Start: pycodekg-mcp --repo /path/to/repo [--db ...] [--lancedb ...] [--transport stdio|sse]. Tools: query_codebase(q, k, hop, rels, include_symbols, max_nodes, min_score, max_per_module) returning JSON, pack_snippets(q, k, hop, rels, context, max_lines, max_nodes, min_score, max_per_module) returning Markdown, callers(node_id, rel) returning JSON (with import-aware stub filtering), get_node(node_id) returning JSON, graph_stats() returning JSON, plus snapshot_list/snapshot_show/snapshot_diff for temporal metrics keyed by tree hash. MCP server is included in the standard install: pip install 'pycode-kg @ git+https://github.com/Flux-Frontiers/pycode_kg.git'.
+MCP Server (pycodekg-mcp): Thin wrapper around PyCodeKG. Stateful (one PyCodeKG instance per server process). Read-only. Start: pycodekg-mcp --repo /path/to/repo [--db ...] [--vectors ...] [--transport stdio|sse]. Tools: query_codebase(q, k, hop, rels, include_symbols, max_nodes, min_score, max_per_module) returning JSON, pack_snippets(q, k, hop, rels, context, max_lines, max_nodes, min_score, max_per_module) returning Markdown, callers(node_id, rel) returning JSON (with import-aware stub filtering), get_node(node_id) returning JSON, graph_stats() returning JSON, plus snapshot_list/snapshot_show/snapshot_diff for temporal metrics keyed by tree hash. MCP server is included in the standard install: pip install 'pycode-kg @ git+https://github.com/Flux-Frontiers/pycode_kg.git'.
 
 /setup-mcp Claude Skill: Automates full MCP setup. Steps: resolve repo path, verify PyCodeKG installation, build SQLite graph, build LanceDB index, smoke-test pipeline, configure .mcp.json, .vscode/mcp.json, and claude_desktop_config.json.
 
@@ -100,7 +100,7 @@ CLI ENTRY POINTS
 Primary interface: pycodekg (the main Click CLI). Each subcommand is also available as a standalone script alias.
 
 pycodekg build-sqlite (alias: pycodekg-build-sqlite): AST extraction to SQLite.
-pycodekg build-lancedb (alias: pycodekg-build-lancedb): SQLite to LanceDB embeddings.
+pycodekg build-index (alias: pycodekg-build-index): SQLite to sqlite-vec embeddings.
 pycodekg build (alias: pycodekg-build): Full pipeline (SQLite + LanceDB), always wipes existing data.
 pycodekg update (alias: pycodekg-update): Incremental upsert pipeline (SQLite + LanceDB), no wipe.
 pycodekg query (alias: pycodekg-query): Hybrid query, text output.

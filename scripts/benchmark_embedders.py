@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Benchmark candidate embedding models for PyCodeKG query quality.
 
-This script rebuilds a LanceDB index for each model, runs a fixed query suite
+This script rebuilds a sqlite-vec index for each model, runs a fixed query suite
 across one or more rerank modes, and writes a machine-readable JSON report plus
 an analyst-friendly Markdown summary.
 
@@ -257,7 +257,7 @@ def _top_metrics(nodes: list[dict], top_n: int) -> dict[str, float | int]:
 def _run_benchmark(
     repo_root: Path,
     sqlite_path: Path,
-    lancedb_root: Path,
+    vectors_root: Path,
     models: list[str],
     modes: list[str],
     query_cases: list[QueryCase],
@@ -269,7 +269,7 @@ def _run_benchmark(
 
     :param repo_root: Repository root.
     :param sqlite_path: SQLite graph path.
-    :param lancedb_root: Root output dir for per-model LanceDB indexes.
+    :param vectors_root: Root output dir for per-model sqlite-vec stores.
     :param models: Candidate model names.
     :param modes: Rerank modes to evaluate.
     :param query_cases: Query set.
@@ -284,7 +284,7 @@ def _run_benchmark(
         "started_utc": started,
         "repo_root": str(repo_root),
         "sqlite": str(sqlite_path),
-        "lancedb_root": str(lancedb_root),
+        "vectors_root": str(vectors_root),
         "models": models,
         "modes": modes,
         "top_n": top_n,
@@ -298,16 +298,16 @@ def _run_benchmark(
 
     for model in models:
         model_slug = _slugify_model(model)
-        model_lancedb = lancedb_root / model_slug
-        model_lancedb.mkdir(parents=True, exist_ok=True)
+        model_vectors = vectors_root / f"{model_slug}.sqlite"
+        model_vectors.parent.mkdir(parents=True, exist_ok=True)
 
         print(f"\n=== Model: {model} ===")
-        print(f"Rebuilding LanceDB at {model_lancedb} ...")
+        print(f"Rebuilding sqlite-vec store at {model_vectors} ...")
         t0 = time.perf_counter()
         kg = PyCodeKG(
             repo_root=repo_root,
             db_path=sqlite_path,
-            lancedb_dir=model_lancedb,
+            vectors_path=model_vectors,
             model=model,
         )
         idx_stats = kg.build_index(wipe=True)
@@ -319,7 +319,7 @@ def _run_benchmark(
         model_result: dict = {
             "model": model,
             "model_slug": model_slug,
-            "lancedb_dir": str(model_lancedb),
+            "vectors_path": str(model_vectors),
             "build_index": {
                 "seconds": build_seconds,
                 "indexed_rows": idx_stats.indexed_rows,
@@ -410,7 +410,7 @@ def _to_markdown(report: dict) -> str:
     lines.append(f"- Completed (UTC): {report.get('completed_utc', 'n/a')}")
     lines.append(f"- Repo: `{report['repo_root']}`")
     lines.append(f"- SQLite: `{report['sqlite']}`")
-    lines.append(f"- LanceDB root: `{report['lancedb_root']}`")
+    lines.append(f"- Vectors root: `{report['vectors_root']}`")
     lines.append(
         "- Hybrid weights: "
         f"semantic={report['hybrid_weights']['semantic']}, "
@@ -474,9 +474,9 @@ def _parse_args() -> argparse.Namespace:
         help="Path to existing PyCodeKG SQLite graph.",
     )
     parser.add_argument(
-        "--lancedb-root",
-        default=".pycodekg/lancedb-benchmark",
-        help="Root dir for per-model LanceDB indexes.",
+        "--vectors-root",
+        default=".pycodekg/vectors-benchmark",
+        help="Root dir for per-model sqlite-vec stores.",
     )
     parser.add_argument(
         "--preset",
@@ -536,7 +536,7 @@ def main() -> int:
 
     repo_root = Path(args.repo_root).resolve()
     sqlite_path = (repo_root / args.sqlite).resolve()
-    lancedb_root = (repo_root / args.lancedb_root).resolve()
+    vectors_root = (repo_root / args.vectors_root).resolve()
 
     if not sqlite_path.exists():
         print(f"ERROR: SQLite graph not found at {sqlite_path}")
@@ -562,13 +562,13 @@ def main() -> int:
 
     out_json.parent.mkdir(parents=True, exist_ok=True)
     out_md.parent.mkdir(parents=True, exist_ok=True)
-    lancedb_root.mkdir(parents=True, exist_ok=True)
+    vectors_root.mkdir(parents=True, exist_ok=True)
 
     print("Starting embedder benchmark ...")
     report = _run_benchmark(
         repo_root=repo_root,
         sqlite_path=sqlite_path,
-        lancedb_root=lancedb_root,
+        vectors_root=vectors_root,
         models=models,
         modes=modes,
         query_cases=DEFAULT_QUERY_CASES,

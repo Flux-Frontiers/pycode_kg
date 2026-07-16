@@ -13,9 +13,43 @@ Note: older entries preserve the API names used at that release (for example com
 
 ### Changed
 
+### Fixed
+
+## [0.20.0] - 2026-07-15
+
+### Changed
+
+- **BREAKING: vector store migrated from LanceDB to sqlite-vec.** PyCodeKG is
+  now sqlite-vec-only, via `kg_utils.pipeline.KGModule`'s `VectorBackend` seam
+  (`kgmodule-utils[semantic,sqlite-vec]>=0.6.1`, now a core dependency).
+  Vectors live in a single `.pycodekg/vectors.sqlite` file; the store is an
+  exact scan (recall 1.0). **Migration: run `pycodekg build` once after
+  upgrading** — code-KG indexes rebuild in seconds, no conversion step.
+  Backend parity was verified on this repo's own 379-node index before the
+  switch: identical top-5 results across 8 real queries on both backends,
+  plus a committed regression test (`test_lancedb_and_sqlite_vec_agree_on_topk`).
+  - `PyCodeKG(repo_root, db_path, vectors_path)` — `lancedb_dir`, `table`,
+    and `vector_backend` parameters removed.
+  - CLI: `build-lancedb` → **`build-index`** (`pycodekg-build-index` script);
+    `--lancedb` → `--vectors` on `build`/`update`/`query`/`pack`/`explain`/
+    `analyze`/`mcp`; `--table` and `--vector-backend` removed.
+  - MCP server: `--lancedb`/`--vector-backend` → `--vectors`; startup now
+    warns when `vectors.sqlite` is missing.
+  - Streamlit app: `PYCODEKG_LANCEDB` env → `PYCODEKG_VECTORS`.
+- **Test suite adapted to the `kgmodule-utils` 0.6.1 embedder API** —
+  `SentenceTransformerEmbedder` tests now patch `kg_utils.embedder.resolve_device`
+  / `resolve_model_path` (pinning the device to CPU so mocked-module contexts
+  never touch real torch), index tests run against `SqliteVecBackend`, and the
+  obsolete LanceDB table-cache and task-prompt-detection tests were removed.
+
 ### Removed
 
-### Fixed
+- **LanceDB code path and surface.** Deleted the legacy
+  `pycode_kg.build_pycodekg_lancedb` shim module, the `pycode-kg[sqlite-vec]`
+  extra (sqlite-vec is core now), and all `--lancedb` options. The `lancedb`
+  package itself still installs transitively via `kgmodule-utils[semantic]`
+  until KG_utils splits its extras; doc_kg retains its LanceDB fallback
+  independently.
 
 ## [0.19.3] - 2026-06-01
 

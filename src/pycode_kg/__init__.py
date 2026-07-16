@@ -1,7 +1,7 @@
 """
 pycode_kg: A tool to build a searchable knowledge graph from Python repositories.
 
-Pure AST extraction → SQLite (authoritative) → LanceDB (semantic index).
+Pure AST extraction → SQLite (authoritative) → sqlite-vec (semantic index).
 
 Public API
 ----------
@@ -9,7 +9,7 @@ Primary entry point::
 
     from pycode_kg import PyCodeKG
 
-    kg = PyCodeKG(repo_root, db_path, lancedb_dir)
+    kg = PyCodeKG(repo_root, db_path)
     stats = kg.build(wipe=True)
     result = kg.query("database connection setup")
     pack = kg.pack("configuration loading")
@@ -32,7 +32,7 @@ KGModule SDK (build new domain KGs)::
     from pycode_kg import KGModule, KGExtractor, PyCodeKGExtractor, NodeSpec, EdgeSpec
 """
 
-__version__ = "0.19.3"
+__version__ = "0.20.0"
 __author__ = "Eric G. Suchanek, PhD"
 
 # Low-level primitives (locked v0 contract)

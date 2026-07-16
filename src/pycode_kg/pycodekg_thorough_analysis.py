@@ -11,8 +11,8 @@ graph traversal capabilities. Analyzes:
 
 Operational behavior:
 - Entry point and configuration defaults: resolves ``repo_root`` and defaults
-    ``db_path``/``lancedb_path`` to ``.pycodekg/graph.sqlite`` and
-    ``.pycodekg/lancedb``.
+    ``db_path``/``vectors_path`` to ``.pycodekg/graph.sqlite`` and
+    ``.pycodekg/vectors.sqlite``.
 - Logging approach: uses Rich console output for user-facing status and
     standard ``logging`` for non-fatal diagnostic warnings.
 - Error handling strategy: degrades gracefully when optional data is missing
@@ -20,7 +20,7 @@ Operational behavior:
     actionable warnings instead of failing hard where possible.
 
 Usage:
-    python pycodekg_thorough_analysis.py /path/to/repo /path/to/db .pycodekg/lancedb
+    python pycodekg_thorough_analysis.py /path/to/repo /path/to/db .pycodekg/vectors.sqlite
 """
 
 import datetime
@@ -2671,7 +2671,7 @@ def _default_report_name(repo_root: Path) -> str:
 def main(
     repo_root: str = ".",
     db_path: str | None = None,
-    lancedb_path: str | None = None,
+    vectors_path: str | None = None,
     report_path: str | None = None,
     json_path: str | None = None,
     quiet: bool = False,
@@ -2681,7 +2681,7 @@ def main(
 ) -> None:
     """Main entry point.
 
-    Paths for ``db_path`` and ``lancedb_path`` default to the standard
+    Paths for ``db_path`` and ``vectors_path`` default to the standard
     ``.pycodekg/`` layout inside ``repo_root`` when not provided.
     The markdown report defaults to ``<repo>_analysis_<YYYYMMDD>.md``
     in the current working directory.  The JSON snapshot always writes
@@ -2698,7 +2698,7 @@ def main(
 
     :param repo_root: Root directory of the repository (default: ``"."``)
     :param db_path: Path to SQLite knowledge graph; default ``.pycodekg/graph.sqlite``
-    :param lancedb_path: Path to LanceDB vector index; default ``.pycodekg/lancedb``
+    :param vectors_path: Path to sqlite-vec vector store; default ``.pycodekg/vectors.sqlite``
     :param report_path: Markdown report output path; auto-named when ``None``
     :param json_path: JSON snapshot output path; when ``None`` (default) no JSON is written
     :param quiet: Suppress console summary table when ``True``
@@ -2712,7 +2712,7 @@ def main(
     console = Console()
     root = Path(repo_root).resolve()
     db = Path(db_path) if db_path else root / ".pycodekg" / "graph.sqlite"
-    lancedb = Path(lancedb_path) if lancedb_path else root / ".pycodekg" / "lancedb"
+    vectors = Path(vectors_path) if vectors_path else root / ".pycodekg" / "vectors.sqlite"
     md_out = report_path or _default_report_name(root)
     Path(md_out).parent.mkdir(parents=True, exist_ok=True)
     json_out = Path(json_path) if json_path else None
@@ -2729,11 +2729,11 @@ def main(
 
         console.print(f"[dim]Repo   : {root}[/dim]")
         console.print(f"[dim]DB     : {db}[/dim]")
-        console.print(f"[dim]Index  : {lancedb}[/dim]")
+        console.print(f"[dim]Index  : {vectors}[/dim]")
         console.print(f"[dim]Report : {md_out}[/dim]")
         console.print()
 
-        kg = PyCodeKG(repo_root=root, db_path=db, lancedb_dir=lancedb)
+        kg = PyCodeKG(repo_root=root, db_path=db, vectors_path=vectors)
 
         snapshots_dir = root / ".pycodekg" / "snapshots"
         snap_mgr = SnapshotManager(snapshots_dir) if snapshots_dir.exists() else None

@@ -109,7 +109,7 @@ def init(
     """Initialize PyCodeKG in a repository.
 
     Downloads the embedding model, builds the knowledge graph (SQLite +
-    LanceDB), optionally installs the pre-commit hook, and captures an
+    sqlite-vec), optionally installs the pre-commit hook, and captures an
     initial snapshot.  Designed to be idempotent — safe to run more than once.
 
     Example::
@@ -162,8 +162,7 @@ def init(
     _run_pipeline(
         repo=repo,
         db=None,
-        lancedb=None,
-        table="pycodekg_nodes",
+        vectors=None,
         model=model,
         verbose=verbose,
         kinds="module,class,function,method",
@@ -231,7 +230,6 @@ def init(
         try:
             db_path = repo_root / ".pycodekg" / "graph.sqlite"
             snapshots_path = repo_root / ".pycodekg" / "snapshots"
-            lancedb_dir = repo_root / ".pycodekg" / "lancedb"
 
             store = GraphStore(db_path)
             try:
@@ -242,7 +240,6 @@ def init(
             kg = PyCodeKG(
                 repo_root=repo_root,
                 db_path=db_path,
-                lancedb_dir=lancedb_dir,
                 model=model,
             )
             snap_mgr = SnapshotManager(snapshots_path, db_path=db_path)

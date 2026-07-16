@@ -13,7 +13,7 @@ from pathlib import Path
 import click
 
 from pycode_kg.cli.main import cli
-from pycode_kg.cli.options import lancedb_option, model_option, sqlite_option
+from pycode_kg.cli.options import model_option, sqlite_option, vectors_option
 from pycode_kg.explain import render_explain
 from pycode_kg.kg import PyCodeKG
 
@@ -21,13 +21,7 @@ from pycode_kg.kg import PyCodeKG
 @cli.command("explain")
 @click.argument("node_id", metavar="NODE_ID")
 @sqlite_option
-@lancedb_option
-@click.option(
-    "--table",
-    default="pycodekg_nodes",
-    show_default=True,
-    help="LanceDB table name.",
-)
+@vectors_option
 @model_option
 @click.option(
     "--out",
@@ -38,8 +32,7 @@ from pycode_kg.kg import PyCodeKG
 def explain(
     node_id: str,
     sqlite: str,
-    lancedb: str,
-    table: str,
+    vectors: str,
     model: str,
     out: str | None,
 ) -> None:
@@ -54,9 +47,8 @@ def explain(
     kg = PyCodeKG(
         repo_root=repo_root,
         db_path=Path(sqlite),
-        lancedb_dir=Path(lancedb),
+        vectors_path=Path(vectors),
         model=model,
-        table=table,
     )
 
     # Fail fast for scripting: distinguish missing-node from rendered output.

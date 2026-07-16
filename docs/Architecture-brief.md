@@ -126,7 +126,7 @@ Owns all four layers with lazy initialization. Supports context manager.
 kg = PyCodeKG(repo_root, db_path, lancedb_dir, model, table)
 kg.build(wipe=True)           # full pipeline
 kg.build_graph(wipe=True)     # AST → SQLite only
-kg.build_index(wipe=True)     # SQLite → LanceDB only
+kg.build_index(wipe=True)     # SQLite → sqlite-vec only
 kg.query(q, k=8, hop=1)       # → QueryResult
 kg.pack(q, k=8, hop=1)        # → SnippetPack (with source snippets)
 kg.callers(node_id)           # → List[dict]  (two-phase fan-in)
@@ -153,7 +153,7 @@ kg.node(node_id)              # fetch node dict
 7. Persist to SQLite (upsert, idempotent)
 8. `resolve_symbols()`: name-match `sym:` stubs → `RESOLVES_TO` edges
 
-### Phase 2: Semantic Indexing (SQLite → LanceDB)
+### Phase 2: Semantic Indexing (SQLite → sqlite-vec)
 1. Read module/class/function/method nodes
 2. Build canonical index text (name + qualname + module + docstring)
 3. Embed in batches via SentenceTransformerEmbedder
@@ -204,14 +204,14 @@ Thin wrapper around `PyCodeKG`. Stateful (one instance per process), read-only.
 | `get_node(node_id)` | JSON |
 | `graph_stats()` | JSON |
 
-Start: `pycodekg-mcp --repo /path [--db ...] [--lancedb ...] [--transport stdio|sse]`
+Start: `pycodekg-mcp --repo /path [--db ...] [--vectors ...] [--transport stdio|sse]`
 
 ### CLI Entry Points
 
 | Command | Alias | Description |
 |---|---|---|
 | `pycodekg build-sqlite` | `pycodekg-build-sqlite` | AST → SQLite |
-| `pycodekg build-lancedb` | `pycodekg-build-lancedb` | SQLite → LanceDB |
+| `pycodekg build-index` | `pycodekg-build-index` | SQLite → sqlite-vec |
 | `pycodekg build` | `pycodekg-build` | Full pipeline (always wipes) |
 | `pycodekg update` | `pycodekg-update` | Incremental upsert (no wipe) |
 | `pycodekg query` | `pycodekg-query` | Hybrid query |
@@ -252,7 +252,7 @@ src/pycode_kg/
   ├── utils.py                     # Shared utilities
   └── cli/
       ├── main.py                  # Click entry point
-      ├── cmd_build.py             # build-sqlite, build-lancedb
+      ├── cmd_build.py             # build-sqlite, build-index
       ├── cmd_build_full.py        # build (full)
       ├── cmd_query.py             # query, pack
       ├── cmd_viz.py               # viz, viz3d

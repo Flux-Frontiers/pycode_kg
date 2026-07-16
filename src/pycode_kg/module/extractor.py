@@ -84,7 +84,7 @@ class PyCodeKGExtractor(KGExtractor):
         ]
 
     def meaningful_node_kinds(self) -> list[str]:
-        """Return the node kinds indexed by LanceDB and counted in coverage.
+        """Return the node kinds indexed in the vector store and counted in coverage.
 
         Excludes ``'symbol'`` (unresolved import stubs).
 

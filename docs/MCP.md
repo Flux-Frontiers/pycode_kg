@@ -544,7 +544,7 @@ Higher `hop` values expand the result set geometrically. Use `max_nodes` in `pac
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| Empty results from `query_codebase` | LanceDB index missing or stale | `pycodekg build-lancedb --wipe` |
+| Empty results from `query_codebase` | sqlite-vec index missing or stale | `pycodekg build-index --wipe` |
 | Node IDs in results don't resolve with `get_node` | Graph rebuilt since last query | Rebuild both SQLite and LanceDB; restart the MCP server |
 | `RuntimeError: PyCodeKG not initialised` | Server called without `main()` | Always start via `pycodekg mcp` CLI |
 | Snippets show wrong line numbers | Source files changed since build | `pycodekg build-sqlite --wipe` |
@@ -561,7 +561,7 @@ For installation, build, and per-agent config issues see [INSTALLATION.md](INSTA
 |---|---|
 | What does the MCP server expose? | 19 tools across discovery (`graph_stats`, `query_codebase`, `pack_snippets`, `get_node`, `list_nodes`, `find_node`, `find_definition_at`), relationships (`callers`, `explain`, `analyze_repo`), centrality & ranking (`centrality`, `bridge_centrality`, `framework_nodes`, `rank_nodes`, `query_ranked`, `explain_rank`), and snapshots (`snapshot_list`, `snapshot_show`, `snapshot_diff`) |
 | What must exist before starting? | `.pycodekg/graph.sqlite` + `.pycodekg/lancedb/` directory |
-| How do I build those? | `pycodekg build` (or `build-sqlite` then `build-lancedb`) — see [INSTALLATION.md](INSTALLATION.md) |
+| How do I build those? | `pycodekg build` (or `build-sqlite` then `build-index`) — see [INSTALLATION.md](INSTALLATION.md) |
 | Is the server stateful? | Yes — one `PyCodeKG` instance per server process |
 | Can it modify the graph? | No — strictly read-only |
 | Which tool should I call first? | `graph_stats()` for orientation |

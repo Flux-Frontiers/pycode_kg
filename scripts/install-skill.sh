@@ -21,7 +21,7 @@
 #
 # Flags:
 #   --providers <list>   Comma-separated provider names, or "all" (default: all)
-#   --wipe               Force rebuild of SQLite graph and LanceDB index
+#   --wipe               Force rebuild of SQLite graph and sqlite-vec index
 #   --dry-run            Print what would be done without making any changes
 #
 # What it does:
@@ -35,7 +35,7 @@
 #        b. pip install from git+https (fallback, needs git)
 #        c. poetry add (fallback for Poetry-managed repos)
 #   5. Builds the SQLite knowledge graph (skips if already present, unless --wipe)
-#   6. Builds the LanceDB vector index  (skips if already present, unless --wipe)
+#   6. Builds the sqlite-vec vector index  (skips if already present, unless --wipe)
 #   7. Writes provider MCP configs as requested
 #   8. Prints a final summary
 #
@@ -143,7 +143,7 @@ LOCAL_SKILL="${REPO_ROOT:+${REPO_ROOT}/.claude/skills/pycodekg/SKILL.md}"
 # The target repo is where the user ran the script from (CWD).
 TARGET_REPO="${PWD}"
 SQLITE_DB="${TARGET_REPO}/.pycodekg/graph.sqlite"
-LANCEDB_DIR="${TARGET_REPO}/.pycodekg/lancedb"
+VECTORS_PATH="${TARGET_REPO}/.pycodekg/vectors.sqlite"
 
 echo "╔══════════════════════════════════════════════════╗"
 echo "║       PyCodeKG Integration Installer               ║"
@@ -429,25 +429,25 @@ else
     fi
 fi
 
-# ── Step 5: Build the LanceDB vector index ────────────────────────────────────
+# ── Step 5: Build the sqlite-vec vector index ─────────────────────────────────
 echo ""
-echo "── Step 6: Building LanceDB vector index ────────────"
+echo "── Step 6: Building sqlite-vec vector index ────────"
 echo ""
 
-if [ -d "$LANCEDB_DIR" ] && [ "$(ls -A "$LANCEDB_DIR" 2>/dev/null)" ] && [ -z "$WIPE_FLAG" ]; then
-    echo "  ✓ LanceDB index already exists: ${LANCEDB_DIR} — skipping build"
+if [ -f "$VECTORS_PATH" ] && [ -z "$WIPE_FLAG" ]; then
+    echo "  ✓ sqlite-vec index already exists: ${VECTORS_PATH} — skipping build"
     echo "    (Run with --wipe to force rebuild)"
 else
     if [ -n "$DRY_RUN" ]; then
-        echo "  [dry-run] would run: pycodekg build-lancedb --repo ${TARGET_REPO}${WIPE_FLAG:+ --wipe}"
+        echo "  [dry-run] would run: pycodekg build-index --repo ${TARGET_REPO}${WIPE_FLAG:+ --wipe}"
     else
-        echo "  → Building LanceDB index at: ${LANCEDB_DIR}"
+        echo "  → Building sqlite-vec index at: ${VECTORS_PATH}"
         _WIPE_ARG=${WIPE_FLAG:+--wipe}
-        (cd "${TARGET_REPO}" && "${PYCODEKG_BIN}" build-lancedb --repo "${TARGET_REPO}" ${_WIPE_ARG})
-        if [ -d "$LANCEDB_DIR" ] && [ "$(ls -A "$LANCEDB_DIR" 2>/dev/null)" ]; then
-            echo "  ✓ Built: ${LANCEDB_DIR}"
+        (cd "${TARGET_REPO}" && "${PYCODEKG_BIN}" build-index --repo "${TARGET_REPO}" ${_WIPE_ARG})
+        if [ -f "$VECTORS_PATH" ]; then
+            echo "  ✓ Built: ${VECTORS_PATH}"
         else
-            echo "  ✗ Build failed — ${LANCEDB_DIR} not populated"
+            echo "  ✗ Build failed — ${VECTORS_PATH} not populated"
             exit 1
         fi
     fi
@@ -574,7 +574,7 @@ fi
 echo ""
 echo "  Repo:    ${TARGET_REPO}"
 echo "  SQLite:  ${SQLITE_DB}"
-echo "  LanceDB: ${LANCEDB_DIR}"
+echo "  Vectors: ${VECTORS_PATH}"
 echo ""
 echo "  Claude commands installed:"
 echo "    ✓ ~/.claude/commands/pycodekg.md"

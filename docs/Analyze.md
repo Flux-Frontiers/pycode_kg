@@ -58,7 +58,7 @@ pycodekg analyze [OPTIONS] [REPO_ROOT]
 | Option | Description |
 |--------|-------------|
 | `--db PATH` | SQLite knowledge graph path (default: `<repo>/.pycodekg/graph.sqlite`) |
-| `--lancedb PATH` | LanceDB vector index path (default: `<repo>/.pycodekg/lancedb`) |
+| `--vectors PATH` | sqlite-vec vector store path (default: `<repo>/.pycodekg/vectors.sqlite`) |
 | `--output FILE` | Markdown report output path (default: `<repo>_analysis_<YYYYMMDD>.md`) |
 | `--json FILE` | JSON snapshot output path (default: `~/.claude/pycodekg_analysis_latest.json`) |
 | `--quiet` | Suppress the Rich console summary table |
