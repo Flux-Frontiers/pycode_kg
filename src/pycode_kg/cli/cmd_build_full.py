@@ -13,6 +13,8 @@ import time
 from pathlib import Path
 
 import click
+from kg_utils.semantic import META_COLUMNS
+from kg_utils.vector_backend import SqliteVecBackend
 
 from pycode_kg.cli.main import cli
 from pycode_kg.cli.options import (
@@ -64,22 +66,14 @@ def _common_options(fn):
         help="SQLite database path (default: <repo>/.pycodekg/graph.sqlite).",
     )(fn)
     fn = click.option(
-        "--lancedb",
+        "--vectors",
         default=None,
         type=click.Path(),
         show_default=False,
-        help="LanceDB directory path (default: <repo>/.pycodekg/lancedb).",
-    )(fn)
-    fn = click.option(
-        "--table",
-        default="pycodekg_nodes",
-        show_default=True,
-        help="LanceDB table name.",
+        help="sqlite-vec store path (default: <repo>/.pycodekg/vectors.sqlite).",
     )(fn)
     fn = model_option(fn)
-    fn = click.option(
-        "-v", "--verbose", is_flag=True, help="Show LanceDB and embedder progress output."
-    )(fn)
+    fn = click.option("-v", "--verbose", is_flag=True, help="Show embedder progress output.")(fn)
     fn = click.option(
         "--kinds",
         default="module,class,function,method",
@@ -101,8 +95,7 @@ def _common_options(fn):
 def _run_pipeline(
     repo: str,
     db: str | None,
-    lancedb: str | None,
-    table: str,
+    vectors: str | None,
     model: str,
     verbose: bool,
     kinds: str,
@@ -116,7 +109,7 @@ def _run_pipeline(
     """Execute the full build pipeline (shared by build and update)."""
     repo_root = Path(repo).resolve()
     db_path = Path(db) if db else repo_root / ".pycodekg" / "graph.sqlite"
-    lancedb_dir = Path(lancedb) if lancedb else repo_root / ".pycodekg" / "lancedb"
+    vectors_path = Path(vectors) if vectors else repo_root / ".pycodekg" / "vectors.sqlite"
 
     include = load_include_dirs(repo_root) | set(include_dir)
     exclude = load_exclude_dirs(repo_root) | set(exclude_dir)
@@ -164,11 +157,12 @@ def _run_pipeline(
     embedder = SentenceTransformerEmbedder(model)
 
     store = GraphStore(db_path)
+    backend = SqliteVecBackend(vectors_path, dim=embedder.dim, meta_columns=META_COLUMNS)
     idx = SemanticIndex(
-        lancedb_dir,
+        vectors_path.parent,
         embedder=embedder,
-        table=table,
         index_kinds=kinds_tuple,
+        backend=backend,
     )
     stats = idx.build(store, wipe=wipe, batch_size=batch, quiet=not verbose)
     store.close()
@@ -191,8 +185,7 @@ def _run_pipeline(
 def build(
     repo: str,
     db: str | None,
-    lancedb: str | None,
-    table: str,
+    vectors: str | None,
     model: str,
     verbose: bool,
     kinds: str,
@@ -204,8 +197,7 @@ def build(
     _run_pipeline(
         repo,
         db,
-        lancedb,
-        table,
+        vectors,
         model,
         verbose,
         kinds,
@@ -222,8 +214,7 @@ def build(
 def update(
     repo: str,
     db: str | None,
-    lancedb: str | None,
-    table: str,
+    vectors: str | None,
     model: str,
     verbose: bool,
     kinds: str,
@@ -235,8 +226,7 @@ def update(
     _run_pipeline(
         repo,
         db,
-        lancedb,
-        table,
+        vectors,
         model,
         verbose,
         kinds,

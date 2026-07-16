@@ -84,7 +84,7 @@ class PyCodeKGExtractor(KGExtractor):
         ]
 
     def meaningful_node_kinds(self) -> list[str]:
-        """Return the node kinds indexed by LanceDB and counted in coverage.
+        """Return the node kinds indexed in the vector store and counted in coverage.
 
         Excludes ``'symbol'`` (unresolved import stubs).
 
@@ -101,7 +101,7 @@ class PyCodeKGExtractor(KGExtractor):
 
         :return: Iterator of :class:`NodeSpec` and :class:`EdgeSpec` objects.
         """
-        from pycode_kg.graph import CodeGraph  # pylint: disable=import-outside-toplevel
+        from pycode_kg.graph import CodeGraph  # noqa: PLC0415
 
         graph = CodeGraph(self.repo_path, include=self._include, exclude=self._exclude)
         nodes, edges = graph.result()

@@ -120,7 +120,7 @@ def viz3d(db: str, layout: str, width: int, height: int) -> None:
             "Run 'pycodekg build-sqlite' first to index your repository."
         )
 
-    from pycode_kg.viz3d import launch  # pylint: disable=import-outside-toplevel
+    from pycode_kg.viz3d import launch  # noqa: PLC0415
 
     launch(
         db_path=str(db_path),
@@ -158,7 +158,7 @@ def viz_timeline(snapshots: str, type: str) -> None:
             f"plotly is not installed. Install viz dependencies with:\n  {_VIZ_EXTRA}"
         )
 
-    from pycode_kg.viz3d_timeline import (  # pylint: disable=import-outside-toplevel
+    from pycode_kg.viz3d_timeline import (  # noqa: PLC0415
         create_3d_timeline_figure,
         create_timeline_figure,
         display_timeline_summary,

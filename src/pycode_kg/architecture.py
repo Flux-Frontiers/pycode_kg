@@ -460,7 +460,7 @@ class ArchitectureAnalyzer:
                 "name": "Graph Query Pipeline",
                 "description": "Semantic search → graph expansion → snippet packing",
                 "steps": [
-                    "Semantic search finds seed nodes via LanceDB",
+                    "Semantic search finds seed nodes via sqlite-vec",
                     "Graph expansion traverses CALLS, CONTAINS, IMPORTS edges",
                     "Snippet pack materializes source code with context",
                 ],

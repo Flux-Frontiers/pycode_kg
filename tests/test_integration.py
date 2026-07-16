@@ -137,7 +137,9 @@ def test_ste_real_similar_texts_closer_than_dissimilar(real_embedder):
 
 
 def _build_store_and_index(tmp_path: Path, sample_repo: Path, embedder) -> tuple:
-    """Extract graph, write to SQLite, build LanceDB index. Returns (store, idx)."""
+    """Extract graph, write to SQLite, build sqlite-vec index. Returns (store, idx)."""
+    from kg_utils.vector_backend import SqliteVecBackend
+
     from pycode_kg.module.extractor import EdgeSpec, NodeSpec, PyCodeKGExtractor
 
     extractor = PyCodeKGExtractor(sample_repo)
@@ -150,7 +152,8 @@ def _build_store_and_index(tmp_path: Path, sample_repo: Path, embedder) -> tuple
             edge_specs.append(item)
     store = GraphStore(tmp_path / "graph.sqlite")
     store.write(node_specs, edge_specs, wipe=True)
-    idx = SemanticIndex(tmp_path / "ldb", embedder=embedder)
+    backend = SqliteVecBackend(tmp_path / "vectors.sqlite", dim=embedder.dim)
+    idx = SemanticIndex(tmp_path, embedder=embedder, backend=backend)
     idx.build(store)
     return store, idx
 
@@ -201,7 +204,7 @@ def built_kg(tmp_path_factory, sample_repo, real_embedder):
     kg = PyCodeKG(
         repo_root=sample_repo,
         db_path=tmp / "graph.sqlite",
-        lancedb_dir=tmp / "lancedb",
+        vectors_path=tmp / "vectors.sqlite",
     )
     kg._embedder = real_embedder  # inject pre-loaded embedder to avoid double load
     kg.build(wipe=True)

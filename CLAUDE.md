@@ -53,8 +53,8 @@ Each command is available as a `pycodekg <subcommand>` **or** a dedicated `pycod
 |---------------------------|---------|
 | `init` / `pycodekg-init` | One-command setup: download model, build graph, install hooks, snapshot |
 | `build-sqlite` / `pycodekg-build-sqlite` | Extract AST-based knowledge graph → SQLite |
-| `build-lancedb` / `pycodekg-build-lancedb` | Build semantic vector index for NL queries |
-| `build` / `pycodekg-build` | SQLite + LanceDB in one step |
+| `build-index` / `pycodekg-build-index` | Build semantic vector index for NL queries |
+| `build` / `pycodekg-build` | SQLite + sqlite-vec index in one step |
 | `query` / `pycodekg-query` | Run hybrid query over the graph |
 | `pack` / `pycodekg-pack` | Generate source-grounded snippet packs |
 | `viz` / `pycodekg-viz` | Launch Streamlit interactive visualizer |
@@ -71,11 +71,11 @@ pycodekg init --repo .
 
 # Build the knowledge graph (one-time setup)
 pycodekg build-sqlite --repo /path/to/repo
-pycodekg build-lancedb
+pycodekg build-index
 
 # Or with individual script aliases (useful in Poetry projects / Makefiles)
 pycodekg-build-sqlite --repo /path/to/repo
-pycodekg-build-lancedb
+pycodekg-build-index
 
 # Build with only specific directories (CLI flags)
 pycodekg build --repo . --include-dir src --include-dir lib

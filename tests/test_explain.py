@@ -29,7 +29,7 @@ def _make_kg(tmp_path: Path, files: dict) -> PyCodeKG:
     kg = PyCodeKG(
         repo_root=repo,
         db_path=tmp_path / "pycodekg.sqlite",
-        lancedb_dir=tmp_path / "lancedb",
+        vectors_path=tmp_path / "vectors.sqlite",
     )
     kg.build_graph(wipe=True)
     return kg

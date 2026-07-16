@@ -6,8 +6,8 @@ Click command to provide consistent option names, defaults, and help text::
 
     @cli.command()
     @sqlite_option
-    @lancedb_option
-    def my_command(sqlite, lancedb):
+    @vectors_option
+    def my_command(sqlite, vectors):
         ...
 """
 
@@ -23,12 +23,12 @@ sqlite_option = click.option(
     help="SQLite database path.",
 )
 
-lancedb_option = click.option(
-    "--lancedb",
-    default=".pycodekg/lancedb",
+vectors_option = click.option(
+    "--vectors",
+    default=".pycodekg/vectors.sqlite",
     type=click.Path(),
     show_default=True,
-    help="LanceDB directory path.",
+    help="sqlite-vec vector store path.",
 )
 
 model_option = click.option(

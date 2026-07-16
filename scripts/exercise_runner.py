@@ -79,7 +79,7 @@ def run_exercise(label: str, call_str: str, fn, *args, **kwargs) -> str | None:
             print(result or "(no output)")
         print()
         return result
-    except Exception as exc:  # pylint: disable=broad-except
+    except Exception as exc:  # noqa: BLE001
         print(f"[ERROR] {exc}\n")
         return None
 
@@ -101,10 +101,10 @@ def build_graph(repo: Path) -> None:
 
 def init_kg(repo: Path) -> None:
     """Initialise the PyCodeKG global state used by mcp_server tool functions."""
-    import pycode_kg.mcp_server as _srv  # pylint: disable=import-outside-toplevel
-    from pycode_kg import PyCodeKG  # pylint: disable=import-outside-toplevel
-    from pycode_kg.pycodekg import DEFAULT_MODEL  # pylint: disable=import-outside-toplevel
-    from pycode_kg.snapshots import SnapshotManager  # pylint: disable=import-outside-toplevel
+    import pycode_kg.mcp_server as _srv  # noqa: PLC0415
+    from pycode_kg import PyCodeKG  # noqa: PLC0415
+    from pycode_kg.pycodekg import DEFAULT_MODEL  # noqa: PLC0415
+    from pycode_kg.snapshots import SnapshotManager  # noqa: PLC0415
 
     db = repo / ".pycodekg" / "graph.sqlite"
     lancedb_dir = repo / ".pycodekg" / "lancedb"
@@ -129,7 +129,7 @@ def init_kg(repo: Path) -> None:
 
 
 def run_exercises(repo: Path) -> None:
-    import pycode_kg.mcp_server as srv  # pylint: disable=import-outside-toplevel
+    import pycode_kg.mcp_server as srv  # noqa: PLC0415
 
     # State extracted from early exercises to feed into later ones
     node_id: str | None = None
@@ -205,7 +205,7 @@ def run_exercises(repo: Path) -> None:
         md = srv.query_codebase("storage persistence database", format="markdown")
         print(md)
         print()
-    except Exception as exc:  # pylint: disable=broad-except
+    except Exception as exc:  # noqa: BLE001
         print(f"[ERROR] {exc}\n")
 
     run_exercise(
@@ -354,7 +354,7 @@ def run_exercises(repo: Path) -> None:
                     class_module = n.get("module_path", "")
                     print(f"[class_id found: {class_id}]\n")
                     break
-        except Exception as exc:  # pylint: disable=broad-except
+        except Exception as exc:  # noqa: BLE001
             print(f"[ERROR] {exc}\n")
 
     if class_id:
@@ -401,7 +401,7 @@ def run_exercises(repo: Path) -> None:
         else:
             print(rank_raw)
         print()
-    except Exception as exc:  # pylint: disable=broad-except
+    except Exception as exc:  # noqa: BLE001
         print(f"[ERROR] {exc}\n")
 
     section("Exercise 6.2 — Structure-aware search: hybrid mode")
@@ -424,7 +424,7 @@ def run_exercises(repo: Path) -> None:
                 f"{name:<35} {module}"
             )
         print()
-    except Exception as exc:  # pylint: disable=broad-except
+    except Exception as exc:  # noqa: BLE001
         print(f"[ERROR] {exc}\n")
 
     section("Exercise 6.2 — Structure-aware search: ppr mode")
@@ -445,7 +445,7 @@ def run_exercises(repo: Path) -> None:
                 f"{r['rank']:<6} {r['final_score']:<10.4f} {r['semantic_score']:<10.4f} {name:<35} {module}"
             )
         print()
-    except Exception as exc:  # pylint: disable=broad-except
+    except Exception as exc:  # noqa: BLE001
         print(f"[ERROR] {exc}\n")
 
     explain_id = rank_node_id or node_id
@@ -486,7 +486,7 @@ def run_exercises(repo: Path) -> None:
         snap_md = srv.snapshot_list()
         print(snap_md)
         print()
-    except Exception as exc:  # pylint: disable=broad-except
+    except Exception as exc:  # noqa: BLE001
         print(f"[ERROR] {exc}\n")
 
     section("Exercise 8.2 — Latest snapshot")
@@ -495,7 +495,7 @@ def run_exercises(repo: Path) -> None:
         snap_show = srv.snapshot_show("latest")
         print(snap_show)
         print()
-    except Exception as exc:  # pylint: disable=broad-except
+    except Exception as exc:  # noqa: BLE001
         print(f"[ERROR or no snapshots] {exc}\n")
 
     # snapshot_diff requires two real keys — skip with an informative message

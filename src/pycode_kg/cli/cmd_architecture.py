@@ -97,7 +97,7 @@ def architecture(
         analyzer = ArchitectureAnalyzer(store, repo_path, version=version, commit=commit)
 
         # Load thorough analysis - try in order: explicit path, auto-load latest, skip
-        import json  # pylint: disable=import-outside-toplevel
+        import json  # noqa: PLC0415
 
         analysis_loaded = False
         if analysis:

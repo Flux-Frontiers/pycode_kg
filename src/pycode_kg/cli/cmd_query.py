@@ -14,7 +14,7 @@ from pathlib import Path
 import click
 
 from pycode_kg.cli.main import cli
-from pycode_kg.cli.options import lancedb_option, model_option, sqlite_option
+from pycode_kg.cli.options import model_option, sqlite_option, vectors_option
 from pycode_kg.kg import PyCodeKG
 from pycode_kg.store import DEFAULT_RELS
 
@@ -24,13 +24,7 @@ _DEFAULT_RELS_STR = ",".join(DEFAULT_RELS)
 @cli.command("query")
 @click.argument("query_text", metavar="QUERY")
 @sqlite_option
-@lancedb_option
-@click.option(
-    "--table",
-    default="pycodekg_nodes",
-    show_default=True,
-    help="LanceDB table name.",
-)
+@vectors_option
 @model_option
 @click.option("--k", type=int, default=8, show_default=True, help="Top-k semantic hits.")
 @click.option("--hop", type=int, default=1, show_default=True, help="Graph expansion hops.")
@@ -44,8 +38,7 @@ _DEFAULT_RELS_STR = ",".join(DEFAULT_RELS)
 def query(
     query_text: str,
     sqlite: str,
-    lancedb: str,
-    table: str,
+    vectors: str,
     model: str,
     k: int,
     hop: int,
@@ -60,8 +53,7 @@ def query(
 
     :param query_text: Natural-language query, e.g. ``"database connection setup"``.
     :param sqlite: Path to the SQLite graph database.
-    :param lancedb: Directory for the LanceDB vector index.
-    :param table: LanceDB table name (default ``pycodekg_nodes``).
+    :param vectors: Path to the sqlite-vec vector store.
     :param model: Sentence-transformer embedding model name.
     :param k: Number of semantic seed nodes (default 8).
     :param hop: Graph expansion hops from each seed (default 1).
@@ -76,9 +68,8 @@ def query(
     kg = PyCodeKG(
         repo_root=repo_root,
         db_path=Path(sqlite),
-        lancedb_dir=Path(lancedb),
+        vectors_path=Path(vectors),
         model=model,
-        table=table,
     )
 
     result = kg.query(
@@ -102,13 +93,7 @@ def query(
     help="Repository root directory.",
 )
 @sqlite_option
-@lancedb_option
-@click.option(
-    "--table",
-    default="pycodekg_nodes",
-    show_default=True,
-    help="LanceDB table name.",
-)
+@vectors_option
 @model_option
 @click.option("--k", type=int, default=8, show_default=True, help="Top-k semantic hits.")
 @click.option("--hop", type=int, default=1, show_default=True, help="Graph expansion hops.")
@@ -149,8 +134,7 @@ def pack(
     query_text: str,
     repo_root: str,
     sqlite: str,
-    lancedb: str,
-    table: str,
+    vectors: str,
     model: str,
     k: int,
     hop: int,
@@ -170,8 +154,7 @@ def pack(
     :param query_text: Natural-language query, e.g. ``"configuration loading"``.
     :param repo_root: Repository root directory used for source file lookup.
     :param sqlite: Path to the SQLite graph database.
-    :param lancedb: Directory for the LanceDB vector index.
-    :param table: LanceDB table name (default ``pycodekg_nodes``).
+    :param vectors: Path to the sqlite-vec vector store.
     :param model: Sentence-transformer embedding model name.
     :param k: Number of semantic seed nodes (default 8).
     :param hop: Graph expansion hops from each seed (default 1).
@@ -187,9 +170,8 @@ def pack(
     kg = PyCodeKG(
         repo_root=Path(repo_root),
         db_path=Path(sqlite),
-        lancedb_dir=Path(lancedb),
+        vectors_path=Path(vectors),
         model=model,
-        table=table,
     )
 
     snippet_pack = kg.pack(

@@ -27,10 +27,10 @@ from pycode_kg.pycodekg_thorough_analysis import main as run_analysis
     help="SQLite knowledge graph path (default: <repo>/.pycodekg/graph.sqlite).",
 )
 @click.option(
-    "--lancedb",
+    "--vectors",
     default=None,
     type=click.Path(),
-    help="LanceDB vector index directory (default: <repo>/.pycodekg/lancedb).",
+    help="sqlite-vec vector store path (default: <repo>/.pycodekg/vectors.sqlite).",
 )
 @click.option(
     "--output",
@@ -63,7 +63,7 @@ from pycode_kg.pycodekg_thorough_analysis import main as run_analysis
 def analyze(
     repo_root: str,
     db: str | None,
-    lancedb: str | None,
+    vectors: str | None,
     output: str | None,
     json_path: str | None,
     quiet: bool,
@@ -86,7 +86,7 @@ def analyze(
     run_analysis(
         repo_root=repo_root,
         db_path=db,
-        lancedb_path=lancedb,
+        vectors_path=vectors,
         report_path=output,
         json_path=json_path,
         quiet=quiet,

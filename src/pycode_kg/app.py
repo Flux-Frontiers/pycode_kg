@@ -57,7 +57,7 @@ _REL_COLOR: dict[str, str] = {
 import os as _os  # noqa: E402
 
 _DEFAULT_DB = _os.environ.get("PYCODEKG_DB", ".pycodekg/graph.sqlite")
-_DEFAULT_LANCEDB = _os.environ.get("PYCODEKG_LANCEDB", ".pycodekg/lancedb")
+_DEFAULT_VECTORS = _os.environ.get("PYCODEKG_VECTORS", ".pycodekg/vectors.sqlite")
 
 # ---------------------------------------------------------------------------
 # Page config (must be first Streamlit call)
@@ -147,7 +147,7 @@ def _get_store() -> GraphStore | None:
 
 
 @st.cache_resource(show_spinner="Loading PyCodeKG (embedder may take a moment)…")
-def _load_kg(repo_root: str, db_path: str, lancedb_dir: str, model: str):
+def _load_kg(repo_root: str, db_path: str, vectors_path: str, model: str):
     """
     Load and cache a ``PyCodeKG`` instance for the given configuration.
 
@@ -157,16 +157,16 @@ def _load_kg(repo_root: str, db_path: str, lancedb_dir: str, model: str):
 
     :param repo_root: Root directory of the Python repository to analyse.
     :param db_path: Path to the SQLite graph database.
-    :param lancedb_dir: Directory for the LanceDB vector index.
+    :param vectors_path: Path to the sqlite-vec vector store.
     :param model: Name of the sentence-transformer embedding model to use.
     :return: An initialised ``PyCodeKG`` instance.
     """
-    from pycode_kg import PyCodeKG  # pylint: disable=import-outside-toplevel
+    from pycode_kg import PyCodeKG  # noqa: PLC0415
 
     return PyCodeKG(
         repo_root=repo_root,
         db_path=db_path,
-        lancedb_dir=lancedb_dir,
+        vectors_path=vectors_path,
         model=model,
     )
 
@@ -592,7 +592,7 @@ def _render_node_detail(node: dict, store: GraphStore | None = None) -> None:
                 (node_id, node_id),
             ).fetchall()
             if rows:
-                import pandas as pd  # pylint: disable=import-outside-toplevel  # pylint: disable=import-outside-toplevel
+                import pandas as pd  # noqa: PLC0415
 
                 edf = pd.DataFrame([{"src": r[0], "rel": r[1], "dst": r[2]} for r in rows])
                 st.dataframe(edf, use_container_width=True, hide_index=True)
@@ -694,12 +694,12 @@ def _render_sidebar() -> dict:
     """
     Render the sidebar controls and return a configuration dictionary.
 
-    Exposes controls for the SQLite path, repo root, LanceDB directory,
+    Exposes controls for the SQLite path, repo root, sqlite-vec store path,
     embedding model, query parameters (k, hops, relations, include_symbols),
     graph display options (max nodes, physics, height), and build buttons
     for the graph and semantic index.
 
-    :return: A dict with keys ``db_path``, ``repo_root``, ``lancedb_dir``,
+    :return: A dict with keys ``db_path``, ``repo_root``, ``vectors_path``,
         ``model``, ``k``, ``hop``, ``rels``, ``include_symbols``,
         ``max_graph_nodes``, ``physics_on``, ``graph_height``, and ``store``.
     """
@@ -738,10 +738,10 @@ def _render_sidebar() -> dict:
         value=str(Path.cwd()),
         help="Root directory of the Python repository to analyse",
     )
-    lancedb_dir = st.sidebar.text_input(
-        "LanceDB dir",
-        value=_DEFAULT_LANCEDB,
-        help="Directory for the LanceDB vector index",
+    vectors_path = st.sidebar.text_input(
+        "Vector store path",
+        value=_DEFAULT_VECTORS,
+        help="Path to the sqlite-vec vector store",
     )
     model = st.sidebar.selectbox(
         "Embedding model",
@@ -789,12 +789,12 @@ def _render_sidebar() -> dict:
     )
     build_index_btn = build_col2.button(
         "🧠 Build Index",
-        help="Embed nodes → LanceDB (requires graph to exist)",
+        help="Embed nodes → sqlite-vec (requires graph to exist)",
         use_container_width=True,
     )
     build_all_btn = st.sidebar.button(
         "⚡ Build All (graph + index)",
-        help="Full pipeline: AST → SQLite → LanceDB",
+        help="Full pipeline: AST → SQLite → sqlite-vec",
         use_container_width=True,
         type="primary",
     )
@@ -803,14 +803,14 @@ def _render_sidebar() -> dict:
         with st.sidebar:
             with st.spinner("Building graph (AST → SQLite)…"):
                 try:
-                    from pycode_kg import (  # pylint: disable=import-outside-toplevel
+                    from pycode_kg import (  # noqa: PLC0415
                         PyCodeKG,
                     )
 
                     kg = PyCodeKG(
                         repo_root=repo_root,
                         db_path=db_path,
-                        lancedb_dir=lancedb_dir,
+                        vectors_path=vectors_path,
                         model=model,
                     )
                     if build_all_btn:
@@ -835,16 +835,16 @@ def _render_sidebar() -> dict:
 
     if build_index_btn and not build_all_btn:
         with st.sidebar:
-            with st.spinner("Building semantic index (SQLite → LanceDB)…"):
+            with st.spinner("Building semantic index (SQLite → sqlite-vec)…"):
                 try:
-                    from pycode_kg import (  # pylint: disable=import-outside-toplevel
+                    from pycode_kg import (  # noqa: PLC0415
                         PyCodeKG,
                     )
 
                     kg = PyCodeKG(
                         repo_root=repo_root,
                         db_path=db_path,
-                        lancedb_dir=lancedb_dir,
+                        vectors_path=vectors_path,
                         model=model,
                     )
                     stats = kg.build_index(wipe=True)
@@ -856,7 +856,7 @@ def _render_sidebar() -> dict:
     return {
         "db_path": db_path,
         "repo_root": repo_root,
-        "lancedb_dir": lancedb_dir,
+        "vectors_path": vectors_path,
         "model": model,
         "k": k,
         "hop": hop,
@@ -945,7 +945,7 @@ def _tab_graph(cfg: dict) -> None:
     st.iframe(html, height=int(cfg["graph_height"].replace("px", "")))
 
     with st.expander("📋 Node table"):
-        import pandas as pd  # pylint: disable=import-outside-toplevel
+        import pandas as pd  # noqa: PLC0415
 
         df = pd.DataFrame(
             [
@@ -984,7 +984,7 @@ def _tab_query(cfg: dict) -> None:
 
     :param cfg: Configuration dictionary returned by ``_render_sidebar``,
         providing keys such as ``store``, ``repo_root``, ``db_path``,
-        ``lancedb_dir``, ``model``, ``k``, ``hop``, ``rels``,
+        ``vectors_path``, ``model``, ``k``, ``hop``, ``rels``,
         ``include_symbols``, ``graph_height``, and ``physics_on``.
     """
     st.header("🔍 Hybrid Query")
@@ -1007,7 +1007,7 @@ def _tab_query(cfg: dict) -> None:
                 kg = _load_kg(
                     cfg["repo_root"],
                     cfg["db_path"],
-                    cfg["lancedb_dir"],
+                    cfg["vectors_path"],
                     cfg["model"],
                 )
                 result = kg.query(
@@ -1052,7 +1052,7 @@ def _tab_query(cfg: dict) -> None:
             st.info("No nodes to display.")
 
     with tab_table:
-        import pandas as pd  # pylint: disable=import-outside-toplevel
+        import pandas as pd  # noqa: PLC0415
 
         df = pd.DataFrame(
             [
@@ -1075,7 +1075,7 @@ def _tab_query(cfg: dict) -> None:
 
     with tab_edges:
         if result.edges:
-            import pandas as pd  # pylint: disable=import-outside-toplevel
+            import pandas as pd  # noqa: PLC0415
 
             edf = pd.DataFrame(
                 [
@@ -1119,7 +1119,7 @@ def _tab_snippets(cfg: dict) -> None:
 
     :param cfg: Configuration dictionary returned by ``_render_sidebar``,
         providing keys such as ``store``, ``repo_root``, ``db_path``,
-        ``lancedb_dir``, ``model``, ``k``, ``hop``, ``rels``,
+        ``vectors_path``, ``model``, ``k``, ``hop``, ``rels``,
         ``include_symbols``, and ``physics_on``.
     """
     st.header("📦 Snippet Pack")
@@ -1152,7 +1152,7 @@ def _tab_snippets(cfg: dict) -> None:
                 kg = _load_kg(
                     cfg["repo_root"],
                     cfg["db_path"],
-                    cfg["lancedb_dir"],
+                    cfg["vectors_path"],
                     cfg["model"],
                 )
                 pack = kg.pack(
@@ -1249,7 +1249,7 @@ def _tab_snippets(cfg: dict) -> None:
     # Edges table
     if pack.edges:
         with st.expander(f"🔗 Edges ({len(pack.edges)})"):
-            import pandas as pd  # pylint: disable=import-outside-toplevel
+            import pandas as pd  # noqa: PLC0415
 
             edf = pd.DataFrame(
                 [

@@ -5,7 +5,7 @@ kg.py
 PyCodeKG — concrete KGModule implementation for Python codebases.
 
 Owns the Python-specific extraction layer (CodeGraph / AST) and delegates
-all generic infrastructure (SQLite, LanceDB, hybrid query, snippet packing)
+all generic infrastructure (SQLite, sqlite-vec, hybrid query, snippet packing)
 to the KGModule base class.
 
 Also re-exports the result types (BuildStats, QueryResult, Snippet,
@@ -67,7 +67,7 @@ class PyCodeKG(KGModule):
 
     Subclasses :class:`~pycode_kg.module.base.KGModule` and provides the
     Python-AST-specific extraction layer via :class:`PyCodeKGExtractor`.
-    All generic infrastructure — SQLite persistence, LanceDB indexing,
+    All generic infrastructure — SQLite persistence, sqlite-vec indexing,
     hybrid query, snippet packing, snapshots — is inherited from
     :class:`~pycode_kg.module.base.KGModule`.
 
@@ -86,10 +86,9 @@ class PyCodeKG(KGModule):
     :param repo_root: Repository root directory.
     :param db_path: SQLite database path (defaults to
         ``<repo_root>/.pycodekg/graph.sqlite``).
-    :param lancedb_dir: LanceDB directory (defaults to
-        ``<repo_root>/.pycodekg/lancedb``).
+    :param vectors_path: sqlite-vec vector store path (defaults to
+        ``<repo_root>/.pycodekg/vectors.sqlite``).
     :param model: Sentence-transformer model name.
-    :param table: LanceDB table name.
     """
 
     _default_dir = ".pycodekg"
@@ -98,26 +97,25 @@ class PyCodeKG(KGModule):
         self,
         repo_root: str | Path,
         db_path: str | Path | None = None,
-        lancedb_dir: str | Path | None = None,
+        vectors_path: str | Path | None = None,
         *,
         model: str = DEFAULT_MODEL,
-        table: str = "pycodekg_nodes",
     ) -> None:
         """Initialise ``PyCodeKG`` and resolve all paths.
 
         :param repo_root: Repository root directory; resolved to an absolute path.
         :param db_path: Path to the SQLite database file.
-        :param lancedb_dir: Directory used by LanceDB for the vector index.
+        :param vectors_path: Path to the sqlite-vec vector store file.
         :param model: Sentence-transformer model name used for embedding.
-        :param table: LanceDB table name for the node index.
         """
         super().__init__(
             repo_root,
             db_path=db_path,
-            lancedb_dir=lancedb_dir,
             model=model,
-            table=table,
+            vector_backend="sqlite-vec",
         )
+        if vectors_path is not None:
+            self.vectors_path = Path(vectors_path)
         # Backwards-compatible cached CodeGraph (direct access still works)
         self._graph: CodeGraph | None = None
 
@@ -149,11 +147,11 @@ class PyCodeKG(KGModule):
         :return: Markdown-formatted architectural analysis report.
         """
         try:
-            from io import StringIO  # pylint: disable=import-outside-toplevel
+            from io import StringIO  # noqa: PLC0415
 
-            from rich.console import Console  # pylint: disable=import-outside-toplevel
+            from rich.console import Console  # noqa: PLC0415
 
-            from pycode_kg.pycodekg_thorough_analysis import (  # pylint: disable=import-outside-toplevel
+            from pycode_kg.pycodekg_thorough_analysis import (  # noqa: PLC0415
                 PyCodeKGAnalyzer,
             )
 
@@ -161,7 +159,7 @@ class PyCodeKG(KGModule):
             analyzer = PyCodeKGAnalyzer(self, console=silent)
             analyzer.run_analysis()
             return analyzer.to_markdown()
-        except Exception as exc:  # noqa: BLE001  # pylint: disable=broad-exception-caught
+        except Exception as exc:  # noqa: BLE001
             return f"# PyCodeKG Analysis\n\nAnalysis failed: {exc}\n"
 
     # ------------------------------------------------------------------
@@ -210,11 +208,11 @@ class PyCodeKG(KGModule):
     def __repr__(self) -> str:
         """Return an unambiguous string representation.
 
-        :return: ``PyCodeKG(repo_root=..., db_path=..., lancedb_dir=..., model=...)``.
+        :return: ``PyCodeKG(repo_root=..., db_path=..., vectors_path=..., model=...)``.
         """
         return (
             f"PyCodeKG(repo_root={self.repo_root!r}, "
             f"db_path={self.db_path!r}, "
-            f"lancedb_dir={self.lancedb_dir!r}, "
+            f"vectors_path={self.vectors_path!r}, "
             f"model={self.model_name!r})"
         )

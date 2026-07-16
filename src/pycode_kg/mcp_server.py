@@ -9,7 +9,7 @@ knowledge graph directly.
 
 Operational notes:
 - Entry points and configuration: the CLI ``main()`` resolves repo, SQLite,
-    and LanceDB paths with sensible defaults under ``.pycodekg/``.
+    and sqlite-vec store paths with sensible defaults under ``.pycodekg/``.
 - Logging approach: startup diagnostics and warnings are written to stderr so
     host MCP clients can capture runtime state.
 - Error handling strategy: startup reports misconfiguration warnings clearly
@@ -117,8 +117,9 @@ Install the package, then run::
 
     pycodekg mcp --repo /path/to/repo
 
-``--db`` and ``--lancedb`` are optional; they default to
-``.pycodekg/graph.sqlite`` and ``.pycodekg/lancedb`` relative to ``--repo``.
+``--db`` and ``--vectors`` are optional; they default to
+``.pycodekg/graph.sqlite`` and ``.pycodekg/vectors.sqlite`` relative to
+``--repo``.
 
 Per-project config for Claude Code and Kilo Code (``.mcp.json``)::
 
@@ -872,7 +873,7 @@ def list_nodes(
                 }
             )
         return json.dumps(result, indent=2, ensure_ascii=False)
-    except Exception as e:  # pylint: disable=broad-except
+    except Exception as e:  # noqa: BLE001
         return json.dumps({"error": str(e)}, indent=2)
 
 
@@ -941,7 +942,7 @@ def find_node(name: str, kind: str = "") -> str:
                 }
             )
         return json.dumps(result, indent=2, ensure_ascii=False)
-    except Exception as e:  # pylint: disable=broad-except
+    except Exception as e:  # noqa: BLE001
         return json.dumps({"error": str(e)}, indent=2)
 
 
@@ -978,7 +979,7 @@ def centrality(
     :return: Markdown-formatted ranking table.
     """
     try:
-        from pycode_kg.analysis.centrality import (  # pylint: disable=import-outside-toplevel
+        from pycode_kg.analysis.centrality import (  # noqa: PLC0415
             StructuralImportanceRanker,
             aggregate_module_scores,
         )
@@ -986,7 +987,7 @@ def centrality(
         db_path = _get_kg().db_path
         ranker = StructuralImportanceRanker(db_path)
         all_records = ranker.compute()
-    except Exception as e:  # pylint: disable=broad-except
+    except Exception as e:  # noqa: BLE001
         return f"## Centrality Error\n\nFailed to compute SIR scores: `{e}`"
 
     out: list[str] = ["## Structural Importance Ranking (SIR)\n"]
@@ -1050,7 +1051,7 @@ def bridge_centrality(
     :return: Markdown-formatted ranking table of modules by connectivity.
     """
     try:
-        from pycode_kg.analysis.bridge import (  # pylint: disable=import-outside-toplevel
+        from pycode_kg.analysis.bridge import (  # noqa: PLC0415
             compute_bridge_centrality,
         )
 
@@ -1061,7 +1062,7 @@ def bridge_centrality(
             top=top,
             db_path=db_path,
         )
-    except Exception as e:  # pylint: disable=broad-except
+    except Exception as e:  # noqa: BLE001
         return f"## Module Connectivity Error\n\nFailed to compute connectivity: `{e}`"
 
     out: list[str] = ["## Module Connectivity (Interaction Complexity)\n"]
@@ -1096,13 +1097,13 @@ def framework_nodes(top: int = 20) -> str:
     :return: Markdown-formatted ranking table of framework nodes.
     """
     try:
-        from pycode_kg.analysis.bridge import (  # pylint: disable=import-outside-toplevel
+        from pycode_kg.analysis.bridge import (  # noqa: PLC0415
             compute_bridge_centrality,
         )
-        from pycode_kg.analysis.centrality import (  # pylint: disable=import-outside-toplevel
+        from pycode_kg.analysis.centrality import (  # noqa: PLC0415
             StructuralImportanceRanker,
         )
-        from pycode_kg.analysis.framework_detector import (  # pylint: disable=import-outside-toplevel
+        from pycode_kg.analysis.framework_detector import (  # noqa: PLC0415
             detect_framework_nodes,
         )
 
@@ -1114,18 +1115,18 @@ def framework_nodes(top: int = 20) -> str:
             ranker = StructuralImportanceRanker(db_path)
             records = ranker.compute()
             ranker.write_scores(records, metric="sir_pagerank")
-        except Exception as e:  # pylint: disable=broad-except
+        except Exception as e:  # noqa: BLE001
             return f"## Framework Nodes Error\n\nFailed to compute SIR scores: `{e}`"
 
         # Compute and persist module connectivity scores (interaction complexity)
         try:
             compute_bridge_centrality(kind="module", include_imports=True, top=25, db_path=db_path)
-        except Exception as e:  # pylint: disable=broad-except
+        except Exception as e:  # noqa: BLE001
             return f"## Framework Nodes Error\n\nFailed to compute module connectivity: `{e}`"
 
         # Detect framework nodes by combining both metrics
         nodes = detect_framework_nodes(limit=top, db_path=db_path)
-    except Exception as e:  # pylint: disable=broad-except
+    except Exception as e:  # noqa: BLE001
         return f"## Framework Nodes Error\n\nFailed to detect framework nodes: `{e}`"
 
     out: list[str] = ["## Framework-like Modules (Critical Hubs)\n"]
@@ -1229,9 +1230,9 @@ def analyze_repo() -> str:
              key call chains, public APIs, docstring coverage, code quality
              issues, architectural strengths, and orphaned code.
     """
-    from io import StringIO  # pylint: disable=import-outside-toplevel
+    from io import StringIO  # noqa: PLC0415
 
-    from rich.console import Console  # pylint: disable=import-outside-toplevel
+    from rich.console import Console  # noqa: PLC0415
 
     silent = Console(file=StringIO(), highlight=False)
     analyzer = PyCodeKGAnalyzer(_get_kg(), console=silent, snapshot_mgr=_snapshot_mgr)
@@ -1263,7 +1264,7 @@ def explain(node_id: str, limit: int = 10) -> str:
                   to list all.
     :return: Markdown-formatted explanation ready for LLM consumption.
     """
-    from pycode_kg.explain import render_explain  # pylint: disable=import-outside-toplevel
+    from pycode_kg.explain import render_explain  # noqa: PLC0415
 
     return render_explain(
         _get_kg(),
@@ -1306,7 +1307,7 @@ def rank_nodes(
              ``top_pct`` (e.g. ``"top 0.5%"``), ``kind``, ``qualname``,
              ``module_path``, and ``rank`` fields.
     """
-    from pycode_kg.ranking.coderank import (  # pylint: disable=import-outside-toplevel
+    from pycode_kg.ranking.coderank import (  # noqa: PLC0415
         build_code_graph,
         compute_coderank,
         persist_metric_scores,
@@ -1322,13 +1323,13 @@ def rank_nodes(
             exclude_test_paths=exclude_tests,
         )
         scores = compute_coderank(graph)
-    except Exception as exc:  # pylint: disable=broad-except
+    except Exception as exc:  # noqa: BLE001
         return json.dumps({"error": str(exc)}, indent=2)
 
     if persist_metric:
         try:
             persist_metric_scores(db_path, persist_metric, scores)
-        except Exception:  # pylint: disable=broad-except
+        except Exception:  # noqa: BLE001
             pass  # non-fatal — still return results
 
     # Filter out sym: stubs (import placeholders) — only return real code entities
@@ -1390,7 +1391,7 @@ def query_ranked(
              ``why`` explanation strings.  ``sym:`` import stub nodes are
              always excluded from the output.
     """
-    from pycode_kg.ranking.coderank import (  # pylint: disable=import-outside-toplevel
+    from pycode_kg.ranking.coderank import (  # noqa: PLC0415
         build_code_graph,
         compute_coderank,
         rank_query_hybrid,
@@ -1411,7 +1412,7 @@ def query_ranked(
             for n in seed_nodes
             if (n.get("relevance") or {}).get("score", 0.0) > 0
         }
-    except Exception as exc:  # pylint: disable=broad-except
+    except Exception as exc:  # noqa: BLE001
         return json.dumps({"error": f"Seed retrieval failed: {exc}"}, indent=2)
 
     if not semantic_scores:
@@ -1423,7 +1424,7 @@ def query_ranked(
             include_relations=rel_list,
             exclude_test_paths=exclude_tests,
         )
-    except Exception as exc:  # pylint: disable=broad-except
+    except Exception as exc:  # noqa: BLE001
         return json.dumps({"error": f"Graph build failed: {exc}"}, indent=2)
 
     global_cr = compute_coderank(graph)
@@ -1434,7 +1435,7 @@ def query_ranked(
             results = rank_query_hybrid(
                 graph, semantic_scores, global_coderank=global_cr, radius=radius, top_k=top
             )
-    except Exception as exc:  # pylint: disable=broad-except
+    except Exception as exc:  # noqa: BLE001
         return json.dumps({"error": f"Ranking failed: {exc}"}, indent=2)
 
     output = []
@@ -1480,7 +1481,7 @@ def explain_rank(node_id: str, q: str = "") -> str:
               proximity to the query seed set are included in the report.
     :return: Markdown-formatted explanation of the node's rank components.
     """
-    from pycode_kg.ranking.coderank import (  # pylint: disable=import-outside-toplevel
+    from pycode_kg.ranking.coderank import (  # noqa: PLC0415
         DEFAULT_GLOBAL_RELS,
         build_code_graph,
         compute_coderank,
@@ -1510,7 +1511,7 @@ def explain_rank(node_id: str, q: str = "") -> str:
             exclude_test_paths=True,
         )
         scores = compute_coderank(graph)
-    except Exception as exc:  # pylint: disable=broad-except
+    except Exception as exc:  # noqa: BLE001
         return f"## Error\n\nFailed to build graph: `{exc}`"
 
     global_score = scores.get(node_id, 0.0)
@@ -1577,7 +1578,7 @@ def explain_rank(node_id: str, q: str = "") -> str:
                     out.append("  → Within local query neighborhood")
                 else:
                     out.append("  → Outside query neighborhood")
-        except Exception as exc:  # pylint: disable=broad-except
+        except Exception as exc:  # noqa: BLE001
             out.append(f"- Query scoring failed: `{exc}`")
         out.append("")
 
@@ -1729,9 +1730,9 @@ def _parse_args(argv: list | None = None) -> argparse.Namespace:
         help="Path to the SQLite knowledge graph (default: .pycodekg/graph.sqlite)",
     )
     p.add_argument(
-        "--lancedb",
-        default=".pycodekg/lancedb",
-        help="Path to the LanceDB vector index directory (default: .pycodekg/lancedb)",
+        "--vectors",
+        default=".pycodekg/vectors.sqlite",
+        help="Path to the sqlite-vec vector store (default: .pycodekg/vectors.sqlite)",
     )
     p.add_argument(
         "--model",
@@ -1774,12 +1775,18 @@ def main(argv: list | None = None) -> None:
 
     repo = Path(args.repo).resolve()
     db = Path(args.db) if Path(args.db).is_absolute() else repo / args.db
-    lancedb_dir = Path(args.lancedb) if Path(args.lancedb).is_absolute() else repo / args.lancedb
+    vectors = Path(args.vectors) if Path(args.vectors).is_absolute() else repo / args.vectors
 
     if not db.exists():
         print(
-            f"WARNING: SQLite database not found at '{db}'.\n"
-            "Run 'pycodekg-build-sqlite' and 'pycodekg-build-lancedb' first.",
+            f"WARNING: SQLite database not found at '{db}'.\nRun 'pycodekg build' first.",
+            file=sys.stderr,
+        )
+    if not vectors.exists():
+        print(
+            f"WARNING: sqlite-vec store not found at '{vectors}'.\n"
+            "Run 'pycodekg build' (or 'pycodekg build-index') first — "
+            "semantic queries will fail until it exists.",
             file=sys.stderr,
         )
 
@@ -1787,7 +1794,7 @@ def main(argv: list | None = None) -> None:
         f"PyCodeKG MCP server starting\n"
         f"  repo     : {repo}\n"
         f"  db       : {db}\n"
-        f"  lancedb  : {lancedb_dir}\n"
+        f"  vectors  : {vectors}\n"
         f"  model    : {args.model}\n"
         f"  transport: {args.transport}",
         file=sys.stderr,
@@ -1796,7 +1803,7 @@ def main(argv: list | None = None) -> None:
     _kg = PyCodeKG(
         repo_root=repo,
         db_path=db,
-        lancedb_dir=lancedb_dir,
+        vectors_path=vectors,
         model=args.model,
     )
 

@@ -7,8 +7,8 @@
         "/absolute/path/to/repo",
         "--db",
         "/absolute/path/to/repo/.pycodekg/pycodekg.sqlite",
-        "--lancedb",
-        "/absolute/path/to/repo/.pycodekg/lancedb"
+        "--vectors",
+        "/absolute/path/to/repo/.pycodekg/vectors.sqlite"
       ]
     },
     "dockg_pycodekg": {

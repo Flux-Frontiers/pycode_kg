@@ -3,8 +3,8 @@ cmd_build.py
 
 Click subcommands for building the PyCodeKG knowledge graph:
 
-    build-sqlite   - repo -> AST -> graph store
-    build-lancedb  - graph store -> vector index
+    build-sqlite  - repo -> AST -> graph store
+    build-index   - graph store -> sqlite-vec vector index
 """
 
 from __future__ import annotations
@@ -12,6 +12,8 @@ from __future__ import annotations
 from pathlib import Path
 
 import click
+from kg_utils.semantic import META_COLUMNS
+from kg_utils.vector_backend import SqliteVecBackend
 
 from pycode_kg.cli.main import cli
 from pycode_kg.cli.options import exclude_option, include_option, repo_option
@@ -74,7 +76,7 @@ def build_sqlite(
     print(f"OK: nodes={len(node_specs)} edges={len(edge_specs)} resolved={resolved} db={db_path}")
 
 
-@cli.command("build-lancedb")
+@cli.command("build-index")
 @repo_option
 @click.option(
     "--sqlite",
@@ -84,17 +86,11 @@ def build_sqlite(
     help="Path to graph.sqlite (default: <repo>/.pycodekg/graph.sqlite).",
 )
 @click.option(
-    "--lancedb",
+    "--vectors",
     default=None,
     type=click.Path(),
     show_default=False,
-    help="Directory for LanceDB (default: <repo>/.pycodekg/lancedb).",
-)
-@click.option(
-    "--table",
-    default="pycodekg_nodes",
-    show_default=True,
-    help="LanceDB table name.",
+    help="sqlite-vec store path (default: <repo>/.pycodekg/vectors.sqlite).",
 )
 @click.option(
     "--model",
@@ -103,7 +99,7 @@ def build_sqlite(
     help="SentenceTransformer model name.",
 )
 @click.option("--wipe", is_flag=True, help="Delete existing vectors first.")
-@click.option("-v", "--verbose", is_flag=True, help="Show LanceDB and embedder progress output.")
+@click.option("-v", "--verbose", is_flag=True, help="Show embedder progress output.")
 @click.option(
     "--kinds",
     default="module,class,function,method",
@@ -117,21 +113,20 @@ def build_sqlite(
     show_default=True,
     help="Embedding batch size.",
 )
-def build_lancedb(
+def build_index(
     repo: str,
     sqlite: str | None,
-    lancedb: str | None,
-    table: str,
+    vectors: str | None,
     model: str,
     wipe: bool,
     verbose: bool,
     kinds: str,
     batch: int,
 ) -> None:
-    """Build a LanceDB semantic index from an existing pycodekg SQLite database."""
+    """Build the sqlite-vec semantic index from an existing pycodekg SQLite database."""
     repo_root = Path(repo).resolve()
     sqlite_path = Path(sqlite) if sqlite else repo_root / ".pycodekg" / "graph.sqlite"
-    lancedb_dir = Path(lancedb) if lancedb else repo_root / ".pycodekg" / "lancedb"
+    vectors_path = Path(vectors) if vectors else repo_root / ".pycodekg" / "vectors.sqlite"
 
     if not verbose:
         suppress_ingestion_logging()
@@ -139,12 +134,14 @@ def build_lancedb(
     kinds_tuple = tuple(k.strip() for k in kinds.split(",") if k.strip())
     embedder = SentenceTransformerEmbedder(model)
 
+    backend = SqliteVecBackend(vectors_path, dim=embedder.dim, meta_columns=META_COLUMNS)
+
     store = GraphStore(sqlite_path)
     idx = SemanticIndex(
-        lancedb_dir,
+        vectors_path.parent,
         embedder=embedder,
-        table=table,
         index_kinds=kinds_tuple,
+        backend=backend,
     )
     stats = idx.build(store, wipe=wipe, batch_size=batch, quiet=not verbose)
     store.close()
@@ -154,7 +151,6 @@ def build_lancedb(
         f"indexed_rows={stats['indexed_rows']}",
         f"embedder={model}",
         f"dim={stats['dim']}",
-        f"table={stats['table']}",
-        f"lancedb_dir={stats['lancedb_dir']}",
+        f"vectors={vectors_path}",
         f"kinds={','.join(stats['kinds'])}",
     )

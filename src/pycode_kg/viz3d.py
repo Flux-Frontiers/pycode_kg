@@ -14,8 +14,6 @@ highlighted in pink and the camera zooms in, exactly as in repo_vis.
 Author: Eric G. Suchanek, PhD
 """
 
-# pylint: disable=C0301,C0116,C0115,W0613,E0611,C0415
-
 from __future__ import annotations
 
 import atexit

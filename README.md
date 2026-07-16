@@ -5,7 +5,7 @@
 
 [![Python](https://img.shields.io/badge/python-3.12%20%7C%203.13-blue.svg)](https://www.python.org/)
 [![License: Elastic-2.0](https://img.shields.io/badge/License-Elastic%202.0-blue.svg)](https://www.elastic.co/licensing/elastic-license)
-[![Version](https://img.shields.io/badge/version-0.19.3-blue.svg)](https://github.com/Flux-Frontiers/pycode_kg/releases)
+[![Version](https://img.shields.io/badge/version-0.20.0-blue.svg)](https://github.com/Flux-Frontiers/pycode_kg/releases)
 [![CI](https://github.com/Flux-Frontiers/pycode_kg/actions/workflows/ci.yml/badge.svg)](https://github.com/Flux-Frontiers/pycode_kg/actions/workflows/ci.yml)
 [![Poetry](https://img.shields.io/endpoint?url=https://python-poetry.org/badge/v0.json)](https://python-poetry.org/)
 [![DOI](https://zenodo.org/badge/1202379010.svg)](https://zenodo.org/badge/latestdoi/1202379010)
@@ -14,7 +14,7 @@
 
 **PyCodeKG turns a Python codebase into a deterministic, queryable knowledge graph — and uses it to produce architectural analyses you can act on, with or without an LLM in the loop.**
 
-It walks the AST of every module, class, function, and method in your repo, extracts the typed relationships that actually hold the code together (`CONTAINS`, `CALLS`, `IMPORTS`, `INHERITS`, `RESOLVES_TO`), and stores the result in SQLite. A LanceDB vector index sits alongside the graph so that *"authentication flow"* and *"verify_jwt"* both find the right place to start exploring. From there you can rank functions by structural importance, trace fan-in across import aliases, detect circular imports and dead code, render the call graph in 3D, snapshot metrics for diffing across releases, or hand the whole thing to Claude over MCP.
+It walks the AST of every module, class, function, and method in your repo, extracts the typed relationships that actually hold the code together (`CONTAINS`, `CALLS`, `IMPORTS`, `INHERITS`, `RESOLVES_TO`), and stores the result in SQLite. A sqlite-vec vector index sits alongside the graph so that *"authentication flow"* and *"verify_jwt"* both find the right place to start exploring. From there you can rank functions by structural importance, trace fan-in across import aliases, detect circular imports and dead code, render the call graph in 3D, snapshot metrics for diffing across releases, or hand the whole thing to Claude over MCP.
 
 The original motivation was simple: **produce thorough, defensible analyses of Python codebases that don't depend on inference**. Every result is computed from the AST and the graph — no model is asked to guess. When an LLM is present, it consumes the *same* grounded output as a structured context pack, and the hallucinations that plague "embed-the-repo" tools largely disappear.
 
@@ -125,7 +125,7 @@ That's the recommended path. Variants (minimal install, MCP-only, contributor se
 
 Search is hybrid by design. A query like *"authentication flow"* runs in two phases:
 
-1. **Vector phase** — the query is embedded with a local sentence-transformer (cached after first download) and LanceDB returns the `k` closest functions, classes, and modules by cosine similarity.
+1. **Vector phase** — the query is embedded with a local sentence-transformer (cached after first download) and sqlite-vec returns the `k` closest functions, classes, and modules by exact cosine similarity.
 2. **Graph expansion phase** — each seed hit is expanded `hop` BFS steps along the typed edges (`CONTAINS`, `CALLS`, `IMPORTS`, `INHERITS`, `RESOLVES_TO`) so call chains and module relationships surface alongside the names that matched.
 
 **Structure is treated as ground truth; the embeddings are strictly an acceleration layer.** When the graph and the vector index disagree, the graph wins. This is why fan-in lookups are accurate even for same-named symbols across modules — `RESOLVES_TO` edges bridge call sites through their import aliases, and `callers()` does a two-phase reverse traversal that grep simply cannot replicate.
@@ -159,7 +159,7 @@ src/pycode_kg/
 ├── visitor.py                       # AST extraction (three-pass: structure, calls, dataflow)
 ├── graph.py                         # GraphBuilder: file discovery + dispatch
 ├── store.py                         # SQLite persistence + canonical edges
-├── index.py                         # LanceDB semantic index
+├── index.py                         # sqlite-vec semantic index
 ├── pycodekg.py                      # Public façade
 ├── pycodekg_query.py                # Hybrid query
 ├── pycodekg_snippet_packer.py       # Source-grounded packs
@@ -201,13 +201,13 @@ If you use PyCodeKG in your research or project, please cite it:
 
 [![DOI](https://zenodo.org/badge/1202379010.svg)](https://zenodo.org/badge/latestdoi/1202379010)
 
-> Suchanek, E. G. (2026). *PyCodeKG: A Knowledge Graph for Python Codebases* (Version 0.19.3) [Software]. Flux-Frontiers. https://doi.org/10.5281/zenodo.19834777
+> Suchanek, E. G. (2026). *PyCodeKG: A Knowledge Graph for Python Codebases* (Version 0.20.0) [Software]. Flux-Frontiers. https://doi.org/10.5281/zenodo.19834777
 
 ```bibtex
 @software{suchanek_pycode_kg,
   author    = {Suchanek, Eric G.},
   title     = {{PyCodeKG}: A Knowledge Graph for Python Codebases},
-  version   = {0.19.3},
+  version   = {0.20.0},
   year      = {2026},
   publisher = {Flux-Frontiers},
   url       = {https://github.com/Flux-Frontiers/pycode_kg},
@@ -227,7 +227,7 @@ If you use PyCodeKG in your research or project, please cite it:
 
 - **Issues** — [GitHub Issues](https://github.com/Flux-Frontiers/pycode_kg/issues)
 - Sister projects [DocKG](https://github.com/Flux-Frontiers/doc_kg) and [MetaboKG](https://github.com/Flux-Frontiers/metabo_kg)
-- LanceDB, sentence-transformers, PyVista, Streamlit, and FastMCP for the foundations
+- sqlite-vec, sentence-transformers, PyVista, Streamlit, and FastMCP for the foundations
 
 ---
 

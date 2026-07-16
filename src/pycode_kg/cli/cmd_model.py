@@ -32,10 +32,10 @@ def download_model(model: str, force: bool) -> None:
 
     The model is saved to ``.pycodekg/models/<model>/`` in the current working
     directory (or the path set by the ``PYCODEKG_MODEL_DIR`` environment
-    variable).  Once cached, ``pycodekg build-lancedb`` and ``pycodekg query``
+    variable).  Once cached, ``pycodekg build-index`` and ``pycodekg query``
     will use this local copy without any network access.
     """
-    from sentence_transformers import (  # pylint: disable=import-outside-toplevel
+    from sentence_transformers import (  # noqa: PLC0415
         SentenceTransformer,
     )
 

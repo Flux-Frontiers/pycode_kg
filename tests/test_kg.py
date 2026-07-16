@@ -49,13 +49,13 @@ def _write_repo(tmp_path: Path, files: dict) -> Path:
 
 
 def _make_kg(tmp_path: Path, files: dict) -> PyCodeKG:
-    """Build a PyCodeKG (graph only, no LanceDB) from a synthetic repo."""
+    """Build a PyCodeKG (graph only, no vector index) from a synthetic repo."""
     repo = tmp_path / "repo"
     _write_repo(repo, files)
     kg = PyCodeKG(
         repo_root=repo,
         db_path=tmp_path / "pycodekg.sqlite",
-        lancedb_dir=tmp_path / "lancedb",
+        vectors_path=tmp_path / "vectors.sqlite",
     )
     kg.build_graph(wipe=True)
     return kg
@@ -173,13 +173,13 @@ def test_pycodekg_stats(tmp_path):
 def test_pycodekg_context_manager(tmp_path):
     repo = tmp_path / "repo"
     _write_repo(repo, {"mod.py": "x = 1\n"})
-    with PyCodeKG(repo, tmp_path / "pycodekg.sqlite", tmp_path / "lancedb") as kg:
+    with PyCodeKG(repo, tmp_path / "pycodekg.sqlite", tmp_path / "vectors.sqlite") as kg:
         kg.build_graph(wipe=True)
         assert kg.stats()["total_nodes"] > 0
 
 
 def test_pycodekg_repr(tmp_path):
-    kg = PyCodeKG(tmp_path, tmp_path / "db.sqlite", tmp_path / "ldb")
+    kg = PyCodeKG(tmp_path, tmp_path / "db.sqlite", tmp_path / "vectors.sqlite")
     r = repr(kg)
     assert "PyCodeKG" in r
     assert "repo_root" in r
@@ -563,7 +563,7 @@ class _FakeEmbedder(Embedder):
 def test_pycodekg_embedder_property_lazy_init(tmp_path):
     fake_emb = _FakeEmbedder()
     with patch("kg_utils.pipeline.SentenceTransformerEmbedder", return_value=fake_emb):
-        kg = PyCodeKG(tmp_path, tmp_path / "db.sqlite", tmp_path / "ldb")
+        kg = PyCodeKG(tmp_path, tmp_path / "db.sqlite", tmp_path / "vectors.sqlite")
         emb = kg.embedder
         assert emb is fake_emb
         # Second access must return the cached instance (no second construction)
@@ -576,7 +576,7 @@ def test_pycodekg_embedder_property_lazy_init(tmp_path):
 
 
 def test_pycodekg_index_property_lazy_init(tmp_path):
-    kg = PyCodeKG(tmp_path, tmp_path / "db.sqlite", tmp_path / "ldb")
+    kg = PyCodeKG(tmp_path, tmp_path / "db.sqlite", tmp_path / "vectors.sqlite")
     kg._embedder = _FakeEmbedder()  # skip real embedder init
 
     idx = kg.index
@@ -586,7 +586,7 @@ def test_pycodekg_index_property_lazy_init(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# PyCodeKG — build_index (mock SemanticIndex.build to skip real LanceDB)
+# PyCodeKG — build_index (mock SemanticIndex.build to skip real embedding)
 # ---------------------------------------------------------------------------
 
 
@@ -616,14 +616,14 @@ def test_pycodekg_build_index_wipe_flag(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# PyCodeKG — build (full pipeline, LanceDB mocked)
+# PyCodeKG — build (full pipeline, index mocked)
 # ---------------------------------------------------------------------------
 
 
 def test_pycodekg_build(tmp_path):
     repo = tmp_path / "repo"
     _write_repo(repo, {"mod.py": "def foo(): pass\n"})
-    kg = PyCodeKG(repo, tmp_path / "pycodekg.sqlite", tmp_path / "ldb")
+    kg = PyCodeKG(repo, tmp_path / "pycodekg.sqlite", tmp_path / "vectors.sqlite")
 
     mock_idx = MagicMock()
     mock_idx.build.return_value = {"indexed_rows": 3, "dim": 384}

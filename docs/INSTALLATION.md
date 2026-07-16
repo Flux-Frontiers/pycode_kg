@@ -114,7 +114,7 @@ All commands are available as `pycodekg <subcommand>` or a dedicated `pycodekg-<
 |---|---|
 | `pycodekg-init` | `pycodekg init` |
 | `pycodekg-build-sqlite` | `pycodekg build-sqlite` |
-| `pycodekg-build-lancedb` | `pycodekg build-lancedb` |
+| `pycodekg-build-index` | `pycodekg build-index` |
 | `pycodekg-build` | `pycodekg build` |
 | `pycodekg-query` | `pycodekg query` |
 | `pycodekg-pack` | `pycodekg pack` |
@@ -148,7 +148,7 @@ pycodekg build --repo /path/to/repo [--wipe]
 pycodekg build-sqlite --repo /path/to/repo [--wipe]
 
 # 2. LanceDB semantic index
-pycodekg build-lancedb [--model BAAI/bge-small-en-v1.5] [--wipe]
+pycodekg build-index [--model BAAI/bge-small-en-v1.5] [--wipe]
 
 # 3. Pre-download the embedding model (offline / CI)
 pycodekg-download-model --repo .
@@ -247,7 +247,7 @@ The Quick Start installer (`curl ... | bash`) writes all MCP config files automa
       "args": [
         "--repo", "/absolute/path/to/repo",
         "--db", "/absolute/path/to/repo/.pycodekg/graph.sqlite",
-        "--lancedb", "/absolute/path/to/repo/.pycodekg/lancedb"
+        "--vectors", "/absolute/path/to/repo/.pycodekg/vectors.sqlite"
       ]
     }
   }
@@ -312,7 +312,7 @@ If your project depends on PyCodeKG (e.g., `meta_kg`), **do not** redefine the C
 
 ```bash
 poetry run pycodekg build-sqlite --repo /path/to/repo
-poetry run pycodekg build-lancedb --repo /path/to/repo
+poetry run pycodekg build-index --repo /path/to/repo
 poetry run pycodekg query "search term"
 ```
 
@@ -321,7 +321,7 @@ poetry run pycodekg query "search term"
 ```toml
 [tool.poetry.scripts]
 my-build-sqlite  = "pycode_kg.cli.cmd_build:build_sqlite"   # ✅
-my-build-lancedb = "pycode_kg.cli.cmd_build:build_lancedb"  # ✅
+my-build-index   = "pycode_kg.cli.cmd_build:build_index"    # ✅
 my-mcp           = "pycode_kg.mcp_server:main"               # ✅
 ```
 
