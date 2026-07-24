@@ -212,7 +212,137 @@ should be triaged separately. Listed in rough severity order.
 
 ---
 
-## 3. Options
+## 3. Centrality and PageRank — where the article and our stack actually meet
+
+This is the deepest overlap between the article's approach and what we already
+own, so it gets its own section.
+
+### 3.1 Centrality is d3graph's *default*, not a feature you enable
+
+```python
+set_node_properties(color='cluster', opacity='degree', size='degree',
+                    cmap='Set2', scaler='zscore', minmax=[8, 13])
+set_edge_properties(edge_opacity='weight', min_weight=1.0,
+                    scaler='zscore', minmax=[0.5, 15])
+```
+
+Out of the box, node size and opacity encode degree and colour encodes the
+Louvain partition. You have to opt *out* of an analytics-driven picture. Ours is
+the exact inverse: `kind` only, with no way to opt in.
+
+Any of those properties can be bound to a column by name (`'degree'`,
+`'cluster'`) or given an explicit array, and `scaler` ∈ `{'zscore', 'minmax',
+None}` maps the metric onto the `minmax` pixel range.
+
+### 3.2 Five metrics, computed once, switched in the browser
+
+`json_create()` computes and embeds all of these, each normalised to [0, 1]:
+
+| Embedded key | Computation |
+|---|---|
+| `node_pagerank` | `nx.pagerank(G, weight='weight')` |
+| `node_hits_hub` / `node_hits_authority` | `nx.hits(G, max_iter=1000)` |
+| `node_degree_centrality` | `nx.degree_centrality(G)` — weighted when the adjacency is |
+| `node_closeness_centrality` | `nx.closeness_centrality(G)` |
+| `node_betweenness_centrality` | `nx.betweenness_centrality(G, k=..., weight='weight')`, with `k = min(100, n) if n > 500 else None` |
+
+The browser receives **all five at once** and a control recolours by the selected
+metric. That is the architectural move worth stealing — compute server-side once,
+ship the whole vector, switch client-side. Asking "who is a hub" versus "who is a
+bridge" versus "who is authoritative" then costs nothing at interaction time,
+which is what turns a picture into an instrument.
+
+Note the betweenness k-sampling. Exact betweenness is O(nm) and unaffordable on
+our graphs; sampled betweenness at k=100 is affordable even at metabo_kg's 22k
+nodes.
+
+### 3.3 `network_significance()` — the real "hidden insights" claim
+
+```python
+network_significance(adjmat, statistic, n_top=100, n_random=1000,
+                     nswap=None, alpha=0.05, seed=None)
+```
+
+The method builds a null distribution by **degree-preserving edge swaps**
+(Maslov–Sneppen rewiring): 1000 randomised networks that keep every node's degree
+and the edge weights intact, recompute the statistic on each, fit a parametric
+distribution with `distfit`, take a p-value from `model.predict()`, FDR-correct
+it (`y_proba * n_top`, clipped at 1), and write it to
+`node_properties[node]['proba']`.
+
+This answers a question our tooling cannot currently ask: **is this node central,
+or does it just have a lot of edges?** Because the null preserves degree exactly,
+a node that stays top-ranked across 1000 rewirings is central *as an artifact of
+its degree*, while one whose real score sits far out in the null tail is central
+*because of specific structure*.
+
+For a code graph that is not academic. `CONTAINS` edges dominate our edge counts,
+so raw centrality systematically over-ranks large modules. A degree-preserving
+null is precisely the correction. SIR already fights this heuristically — a 0.15
+weight on `CONTAINS`, a ×1.5 cross-module boost — which is hand-tuned constants
+doing by feel what a null model would do principledly.
+
+### 3.4 How our centrality compares
+
+| | d3graph | pycode_kg |
+|---|---|---|
+| PageRank | `nx.pagerank`, uniform edges | SIR: hand-rolled power iteration, damping 0.85, per-relation weights (CALLS 1.0 / INHERITS 0.8 / IMPORTS 0.45 / CONTAINS 0.15), ×1.5 cross-module boost, ×0.85 private penalty |
+| Personalisation | none | CodeRank personalized PPR, query-subgraph induction, seed proximity, explainable `why` strings |
+| Betweenness | sampled, k=100 | deliberately removed in favour of `analysis/bridge.py` module connectivity |
+| Closeness / HITS | yes | no |
+| Significance testing | yes (§3.3) | no |
+| **Rendered in the viewer** | **yes, by default** | **no, never** |
+
+We are not behind on algorithms — SIR and CodeRank are considerably better tuned
+for a code graph than five generic networkx calls. We are behind on exactly one
+thing: putting them on screen.
+
+### 3.5 The finding that makes this cheap
+
+Both persistence tables are **already long-format and already keyed by metric**:
+
+```sql
+centrality_scores(node_id, metric, score, rank, computed_at, params_json)
+node_metrics(node_id, metric, score, computed_at)
+```
+
+That is precisely the shape d3graph's multi-metric payload needs. We built the
+right table and then never read it. A runtime metric switcher is:
+
+```sql
+SELECT node_id, metric, score FROM centrality_scores;
+```
+
+pivoted to `{node_id: {metric: score}}` and dropped into the payload. No new
+computation, no schema change, no rebuild.
+
+### 3.6 Concrete recommendations
+
+1. **Make centrality the default encoding, not an option.** Size ∝ score,
+   opacity ∝ rank percentile, degrading to uniform when the table is absent
+   (both tables are created lazily by their writers, so absence is normal).
+2. **Ship the whole metric vector and switch client-side**, rather than baking
+   one metric into the export.
+3. **Reconsider betweenness.** It was removed in favour of `bridge.py`, but
+   k-sampling makes it affordable again, and it is the metric that answers "what
+   breaks if this goes away" — arguably the most useful question you can ask a
+   code graph. `bridge.py` approximates this with unique in/out module counts;
+   worth measuring the two against each other before keeping the substitution.
+4. **Add a `rank` column to `node_metrics`** for parity with `centrality_scores`,
+   so percentile encoding works for CodeRank too.
+5. **Treat `network_significance` as a genuine Phase-5 candidate.**
+   Maslov–Sneppen rewiring is roughly 40 LOC on top of `networkx`, and `distfit`
+   is optional — an empirical p-value from 1000 samples is adequate and drops the
+   dependency.
+
+For doc_kg the story differs: it has no centrality at all, but PageRank over
+cosine-weighted `SIMILAR_TO` edges is both meaningful and cheap on a 3–5k node
+graph, and it composes directly with the threshold slider (raise the threshold,
+watch which nodes stay central).
+
+---
+
+## 4. Options
 
 Three coherent options, plus a recommendation. They are not mutually exclusive —
 Option A is a sensible Phase 0 for Option C.
@@ -241,7 +371,9 @@ stand-alone file come essentially free.
 - **Adds:** mechanics #1, #2, #4 (partial).
 - **New dependencies:** 11 direct (`pandas`, `numpy`, `networkx`, `jinja2`,
   `python-louvain`, `colourmap`, `ismember`, `datazets`, `distfit`, …). Heavy for
-  a package whose core is deliberately zero-dependency.
+  a package whose core is deliberately zero-dependency. (`distfit` is not dead
+  weight — it is what fits the null distribution in `network_significance`,
+  §3.3. `datazets` really is just bundled example data.)
 - **Complexity:** low-medium. Mostly a data-shaping adapter.
 - **Risk:** medium. We own none of the template. Cannot add collapse/expand,
   `kgrag://` deep links, or our own tooltips without forking. `datazets` and
@@ -289,7 +421,7 @@ domain-specific tooltip content.
 
 ---
 
-## 4. Recommended starting repo: **pycode_kg** (pilot) → **KG_utils** (home)
+## 5. Recommended starting repo: **pycode_kg** (pilot) → **KG_utils** (home)
 
 Not one repo — a two-step. Build it where feedback is fastest, then promote it
 where it belongs.
@@ -347,14 +479,17 @@ adapter is a five-line delegation.
 
 ---
 
-## 5. Suggested phasing
+## 6. Suggested phasing
 
 Priorities and dependencies only — no time estimates, per project policy.
 
-**Phase 0 — cheap wins (Option A).** Priority: high. Complexity: low. No
-dependencies. Wire persisted centrality into `app.py` and `viz3d.py`; extract a
-shared `theme.py`; declare `networkx`. Ships value on its own even if nothing
-else follows.
+**Phase 0 — make centrality visible (Option A).** Priority: high. Complexity:
+low. No dependencies. Read `centrality_scores` / `node_metrics` and bind score to
+node size and rank percentile to opacity in `app.py` and `viz3d.py`, degrading to
+uniform when the tables are absent; add a metric selector driven by the existing
+`metric` column (§3.5); extract a shared `theme.py`; declare `networkx`. This is
+pure wiring against data we already persist, and it ships value on its own even
+if nothing else follows.
 
 **Phase 1 — enabling schema + analytics.** Priority: high. Complexity: medium.
 Depends on: nothing. Edge `weight` column + persistence + `REL_WEIGHTS` fallback;
@@ -374,18 +509,26 @@ corpora.
 Implement `display()` for the ONTOLOGICAL mode by delegating to the exporter;
 add `export-html` to doc_kg, metabo_kg, gutenberg_kg.
 
-**Phase 5 — statistical edge significance.** Priority: low. Complexity: high.
-Depends on: Phase 1. The `hnet` idea — permutation-test each edge against a null
-model, expose "significant edges only" as a filter. Genuinely novel for a code
-graph; explicitly speculative.
+**Phase 5 — statistical significance.** Priority: low. Complexity: high. Depends
+on: Phase 1. Maslov–Sneppen degree-preserving rewiring to build a per-node null
+distribution, an empirical p-value over ~1000 randomisations, and a
+"significantly central only" filter (§3.3). Answers *is this node central or does
+it just have many edges* — which for a `CONTAINS`-heavy code graph is a real
+question, and would let SIR retire some hand-tuned constants. Genuinely novel for
+a code graph; explicitly speculative.
+
+**Ongoing — betweenness re-evaluation.** Priority: low. Complexity: medium.
+Depends on: Phase 1. Measure sampled betweenness (k=100) against `bridge.py`'s
+module-connectivity approximation and keep whichever actually predicts
+"what breaks if this goes away" better (§3.6).
 
 ---
 
-## 6. Open questions for review
+## 7. Open questions for review
 
 1. **Option B or C?** B is much faster to a demo; C is the only one that reaches
    collapse/expand, which our graph sizes arguably make mandatory.
-2. **pycode_kg or doc_kg as the pilot?** See §4 — plumbing vs. idea. This is the
+2. **pycode_kg or doc_kg as the pilot?** See §5 — plumbing vs. idea. This is the
    one decision that changes the shape of Phase 2.
 3. **Is a stand-alone HTML artifact actually wanted**, or is the goal a better
    Streamlit experience? The article's entire premise is the former; our existing
@@ -395,5 +538,10 @@ graph; explicitly speculative.
    implementation is ~120 LOC and keeps the KG_utils core dependency-free.
 5. **Migration policy for `edges.weight`** — `ALTER TABLE ADD COLUMN` on open, or
    require a rebuild? The former is friendlier; the latter is cleaner.
-6. **Is the `st.iframe` call in §2.5 actually broken?** If so it is more urgent
+6. **Should the exporter ship one metric or the whole vector?** §3.2 argues the
+   whole vector with a client-side switcher. That is barely more work and is what
+   makes the artifact an instrument rather than a picture.
+7. **Was removing betweenness the right call?** `bridge.py` replaced it, but
+   k-sampling changes the cost calculus (§3.6).
+8. **Is the `st.iframe` call in §2.5 actually broken?** If so it is more urgent
    than anything else in this document, and unrelated to it.
