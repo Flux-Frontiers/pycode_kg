@@ -16,10 +16,13 @@ visualization work:
 1. **A survey and a proposal.** All six repos' viz layers were mapped, the
    techniques from the source article were reconstructed from `d3graph` /
    `d3blocks` documentation and source, and the result is written up as an
-   analysis with three options and a phasing proposal. **No visualization code
-   has been written.**
+   analysis with three options and a phasing proposal.
 2. **Incidental defect cleanup.** The survey turned up seven unrelated defects.
    Six are fixed and pushed; one needs a decision (§4).
+3. **Phase 0 is implemented in pycode_kg** (§6.1) — persisted centrality now
+   reaches both renderers, and the three divergent kind→colour maps are gone.
+   Phases 1 onward are still unstarted, and no stand-alone HTML exporter
+   exists yet.
 
 ---
 
@@ -29,7 +32,7 @@ All six repos are on the working branch with clean working trees.
 
 | Repo | Ahead of `main` | Contents | Risk |
 |---|---|---|---|
-| **pycode_kg** | 3 commits | The plan document (§1 of this file), plus: declare `networkx>=3.0`; raise streamlit floor to `>=1.56.0`; correct the stale `cake`→`funnel` layout name in two architecture docs | low — one real dependency addition, rest is docs/metadata |
+| **pycode_kg** | 5 commits | Plan + status docs; the dependency and doc fixes (`networkx>=3.0`, streamlit floor `>=1.56.0`, `cake`→`funnel`); and **Phase 0** — `theme.py`, `analysis/scores.py`, centrality wired into both renderers, 61 new tests | medium — Phase 0 changes what both viewers look like |
 | **metabo_kg** | 1 commit | `tempfile` fix in `_build_pyvis`; streamlit floor `>=1.56.0`; remove dead `_golden_spiral_2d` alias | low — only touches untested viz code; both layouts smoke-tested after |
 | **doc_kg** | 1 commit | Drop unused `plotly` from `viz` and `all` extras | very low — confirmed zero references repo-wide |
 | **KG_utils** | — | untouched | — |
@@ -41,20 +44,26 @@ All six repos are on the working branch with clean working trees.
 
 ### Verification performed
 
-- `ruff check` and `ruff format --check` pass on every changed Python file.
-- `python -m py_compile` passes on the changed modules.
-- `metabo_kg.layout3d` imported and both `AlliumLayout` and `LayerCakeLayout`
-  confirmed to compute positions after the alias removal.
-- Lockfiles confirmed to reflect the intended changes (`networkx` present in
-  pycode_kg, `plotly` absent from doc_kg, streamlit ≥1.56 in both).
+- `ruff format --check .` and `ruff check .` clean across the repo.
+- `ty check src/` clean (the CI type-check job).
+- **353 tests pass**, including 61 new ones for `theme` and `analysis.scores`.
+  The 6 failures in the local run are missing optional dependencies (`scipy`,
+  `sqlite-vec`) and reproduce identically on stashed, pre-change code — they are
+  environmental, not regressions.
+- `metabo_kg.layout3d` imported and both layouts confirmed to compute positions
+  after the alias removal.
+- Lockfiles confirmed to reflect the intended changes.
 
 ### Verification *not* performed
 
-- **Full test suites were not run.** The changed code (`app.py`, `layout3d.py`)
-  has no test coverage in either repo, and installing those dependency trees
-  (scipy, cobra, torch) is expensive. This should be confirmed in CI before merge.
-- **Nothing was rendered.** No Streamlit app was launched; the `st.iframe`
-  version fix is reasoned from the release notes and API docs, not observed.
+- **Nothing was rendered.** Neither `streamlit` nor `pyvista`/`PyQt5` is
+  installable in this environment, so `app.py` and `viz3d.py` were checked by
+  lint, type-check and compile only — no visual confirmation that centrality
+  sizing looks right. The pure logic behind it (`theme`, `analysis.scores`) is
+  covered by tests; the wiring is not.
+- **No graph was built**, so the metric selectors were never exercised against a
+  real `centrality_scores` table.
+- The `st.iframe` version fix is reasoned from the release notes, not observed.
 
 ---
 
@@ -99,7 +108,8 @@ open.
 
 ## 5. Next steps
 
-Nothing below is started. The first decision gates everything after it.
+Phase 0 is done (§6). Nothing below it has started, and the first
+decision gates everything after it.
 
 ### 5.1 Decisions needed before implementation
 
@@ -110,22 +120,7 @@ Nothing below is started. The first decision gates everything after it.
 | 3 | **Is a stand-alone HTML artifact the goal**, or a better Streamlit experience? | The article's entire premise is the former; almost all our existing investment is in the latter. |
 | 4 | **`seed_ids` / `QueryResult`** (§4) | Small, but it is an SDK contract change. |
 
-### 5.2 Phase 0 — ready to start regardless of the above
-
-The one piece of work that is useful under *every* option, because it depends on
-data we already compute and persist:
-
-- Read `centrality_scores` / `node_metrics` and bind score → node size, rank
-  percentile → opacity, in `app.py` and `viz3d.py`. Degrade to uniform when the
-  tables are absent (they are created lazily by their writers, so absence is
-  normal).
-- Add a metric selector driven by the existing `metric` column — both tables are
-  already long-format, which is exactly the shape a switcher needs.
-- Extract a shared `theme.py`; the kind→colour map currently diverges three ways
-  within pycode_kg alone.
-
-This is pure wiring against existing data. No new dependencies, no schema change,
-no rebuild. See §3.5–3.6 of the plan.
+### 5.2 Phase 0 — **delivered**, see §6
 
 ### 5.3 Phase 1 — enabling work, needed by both B and C
 
@@ -149,3 +144,55 @@ Phases 2–5 are in the plan and depend on the decisions above.
   differ by ~222 lines, almost entirely domain vocabulary.
 - `metabo_kg` and `KGRAG` still declare `kgmodule-utils>=0.4.4` while the rest of
   the fleet is on `>=0.6.2`.
+
+---
+
+## 6. Phase 0 — delivered
+
+Persisted centrality now reaches both renderers. Nothing else in the plan has
+started.
+
+### 6.1 What was added
+
+| Module | Role |
+|---|---|
+| `src/pycode_kg/theme.py` | The shared visual vocabulary — kind→colour/shape/size, relation colours, Z levels, `resolve_kind`, `with_alpha`. Replaces three divergent copies. |
+| `src/pycode_kg/analysis/scores.py` | Reads `centrality_scores` / `node_metrics` back out of SQLite. `available_metrics`, `load_scores`, and a `ScoreSet` exposing raw score, dense rank, percentile and range scaling. |
+
+Wired into `app.py` (2-D), `viz3d.py` (3-D) and `layout3d.py` (constants only).
+
+### 6.2 What changed on screen
+
+- **2-D explorer** — a **Centrality** sidebar section. Node diameter encodes the
+  metric (log-scaled, 8–42 px) and opacity encodes rank percentile, floored at
+  0.35 so nothing becomes invisible. Tooltips gained a rank line.
+- **3-D viewer** — a **Size Nodes By** dropdown. Node radius encodes the metric
+  (log-scaled, 0.35–2.4 world units).
+- **Both** — one palette. The 3-D viewer's class/function/method colours changed
+  to match the 2-D explorer, which is what its own comment always claimed. 2-D
+  now distinguishes `private_function` in yellow, as 3-D already did.
+
+### 6.3 Decisions worth knowing about
+
+- **Log scaling is the default.** PageRank-family scores are power-law
+  distributed; under a linear map nearly every node sits at the minimum size.
+  `"linear"` and `"rank"` scalers exist for callers that want them.
+- **Ranks are derived on load, not read from the `rank` column.** The stored rank
+  reflects whatever set the writer ranked, which may have been truncated.
+  Deriving guarantees dense ranks over exactly the rows loaded, and makes
+  `node_metrics` (which has no rank column) behave identically. This removes the
+  "add a rank column to `node_metrics`" task the plan listed in §3.6.
+- **Absence is normal, not an error.** Neither metric table is part of the base
+  schema, so a graph built but never analysed simply gets uniform sizing and a
+  hint to run `pycodekg analyze`.
+- **`layout3d.py` now imports `pycode_kg.theme`**, so it is no longer
+  dependency-free. In practice it is only ever loaded through `viz3d.py`, which
+  already imports the package — but the standalone-import property the survey
+  praised is genuinely gone. Consistency was judged the better trade; the theme
+  tests assert the maps stay aligned.
+
+### 6.4 Not done
+
+- `seed_ids` remains unwired (§4) — untouched by this work.
+- No stand-alone HTML export, no edge weights, no community detection. Those are
+  Phases 1–3 and depend on the decisions in §5.1.

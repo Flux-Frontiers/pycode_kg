@@ -126,7 +126,34 @@ picked node.  Close the popup or click another node to clear the highlight.
 | **Render Options** | Checkboxes: Methods, Symbols, CONTAINS edges |
 | **Edge Types** | Checkboxes: CALLS, IMPORTS, INHERITS |
 | **Funnel Spacing** | Slider (0.5 – 10.0) — controls the XY spread of each funnel layer; only active when Funnel layout is selected |
+| **Size Nodes By** | Dropdown — `(uniform)` sizes nodes by kind; any other entry sizes them by that centrality metric |
 | **Graph Statistics** | Live node/edge counts updated after each render |
+
+#### Sizing nodes by centrality
+
+By default node radius encodes node *kind* — every function is the same size as
+every other function. Selecting a metric under **Size Nodes By** switches the
+radius to encode structural importance instead, so the modules and functions
+everything else depends on are visibly larger.
+
+The dropdown is populated from the `centrality_scores` and `node_metrics` tables,
+which are written by the analysis pipeline rather than by the graph build. A
+graph that has been built but never analysed offers only `(uniform)`; run:
+
+```bash
+pycodekg analyze .
+```
+
+then reopen the viewer (or re-enter the database path) to pick up the metrics.
+
+Radius is log-scaled between 0.35 and 2.4 world units. Log rather than linear
+because PageRank-family scores span orders of magnitude — under a linear map
+almost every node collapses to the minimum radius and only one or two hubs are
+visible. Nodes with no score for the selected metric fall back to their per-kind
+radius.
+
+The same metrics drive the 2-D Streamlit explorer, where they control node
+diameter *and* opacity; see the **Centrality** section of its sidebar.
 
 ### Viewport buttons (below the 3-D view)
 

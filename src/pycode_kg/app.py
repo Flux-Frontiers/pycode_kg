@@ -22,34 +22,26 @@ from pathlib import Path
 import streamlit as st
 from pyvis.network import Network
 
+from pycode_kg import theme
+from pycode_kg.analysis.scores import ScoreSet, available_metrics, load_scores
 from pycode_kg.store import DEFAULT_RELS, GraphStore
 
 # ---------------------------------------------------------------------------
 # Constants — colours and shapes per node kind
 # ---------------------------------------------------------------------------
 
-_KIND_COLOR: dict[str, str] = {
-    "module": "#4A90D9",  # blue
-    "class": "#E67E22",  # orange
-    "function": "#27AE60",  # green
-    "method": "#8E44AD",  # purple
-    "symbol": "#95A5A6",  # grey
-}
+# Colours, shapes and sizes live in pycode_kg.theme so that the 2-D explorer,
+# the 3-D viewer and the layout engine cannot drift apart again.
+_KIND_COLOR = theme.KIND_COLOR
+_KIND_SHAPE = theme.KIND_SHAPE
+_REL_COLOR = theme.REL_COLOR
 
-_KIND_SHAPE: dict[str, str] = {
-    "module": "box",
-    "class": "diamond",
-    "function": "ellipse",
-    "method": "dot",
-    "symbol": "triangle",
-}
+# Node diameter range in pixels when a centrality metric drives sizing.
+_CENTRALITY_SIZE_RANGE: tuple[int, int] = (8, 42)
 
-_REL_COLOR: dict[str, str] = {
-    "CONTAINS": "#BDC3C7",
-    "CALLS": "#E74C3C",
-    "IMPORTS": "#3498DB",
-    "INHERITS": "#F39C12",
-}
+# Opacity floor for the least central node.  Never 0 — an invisible node is
+# indistinguishable from a missing one.
+_CENTRALITY_MIN_OPACITY: float = 0.35
 
 # Honour the PYCODEKG_DB env var so the Docker image (which mounts
 # persistent data at /data) works out of the box without the user
@@ -176,17 +168,18 @@ def _load_kg(repo_root: str, db_path: str, vectors_path: str, model: str):
 # ---------------------------------------------------------------------------
 
 
-def _build_node_tooltip(n: dict, color: str) -> str:
+def _build_node_tooltip(n: dict, color: str, *, scores: ScoreSet | None = None) -> str:
     """
     Build a rich HTML tooltip for a pyvis node.
 
-    Shows: kind badge · qualname · module path · line range · full docstring.
-    Rendered inside the pyvis hover popup (supports basic HTML).
+    Shows: kind badge · qualname · module path · line range · full docstring,
+    plus the node's centrality rank when a metric is active.
 
     :param n: Node attribute dictionary containing keys such as ``kind``,
         ``qualname``, ``module_path``, ``lineno``, ``end_lineno``, and
         ``docstring``.
     :param color: Hex colour string used for the kind badge and left border.
+    :param scores: Active centrality scores, used to add a rank line.
     :return: An HTML string suitable for use as a pyvis node ``title``.
     """
     kind = n.get("kind", "symbol")
@@ -221,6 +214,16 @@ def _build_node_tooltip(n: dict, color: str) -> str:
             + "</div>"
         )
 
+    rank_html = ""
+    if scores is not None:
+        rank = scores.rank(n.get("id", ""))
+        if rank is not None:
+            rank_html = (
+                f"<br><span style='color:#F1C40F;font-size:11px;'>"
+                f"⬤ {scores.metric}: rank {rank} of {len(scores)} "
+                f"({scores.score(n['id']):.5g})</span>"
+            )
+
     tooltip = (
         f"<div style='font-family:sans-serif;font-size:12px;"
         f"background:#1e1e2e;color:#e0e0e0;padding:10px 14px;"
@@ -235,6 +238,7 @@ def _build_node_tooltip(n: dict, color: str) -> str:
             if module
             else ""
         )
+        + rank_html
         + doc_html
         + "</div>"
     )
@@ -248,6 +252,7 @@ def _build_pyvis(
     height: str = "620px",
     seed_ids: set[str] | None = None,
     physics: bool = True,
+    scores: ScoreSet | None = None,
 ) -> str:
     """
     Build a pyvis Network from node/edge dicts and return the HTML string.
@@ -255,6 +260,11 @@ def _build_pyvis(
     Seed nodes (from semantic search) are rendered with a gold border.
     Hovering shows a rich tooltip; clicking a node opens a floating detail
     panel inside the graph iframe with the full docstring and metadata.
+
+    When *scores* is supplied, node diameter encodes the metric's magnitude and
+    node opacity encodes its rank percentile.  Without it, diameter falls back
+    to a per-kind constant and every node is fully opaque — the behaviour
+    before centrality was wired in.
 
     :param nodes: List of node attribute dicts, each containing at minimum
         an ``id`` key plus optional ``kind``, ``name``, ``qualname``,
@@ -264,6 +274,8 @@ def _build_pyvis(
     :param seed_ids: Set of node IDs that originated from the semantic seed
         query; these are highlighted with a gold border.
     :param physics: Whether to enable the Barnes-Hut physics simulation.
+    :param scores: Centrality scores driving node size and opacity, or ``None``
+        for uniform per-kind sizing.
     :return: A self-contained HTML string that renders the interactive graph.
     """
     net = Network(
@@ -308,27 +320,44 @@ def _build_pyvis(
     # Build a JS-safe node data map for the click panel
     node_data_js: dict[str, dict] = {}
 
+    lo_size, hi_size = _CENTRALITY_SIZE_RANGE
+
     for n in nodes:
-        kind = n.get("kind", "symbol")
-        color = _KIND_COLOR.get(kind, "#95A5A6")
-        shape = _KIND_SHAPE.get(kind, "dot")
-        label = n.get("name", n["id"])
+        node_id = n["id"]
+        kind = theme.resolve_kind(n.get("kind", "symbol"), n.get("name", ""))
+        color = theme.color_for(kind)
+        shape = theme.shape_for(kind)
+        label = n.get("name", node_id)
         if len(label) > 28:
             label = label[:25] + "…"
-        border_color = "#FFD700" if n["id"] in seed_ids else color
-        tooltip = _build_node_tooltip(n, color)
+        border_color = "#FFD700" if node_id in seed_ids else color
+        tooltip = _build_node_tooltip(n, color, scores=scores)
+
+        if scores is None:
+            size: float = theme.KIND_PIXEL_SIZE.get(kind, 12)
+            background = color
+        else:
+            # Size encodes magnitude, opacity encodes rank.  Both come from the
+            # same metric, but a log-scaled score separates the heavy tail while
+            # the rank percentile stays readable across a skewed distribution.
+            size = scores.scaled(node_id, lo_size, hi_size, default=lo_size)
+            alpha = _CENTRALITY_MIN_OPACITY + (1.0 - _CENTRALITY_MIN_OPACITY) * (
+                scores.percentile(node_id)
+            )
+            background = theme.with_alpha(color, alpha)
+
         net.add_node(
-            n["id"],
+            node_id,
             label=label,
             title=tooltip,
             color={
-                "background": color,
+                "background": background,
                 "border": border_color,
                 "highlight": {"background": color, "border": "#FFFFFF"},
             },
             shape=shape,
-            size=18 if kind in ("class", "module") else 12,
-            borderWidth=3 if n["id"] in seed_ids else 1,
+            size=size,
+            borderWidth=3 if node_id in seed_ids else 1,
             font={"size": 11},
         )
         node_data_js[n["id"]] = {
@@ -344,7 +373,7 @@ def _build_pyvis(
 
     for e in edges:
         rel = e.get("rel", "")
-        ecolor = _REL_COLOR.get(rel, "#888888")
+        ecolor = theme.rel_color(rel)
         net.add_edge(
             e["src"],
             e["dst"],
@@ -658,6 +687,49 @@ def _node_detail_section(
 # ---------------------------------------------------------------------------
 
 
+def _centrality_selector(db_path: str) -> ScoreSet | None:
+    """Render the sidebar centrality control and return the chosen scores.
+
+    Both metric tables are created lazily by the analysis pipeline, so a graph
+    that has been built but never analysed carries no metrics at all.  In that
+    case the control explains how to produce them rather than showing an empty
+    dropdown.
+
+    :param db_path: Path to the graph database.
+    :return: The selected :class:`ScoreSet`, or ``None`` when sizing should stay
+        uniform.
+    """
+    st.sidebar.markdown("---")
+    st.sidebar.subheader("⬤ Centrality")
+
+    metrics = available_metrics(db_path)
+    if not metrics:
+        st.sidebar.caption(
+            "No metrics found. Run `pycodekg analyze` to compute "
+            "structural importance, then reload."
+        )
+        return None
+
+    options = ["(uniform)"] + [f"{m.label} — {m.count} nodes" for m in metrics]
+    choice = st.sidebar.selectbox(
+        "Size & fade nodes by",
+        options=options,
+        index=1,
+        help=(
+            "Node diameter encodes the metric's magnitude (log-scaled) and "
+            "opacity encodes its rank percentile."
+        ),
+    )
+    if choice == options[0]:
+        return None
+
+    ref = metrics[options.index(choice) - 1]
+    scores = load_scores(db_path, ref.metric, table=ref.table)
+    if scores is None:
+        st.sidebar.warning(f"Could not load `{ref.metric}` from `{ref.table}`.")
+    return scores
+
+
 def _render_legend() -> None:
     """
     Render the graph legend showing node-kind colours and edge-relation colours.
@@ -701,7 +773,8 @@ def _render_sidebar() -> dict:
 
     :return: A dict with keys ``db_path``, ``repo_root``, ``vectors_path``,
         ``model``, ``k``, ``hop``, ``rels``, ``include_symbols``,
-        ``max_graph_nodes``, ``physics_on``, ``graph_height``, and ``store``.
+        ``max_graph_nodes``, ``physics_on``, ``graph_height``, ``scores``,
+        and ``store``.
     """
     st.sidebar.title("PyCodeKG Explorer")
     st.sidebar.markdown("---")
@@ -777,6 +850,8 @@ def _render_sidebar() -> dict:
         options=["400px", "500px", "620px", "750px", "900px"],
         value="620px",
     )
+
+    scores = _centrality_selector(db_path)
 
     st.sidebar.markdown("---")
     st.sidebar.subheader("🔨 Build pipeline")
@@ -865,6 +940,7 @@ def _render_sidebar() -> dict:
         "max_graph_nodes": max_graph_nodes,
         "physics_on": physics_on,
         "graph_height": graph_height,
+        "scores": scores,
         "store": store,
     }
 
@@ -896,7 +972,7 @@ def _tab_graph(cfg: dict) -> None:
     with col1:
         kind_filter = st.multiselect(
             "Filter node kinds",
-            options=list(_KIND_COLOR.keys()),
+            options=list(theme.STORE_KINDS),
             default=["module", "class", "function", "method"],
             key="graph_kind_filter",
         )
@@ -941,6 +1017,7 @@ def _tab_graph(cfg: dict) -> None:
         edges,
         height=cfg["graph_height"],
         physics=cfg["physics_on"],
+        scores=cfg["scores"],
     )
     st.iframe(html, height=int(cfg["graph_height"].replace("px", "")))
 
@@ -1046,6 +1123,7 @@ def _tab_query(cfg: dict) -> None:
                 result.edges,
                 height=cfg["graph_height"],
                 physics=cfg["physics_on"],
+                scores=cfg["scores"],
             )
             st.iframe(html, height=int(cfg["graph_height"].replace("px", "")))
         else:
@@ -1207,6 +1285,7 @@ def _tab_snippets(cfg: dict) -> None:
             pack.edges,
             height="500px",
             physics=cfg["physics_on"],
+            scores=cfg["scores"],
         )
         st.iframe(html, height=500)
 
