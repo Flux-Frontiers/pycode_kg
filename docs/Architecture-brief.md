@@ -184,7 +184,7 @@ Three tabs: **Graph Browser** (pyvis interactive, filter by kind/module), **Hybr
 
 ### 3D Visualizer (`pycodekg viz3d`)
 
-PyVista/PyQt5 scene with `KGVisualizer` (data model), `MainWindow` (Qt window), `DocstringPopup` (markdown popup). Layouts: `allium`, `cake`. Right-click to pick/highlight/inspect nodes. Requires `viz3d` extras (`extras = ["viz3d"]` for consumers; `--with viz3d` for local dev).
+PyVista/PyQt5 scene with `KGVisualizer` (data model), `MainWindow` (Qt window), `DocstringPopup` (markdown popup). Layouts: `allium`, `funnel`. Right-click to pick/highlight/inspect nodes. Requires `viz3d` extras (`extras = ["viz3d"]` for consumers; `--with viz3d` for local dev).
 
 ### Thorough Analyzer (`pycodekg analyze`)
 

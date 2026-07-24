@@ -183,32 +183,67 @@ Every repo in the fleet is **Elastic-2.0**.
 
 ### 2.5 Incidental defects the survey turned up
 
-Not part of this proposal, but they were found while mapping the viz layer and
-should be triaged separately. Listed in rough severity order.
+Found while mapping the viz layer, unrelated to the proposal itself. All but one
+have since been fixed; recorded here for the record.
 
-1. **`st.iframe` does not exist.** Called at `pycode_kg/app.py:945, 1050, 1211`
-   and `metabo_kg/app.py:470, 675`. Streamlit exposes `st.components.v1.html` /
-   `st.components.v1.iframe`; there is no top-level `st.iframe`, and no shim or
-   alias is defined in either module. DocKG uses the correct form at
-   `doc_kg/app.py:319, 363`. On the face of it the 2D graph render is broken in
-   two repos, and no test covers it. **Verify against the pinned Streamlit
-   version before acting** — but this is the first thing to check.
-2. **`networkx` is imported but never declared.** `pycode_kg/ranking/coderank.py:34`
-   imports it; it appears in no repo's `pyproject.toml` and currently resolves
-   only as a transitive dependency of `torch`. A latent break.
-3. **Temp-file handling in `metabo_kg/app.py:349-353`** writes
-   `f"temp_{id(net)}.html"` into the *current working directory*. `id()` is a
-   reused memory address, not a UUID, so concurrent Streamlit sessions can
-   collide, and any crash before cleanup litters the user's repo. DocKG's
-   `tempfile.NamedTemporaryFile` discipline (`doc_kg/app.py:201-205`) is the
-   pattern to copy.
-4. **Dead `seed_ids` parameter** in `pycode_kg/app.py:318, 331` — seed
-   highlighting is implemented and no caller ever passes it.
-5. **`plotly` declared but unimported** in doc_kg's `viz` and `all` extras.
-6. **Stale docs** — `pycode_kg/docs/Architecture-brief.md:187` and
-   `Architecture-plain.md:86` still name the `cake` layout, renamed to `funnel`.
-7. **Stale alias** — `metabo_kg/layout3d.py:150` keeps `_golden_spiral_2d` for
-   "unit tests" that do not exist; `metabo_kg/tests/` has no layout test at all.
+1. **Streamlit version floor was too low for `st.iframe`.** ✅ *fixed.*
+   The initial survey reported that `st.iframe` "does not exist" and that the 2D
+   graph render was therefore broken in `pycode_kg/app.py:945, 1050, 1211` and
+   `metabo_kg/app.py:470, 675`. **That was wrong.** `st.iframe` is a real
+   top-level API, added in **Streamlit 1.56.0** (2026-03-31, PR #14433), and its
+   first parameter explicitly accepts "an absolute URL, relative URL, local file
+   path, **or HTML string**" — so passing pyvis output to it is correct usage,
+   not a mistake.
+
+   The actual defect was the *declared floor*: both repos pinned
+   `streamlit>=1.35.0`, so any resolution in the 1.35–1.55 range would raise
+   `AttributeError` at render time. Fixed by raising the floor to
+   `streamlit>=1.56.0` in both. DocKG uses `st.components.v1.html`
+   (`doc_kg/app.py:319, 363`), which works on any supported version, so its floor
+   was left alone.
+
+   Worth noting the lesson: two independent surveys reported the same conclusion
+   confidently, and both were wrong, because the API postdates their training
+   data. Version-sensitive claims need checking against the release notes.
+
+2. **`networkx` imported but never declared.** ✅ *fixed.*
+   `pycode_kg/ranking/coderank.py:34` imports it while it appeared in no
+   `pyproject.toml`, resolving only as a transitive dependency of `torch` — so
+   any change to torch's dependency tree would have broken CodeRank. Added
+   `networkx>=3.0` to pycode_kg's main dependencies.
+
+3. **Temp-file handling in `metabo_kg/app.py`.** ✅ *fixed.*
+   It wrote `f"temp_{id(net)}.html"` into the *current working directory*.
+   `id()` is a reused memory address, not a UUID, so concurrent Streamlit
+   sessions could collide, and any exception between write and cleanup left the
+   file behind in the user's repo. Replaced with
+   `tempfile.NamedTemporaryFile` plus `try/finally`, matching DocKG's discipline
+   at `doc_kg/app.py:201-205`. The `finally` also fixes a leak the original had
+   even in the single-session case.
+
+4. **`plotly` declared but unimported** in doc_kg's `viz` and `all` extras.
+   ✅ *fixed* — removed. (pycode_kg genuinely uses plotly in
+   `viz3d_timeline.py`, so its declaration stays.)
+
+5. **Stale layout name in docs.** ✅ *fixed.* `Architecture-brief.md:187` and
+   `Architecture-plain.md:86` named the `cake` layout, renamed to `funnel`.
+
+6. **Stale alias** — `metabo_kg/layout3d.py:150` kept `_golden_spiral_2d` with a
+   comment claiming it was "used by AlliumLayout and unit tests." ✅ *fixed* —
+   `AlliumLayout` calls `fibonacci_disk` directly and `metabo_kg/tests/` has no
+   layout test at all, so the comment was false on both counts. Removed, and both
+   layouts verified to still compute positions.
+
+7. **Dead `seed_ids` parameter** in `pycode_kg/app.py:249, 306, 318, 331`.
+   ⚠️ *not fixed — needs a decision.* Seed highlighting (a gold border on nodes
+   that came from the vector search) is fully implemented, and no caller passes
+   it. It cannot currently be wired up: `QueryResult.seeds`
+   (`kg_utils/specs.py:120`) is an `int` count, not a collection of node IDs, so
+   the data to populate it does not survive the query path. Making the feature
+   live means changing `QueryResult` in the SDK to carry seed IDs — a change to
+   the shared contract that affects every consumer, so it is deliberately left
+   for review rather than done unilaterally. The alternative is deleting ~4 lines
+   of working feature code.
 
 ---
 
@@ -543,5 +578,6 @@ module-connectivity approximation and keep whichever actually predicts
    makes the artifact an instrument rather than a picture.
 7. **Was removing betweenness the right call?** `bridge.py` replaced it, but
    k-sampling changes the cost calculus (§3.6).
-8. **Is the `st.iframe` call in §2.5 actually broken?** If so it is more urgent
-   than anything else in this document, and unrelated to it.
+8. **Should `QueryResult` carry seed node IDs?** The only §2.5 item left open
+   (item 7). It is a shared-SDK contract change, so it needs a decision rather
+   than a unilateral edit.
