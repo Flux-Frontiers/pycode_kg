@@ -33,8 +33,8 @@ All six repos are on the working branch with clean working trees.
 | Repo | Ahead of `main` | Contents | Risk |
 |---|---|---|---|
 | **pycode_kg** | 5 commits | Plan + status docs; the dependency and doc fixes (`networkx>=3.0`, streamlit floor `>=1.56.0`, `cake`→`funnel`); and **Phase 0** — `theme.py`, `analysis/scores.py`, centrality wired into both renderers, 61 new tests | medium — Phase 0 changes what both viewers look like |
-| **metabo_kg** | 1 commit | `tempfile` fix in `_build_pyvis`; streamlit floor `>=1.56.0`; remove dead `_golden_spiral_2d` alias | low — only touches untested viz code; both layouts smoke-tested after |
-| **doc_kg** | 1 commit | Drop unused `plotly` from `viz` and `all` extras | very low — confirmed zero references repo-wide |
+| **metabo_kg** | 2 commits | `tempfile` fix in `_build_pyvis`; streamlit floor `>=1.56.0`; remove dead `_golden_spiral_2d` alias; pyvis `cdn_resources` fix + 5 tests | low — layouts smoke-tested, render output verified self-contained |
+| **doc_kg** | 2 commits | Drop unused `plotly` from `viz` and `all` extras; pyvis `cdn_resources` fix + 5 tests | low |
 | **KG_utils** | — | untouched | — |
 | **gutenberg_kg** | — | untouched | — |
 | **KGRAG** | — | untouched | — |
@@ -234,41 +234,66 @@ Fixed by passing `cdn_resources="in_line"`, which inlines vis-network so the
 page is genuinely self-contained (4 KB → ~700 KB, which is the point) and writes
 nothing to disk. Guarded by `tests/test_app_render.py`.
 
-This is a pre-existing bug, not a Phase 0 regression, and it very likely affects
-`metabo_kg/app.py` and `doc_kg/app.py` too — both construct `Network(...)`
-without `cdn_resources`. **Not yet fixed there.**
+This is a pre-existing bug, not a Phase 0 regression. It affected
+`metabo_kg/app.py` and `doc_kg/app.py` identically — both constructed
+`Network(...)` without `cdn_resources` — and **both are now fixed**, each with
+the same five-test guard, including one asserting that rendering leaves the
+working directory untouched.
 
 It also matters for Phase 2: "self-contained HTML" is the entire premise of the
 exporter, and this is exactly the trap it has to avoid.
 
-### 7.2 Centrality sizing compresses in filtered views — open
+### 7.2 The `log` default is the wrong scaler — open
 
-Measured over the 150 nodes the graph browser actually displays:
+Measured over the 150 nodes the graph browser displays, out of an 8–42 px range:
 
-| scaler | min | p25 | median | p75 | max |
-|---|---|---|---|---|---|
-| `log` (default) | 8 | 31 | 33 | 35 | 40 |
-| `rank` | 8 | 28 | 31 | 36 | 42 |
+| scaler | p25 | median | p75 | IQR band |
+|---|---|---|---|---|
+| `linear` | 8 | 8 | 9 | **1 px** |
+| `log` (current default) | 31 | 33 | 35 | **4 px** |
+| `rank` | 28 | 31 | 36 | **8 px** |
+| `rank`, rescaled to the visible subset | 16 | 25 | 34 | **17 px** |
 
-Half the nodes land in a **4-pixel band**. Log scaling fixed the "everything at
-the floor" problem that linear had (median 8.1 of 8–42) but overcorrected: the
-picture now reads as "almost everything is big".
+**An earlier version of this section blamed the scale domain — global
+normalisation applied to a filtered view — and proposed rescaling to the visible
+subset as the fix. The measurements above show that was wrong.** Rescaling the
+domain while keeping `log` moves the IQR band from 4 px to 4 px: no change at
+all. The domain was never the variable that mattered.
 
-The cause is that scores are normalised over the **whole graph** (883 scored
-nodes) while the view shows a filtered **subset** (150, capped in the sidebar).
-The displayed subset is not representative, so it occupies a narrow slice of the
-global range.
+The actual cause is the score distribution:
 
-Both behaviours are defensible and it is a genuine design call:
+```
+min 4.19e-04   median 5.10e-04   max 2.45e-02      max/min = 58x
+```
 
-- **Global domain** (current) — sizes mean the same thing across views. "This is
-  a hub" is an absolute statement.
-- **Local domain** — rescale to the visible subset, maximising discrimination in
-  what you are actually looking at, at the cost of cross-view comparability.
+The median is only **1.2× the minimum** while the maximum is **58×** it. Almost
+every node is genuinely, equally peripheral and a handful are genuine hubs. Under
+`log`, the single smallest value stretches the bottom of the range so far that
+the entire bulk maps to ~0.73 of it — which is why the picture reads as
+"everything is important".
 
-A hybrid — global by default, with a "rescale to view" toggle — is probably
-right, but it changes what the encoding *means* and so is left for a decision
-rather than applied unilaterally.
+That leaves a real judgement call, because the three scalers answer different
+questions:
+
+- **`linear`** is faithful to magnitude. The bulk collapses onto the floor and
+  two or three hubs tower over it — which, for this distribution, is *true*. Its
+  weakness is that mid-tier nodes (rank 10–100) are indistinguishable from rank
+  800, and it is hostage to a single extreme value.
+- **`log`** is the worst of both: it neither preserves magnitude faithfully nor
+  maximises discriminability. It should not be the default.
+- **`rank`** uses the full size range and is robust to outliers, at the cost of
+  implying visual differences between scores that are nearly identical.
+
+**Recommendation: default to `rank`, and expose the scaler as a control.** In a
+node-link diagram, size is a navigational affordance — "look here" — rather than
+a measurement instrument; the true score and rank are already one hover away in
+the tooltip, so magnitude is not lost. Local rescaling should be at most an
+opt-in toggle: it doubles discrimination again (8 px → 17 px) but only in
+combination with `rank`, and it costs cross-view comparability, since the same
+node changes size when the filter changes.
+
+Not applied — changing the default changes what every existing view looks like,
+so it is left for a decision.
 
 ### 7.3 The 3-D centrality sizing was actively harmful — fixed
 
