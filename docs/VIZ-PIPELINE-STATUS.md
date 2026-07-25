@@ -34,7 +34,7 @@ All six repos are on the working branch with clean working trees.
 | Repo | Ahead of `main` | Contents | Risk |
 |---|---|---|---|
 | **pycode_kg** | 11 commits | Plan + status docs; dependency and doc fixes (`networkx>=3.0`, streamlit floor `>=1.56.0`, `cake`→`funnel`, stale 3-D colour table); **Phase 0** (`theme.py`, `analysis/scores.py`, centrality in both renderers); pyvis `cdn_resources` fix; 3-D sizing regression fix | medium — Phase 0 changes what both viewers look like |
-| **metabo_kg** | 2 commits | `tempfile` fix in `_build_pyvis`; streamlit floor `>=1.56.0`; dead `_golden_spiral_2d` alias removed; pyvis `cdn_resources` fix | low |
+| **metabo_kg** | 3 commits | `tempfile` fix in `_build_pyvis`; streamlit floor `>=1.56.0`; dead `_golden_spiral_2d` alias removed; pyvis `cdn_resources` fix; **migrated off `kg-snapshot`** onto the shared `kg_utils.snapshots` | low |
 | **doc_kg** | 3 commits | Unused `plotly` dropped; pyvis `cdn_resources` fix; **`scikit-learn` declared** as an `analysis` extra after five modules were found importing it undeclared (§5.4) | low |
 | **KG_utils** | — | untouched | — |
 | **gutenberg_kg** | — | untouched | — |
@@ -187,8 +187,8 @@ they turn up.
   virtualenvs used here, so the dependency sets differ.
 - Collapse the `layout3d.py` fork: pycode_kg (486 LOC) and metabo_kg (460 LOC)
   differ by ~222 lines, almost entirely domain vocabulary.
-- `metabo_kg` and `KGRAG` still declare `kgmodule-utils>=0.4.4` while the rest of
-  the fleet is on `>=0.6.2`.
+- `KGRAG` still declares `kgmodule-utils>=0.4.4` while the rest of the fleet is
+  on `>=0.6.2`. (`metabo_kg`'s was lifted when it migrated off `kg-snapshot`.)
 - `doc_kg`'s `ManifoldAnalyzer.analyze()` wraps every sub-analysis in a broad
   `except Exception` and leaves failed fields at their zero defaults, so a caller
   cannot distinguish "intrinsic dimension is 0" from "the analysis failed". The
