@@ -81,8 +81,21 @@ KIND_COLOR: dict[str, str] = dict(theme.KIND_COLOR)
 KIND_SIZE: dict[str, float] = dict(theme.KIND_SIZE)
 REL_COLOR: dict[str, str] = dict(theme.REL_COLOR_3D)
 
-# Node radius range when a centrality metric drives sizing.
-CENTRALITY_SIZE_RANGE: tuple[float, float] = (0.35, 2.4)
+# Centrality sizing in 3-D is a *multiplier* on the node's per-kind radius, not
+# an absolute range replacing it.  Two reasons, both learned by rendering:
+#
+#   1. Node positions are fixed by the layout, so a node that outgrows the space
+#      the layout allotted it occludes its neighbours.  An allium head has a
+#      radius of roughly ``2 + sqrt(n_children) * 0.4``; absolute radii up to 2.4
+#      fused an entire head into a solid ball, hiding the stem and every CALLS
+#      arc inside it.
+#   2. An absolute range discards the kind hierarchy, letting a central method
+#      render larger than the module containing it — which contradicts the
+#      allium structure, where the module box is the stem base.
+#
+# The 2-D renderer uses an absolute pixel range instead, because force-directed
+# layout pushes oversized nodes apart rather than letting them overlap.
+CENTRALITY_SCALE_RANGE: tuple[float, float] = (0.6, 1.8)
 
 # Selector entry meaning "size by node kind" rather than by a metric.
 UNIFORM_METRIC: str = "(uniform)"
@@ -331,7 +344,7 @@ def create_kg_visualization(
     node_id_set = {n.id for n in nodes}
 
     scores = viz.scores
-    lo_radius, hi_radius = CENTRALITY_SIZE_RANGE
+    lo_scale, hi_scale = CENTRALITY_SCALE_RANGE
 
     for node in nodes:
         pos = positions.get(node.id)  # type: ignore[assignment]
@@ -339,10 +352,9 @@ def create_kg_visualization(
             continue
         kind = theme.resolve_kind(node.kind, node.name)
 
-        if scores is None:
-            radius = KIND_SIZE[kind]
-        else:
-            radius = scores.scaled(node.id, lo_radius, hi_radius, default=KIND_SIZE[kind])
+        radius = KIND_SIZE[kind]
+        if scores is not None:
+            radius *= scores.scaled(node.id, lo_scale, hi_scale, default=1.0)
 
         mesh = _make_node_mesh(kind, pos, radius, lod)
         kind_blocks[kind].append(mesh)

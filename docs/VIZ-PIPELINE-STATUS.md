@@ -270,7 +270,34 @@ A hybrid — global by default, with a "rescale to view" toggle — is probably
 right, but it changes what the encoding *means* and so is left for a decision
 rather than applied unilaterally.
 
-### 7.3 Minor
+### 7.3 The 3-D centrality sizing was actively harmful — fixed
+
+Rendering complete module subtrees (rather than the arbitrary first-400-node
+slice used initially) made it obvious that Phase 0's 3-D sizing broke the
+visualisation. `CENTRALITY_SIZE_RANGE = (0.35, 2.4)` was an *absolute* radius
+range replacing the per-kind size, so a max-centrality function rendered at 2.4
+units against a base of 0.7 — and with log scaling putting the median high, most
+nodes drew near the top of that range. Each allium head fused into a solid ball;
+the stem and every CALLS arc inside it were occluded. The uniform-sizing render
+of the same four modules was airy and readable by comparison.
+
+Two distinct mistakes:
+
+1. **Ignoring the layout's spatial budget.** 3-D node positions are fixed, so
+   radius competes with the space the layout allotted. An allium head is only
+   about `2 + sqrt(n_children) * 0.4` units across. (The 2-D renderer has no
+   such constraint — force-directed layout pushes oversized nodes apart — which
+   is why an absolute pixel range remains correct there.)
+2. **Discarding the kind hierarchy**, letting a central method outgrow the
+   module box that anchors its stem.
+
+Replaced with `CENTRALITY_SCALE_RANGE = (0.6, 1.8)`, applied as a multiplier on
+the per-kind radius. Guarded by `tests/test_viz3d_sizing.py`.
+
+Worth stating plainly: this was a regression I introduced in Phase 0, it passed
+lint, types and 362 tests, and only a rendered image caught it.
+
+### 7.4 Minor
 
 `viz3d.py:463-464` uses `mesh.n_faces_strict`, which now emits a
 `PyVistaDeprecationWarning` on pyvista 0.48 (`n_faces` is the replacement).

@@ -146,11 +146,22 @@ pycodekg analyze .
 
 then reopen the viewer (or re-enter the database path) to pick up the metrics.
 
-Radius is log-scaled between 0.35 and 2.4 world units. Log rather than linear
-because PageRank-family scores span orders of magnitude — under a linear map
-almost every node collapses to the minimum radius and only one or two hubs are
-visible. Nodes with no score for the selected metric fall back to their per-kind
-radius.
+Radius is the node's per-kind size multiplied by a log-scaled factor between
+0.6× and 1.8×. Log rather than linear because PageRank-family scores span orders
+of magnitude — under a linear map almost every node collapses to the minimum
+size and only one or two hubs stand out.
+
+A *multiplier* rather than an absolute range, because 3-D node positions are
+fixed by the layout and so radius has a spatial budget. An allium head is only
+about `2 + sqrt(n_children) * 0.4` units across; nodes sized on an absolute
+scale outgrew it, fusing each head into a solid ball that hid the stem and every
+CALLS arc inside it. Scaling the per-kind size keeps every node inside the room
+the layout gave it.
+
+Node *kind* is carried by shape and colour, not size, so size is free to encode
+centrality alone. A highly central method can therefore render larger than an
+unimportant module — that is intended. Nodes with no score for the selected
+metric render at exactly their per-kind size.
 
 The same metrics drive the 2-D Streamlit explorer, where they control node
 diameter *and* opacity; see the **Centrality** section of its sidebar.
