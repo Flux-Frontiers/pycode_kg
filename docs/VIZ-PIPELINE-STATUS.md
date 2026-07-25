@@ -56,14 +56,28 @@ All six repos are on the working branch with clean working trees.
 
 ### Verification *not* performed
 
-- **Nothing was rendered.** Neither `streamlit` nor `pyvista`/`PyQt5` is
-  installable in this environment, so `app.py` and `viz3d.py` were checked by
-  lint, type-check and compile only — no visual confirmation that centrality
-  sizing looks right. The pure logic behind it (`theme`, `analysis.scores`) is
-  covered by tests; the wiring is not.
-- **No graph was built**, so the metric selectors were never exercised against a
-  real `centrality_scores` table.
-- The `st.iframe` version fix is reasoned from the release notes, not observed.
+- No visual review of the 3-D viewer's *interactive* behaviour (picking,
+  camera, popups) — only a headless still frame was captured.
+- Nothing was tested on a graph larger than pycode_kg's own (10,312 nodes).
+
+### Rendering — done headless
+
+Both renderers were subsequently exercised for real in this container, against
+a freshly built graph of pycode_kg itself (10,312 nodes / 10,654 edges) with
+883 SIR centrality scores computed and persisted:
+
+- **2-D** — Streamlit served headless, driven and screenshotted with the
+  pre-installed Chromium via Playwright. The Centrality selector populates
+  (`sir pagerank — 883 nodes`), the graph renders, and node sizes and opacities
+  vary by metric.
+- **3-D** — `pyvista` off-screen under `xvfb-run` with
+  `QT_QPA_PLATFORM=offscreen`, calling the real `create_kg_visualization`.
+  400 nodes, 6,138 faces, metric selector populated and scores applied.
+- **`st.iframe` confirmed empirically** on Streamlit 1.60.0 — it exists and its
+  docstring states it "auto-detects" URLs, file paths and HTML strings. The
+  §3 correction is now observed, not merely inferred.
+
+Two things this turned up that no amount of linting would have — see §7.
 
 ---
 
@@ -196,3 +210,68 @@ Wired into `app.py` (2-D), `viz3d.py` (3-D) and `layout3d.py` (constants only).
 - `seed_ids` remains unwired (§4) — untouched by this work.
 - No stand-alone HTML export, no edge weights, no community detection. Those are
   Phases 1–3 and depend on the decisions in §5.1.
+
+---
+
+## 7. What rendering revealed
+
+### 7.1 The 2-D graph never rendered offline — fixed
+
+pyvis defaults to `cdn_resources="local"`, which emits *relative* asset paths
+(`lib/bindings/utils.js`, `../node_modules/vis/dist/vis.js`) alongside a cdnjs
+fallback. Streamlit embeds the result in a `srcdoc` iframe, which has **no base
+URL**, so the relative paths cannot resolve. The graph therefore rendered only
+if `cdnjs.cloudflare.com` was reachable at view time, and failed silently with
+`vis is not defined` when it was not — a blank panel, no error surfaced to the
+user.
+
+It had a second symptom: `cdn_resources="local"` also writes a `lib/` directory
+(vis-network, tom-select, the bindings shim) into the **current working
+directory** as a side effect of every render — the same class of problem as the
+temp-file pollution fixed in metabo_kg.
+
+Fixed by passing `cdn_resources="in_line"`, which inlines vis-network so the
+page is genuinely self-contained (4 KB → ~700 KB, which is the point) and writes
+nothing to disk. Guarded by `tests/test_app_render.py`.
+
+This is a pre-existing bug, not a Phase 0 regression, and it very likely affects
+`metabo_kg/app.py` and `doc_kg/app.py` too — both construct `Network(...)`
+without `cdn_resources`. **Not yet fixed there.**
+
+It also matters for Phase 2: "self-contained HTML" is the entire premise of the
+exporter, and this is exactly the trap it has to avoid.
+
+### 7.2 Centrality sizing compresses in filtered views — open
+
+Measured over the 150 nodes the graph browser actually displays:
+
+| scaler | min | p25 | median | p75 | max |
+|---|---|---|---|---|---|
+| `log` (default) | 8 | 31 | 33 | 35 | 40 |
+| `rank` | 8 | 28 | 31 | 36 | 42 |
+
+Half the nodes land in a **4-pixel band**. Log scaling fixed the "everything at
+the floor" problem that linear had (median 8.1 of 8–42) but overcorrected: the
+picture now reads as "almost everything is big".
+
+The cause is that scores are normalised over the **whole graph** (883 scored
+nodes) while the view shows a filtered **subset** (150, capped in the sidebar).
+The displayed subset is not representative, so it occupies a narrow slice of the
+global range.
+
+Both behaviours are defensible and it is a genuine design call:
+
+- **Global domain** (current) — sizes mean the same thing across views. "This is
+  a hub" is an absolute statement.
+- **Local domain** — rescale to the visible subset, maximising discrimination in
+  what you are actually looking at, at the cost of cross-view comparability.
+
+A hybrid — global by default, with a "rescale to view" toggle — is probably
+right, but it changes what the encoding *means* and so is left for a decision
+rather than applied unilaterally.
+
+### 7.3 Minor
+
+`viz3d.py:463-464` uses `mesh.n_faces_strict`, which now emits a
+`PyVistaDeprecationWarning` on pyvista 0.48 (`n_faces` is the replacement).
+Pre-existing, cosmetic, not fixed here.

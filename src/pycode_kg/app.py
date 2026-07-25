@@ -285,6 +285,14 @@ def _build_pyvis(
         font_color="#e0e0e0",
         directed=True,
         notebook=False,
+        # pyvis defaults to cdn_resources="local", which emits *relative* asset
+        # paths (lib/bindings/utils.js, ../node_modules/vis/dist/vis.js) plus a
+        # cdnjs fallback.  Streamlit embeds this HTML in a srcdoc iframe, which
+        # has no base URL, so the relative paths cannot resolve and the graph
+        # renders only if cdnjs is reachable at view time — it fails silently
+        # with "vis is not defined" offline or behind a restrictive network.
+        # "in_line" inlines vis-network so the HTML is genuinely self-contained.
+        cdn_resources="in_line",
     )
     net.set_options(
         json.dumps(
