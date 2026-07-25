@@ -169,14 +169,26 @@ dependency of something else. Each works until the intermediary drops it.
 |---|---|---|---|---|
 | pycode_kg | `networkx` | `ranking/coderank.py` | `torch` | fixed — declared |
 | doc_kg | `scikit-learn` | 5 modules incl. `dockg.py` | `sentence-transformers` | fixed — `analysis` extra |
-| gutenberg_kg | `matplotlib`, `numpy` | `viz3d.py` | `pyvista` | fixed — `viz3d` extra |
+| gutenberg_kg | `matplotlib`, `numpy` | `viz3d.py` | `pyvista` | **attempted, reverted** — see below |
 
 The gutenberg_kg import carried an inline comment (`# pyvista dependency, always
-present`), so the reliance was acknowledged rather than accidental. But the sweep
+present`), so the reliance was acknowledged rather than accidental. The sweep also
 found `numpy` imported at *module* scope in the same file and equally undeclared,
 which is the more serious of the two — matplotlib is at least imported lazily.
-Both are now named in the `viz3d` extra alongside the pyvista that was silently
-supplying them.
+
+**Declaring them was attempted and backed out.** Adding two lines to the `viz3d`
+extra invalidates `poetry.lock`, and gutenberg_kg cannot re-lock in reasonable
+time: two attempts ran to 15 and 50+ minutes of solid CPU without finishing.
+This is a known characteristic of this repo, documented in its own CI —
+`.github/workflows/docs.yml` notes that `runpod` "is deliberately in no extra —
+its dep tree stalls poetry lock — so it installs via plain pip". Since CI runs
+`poetry install` in three jobs, a stale lock breaks all of them, so the change
+could not be landed without the regenerated lock.
+
+Nothing is broken meanwhile: both packages resolve via pyvista exactly as they
+did before. The edit is two lines in the `viz3d` extra plus a stale comment fix
+at `viz3d.py:674`, and is worth redoing whenever someone can let a full
+`poetry lock --regenerate` run to completion.
 
 **The fleet-wide check has since been run** — every top-level import under each
 repo's `src/`, compared against the distributions its `pyproject.toml` names:
