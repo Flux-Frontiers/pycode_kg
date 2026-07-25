@@ -1,33 +1,27 @@
 """
-test_app_render.py
+test_graph_html.py
 
-Tests for the 2-D pyvis builder in :mod:`pycode_kg.app`.
+Tests for :mod:`pycode_kg.graph_html`, the Streamlit-free graph builder.
 
-These require the ``viz`` extra and are skipped without it.
+These need only the ``viz`` extra's pyvis; they used to live in
+``test_app_render.py`` and had to monkey-patch ``st.set_page_config`` just to
+import the builder out of ``app.py``. Extracting the builder removed that.
 
-The regression these guard is subtle and was only caught by actually rendering
-the page in a browser: pyvis defaults to ``cdn_resources="local"``, which emits
-*relative* asset paths.  Streamlit embeds the result in a ``srcdoc`` iframe,
-which has no base URL, so those paths cannot resolve — the graph then renders
-only if the cdnjs fallback is reachable, and fails silently with
-``vis is not defined`` when it is not.
+The self-containment tests guard a regression only a browser could catch: pyvis
+defaults to ``cdn_resources="local"``, which emits *relative* asset paths.
+Embedded in a ``srcdoc`` iframe — which has no base URL — those cannot resolve,
+so the graph rendered only when the cdnjs fallback was reachable and otherwise
+failed silently with ``vis is not defined``.
 """
 
 from __future__ import annotations
 
 import pytest
 
-pytest.importorskip("streamlit")
 pytest.importorskip("pyvis")
 
-import streamlit as st  # noqa: E402
-
-# Importing app.py executes st.set_page_config at module scope, which is only
-# legal inside a `streamlit run` process.
-st.set_page_config = lambda **kwargs: None  # type: ignore[assignment]
-
 from pycode_kg.analysis.scores import ScoreSet  # noqa: E402
-from pycode_kg.app import _build_pyvis, _select_nodes  # noqa: E402
+from pycode_kg.graph_html import build_graph_html, select_nodes  # noqa: E402
 
 NODES = [
     {"id": "mod:a.py", "kind": "module", "name": "a", "module_path": "a.py"},
@@ -54,7 +48,7 @@ SCORES = ScoreSet(
 
 def test_vis_library_is_inlined_not_cdn_linked() -> None:
     """The graph must not depend on reaching cdnjs to render."""
-    html = _build_pyvis(NODES, EDGES)
+    html = build_graph_html(NODES, EDGES)
     assert "cdnjs.cloudflare.com/ajax/libs/vis-network" not in html
 
 
@@ -66,13 +60,13 @@ def test_no_relative_script_that_the_graph_depends_on() -> None:
     already defined ``vis`` by the time it 404s — so it is deliberately not
     asserted against here.
     """
-    html = _build_pyvis(NODES, EDGES)
+    html = build_graph_html(NODES, EDGES)
     assert 'src="lib/bindings/utils.js"' not in html
 
 
 def test_vis_source_is_present() -> None:
     """The inlined bundle really carries the vis-network implementation."""
-    html = _build_pyvis(NODES, EDGES)
+    html = build_graph_html(NODES, EDGES)
     assert "vis-network" in html
     assert len(html) > 500_000, "inlined bundle should dominate the payload"
 
@@ -105,7 +99,7 @@ def test_uniform_sizing_without_scores() -> None:
     """Without a metric, nodes keep per-kind sizes and stay fully opaque."""
     from pycode_kg import theme
 
-    by_id = _node_payload(_build_pyvis(NODES, EDGES, scores=None))
+    by_id = _node_payload(build_graph_html(NODES, EDGES, scores=None))
     assert by_id["mod:a.py"]["size"] == theme.KIND_PIXEL_SIZE["module"]
     assert by_id["fn:a.py:hot"]["size"] == theme.KIND_PIXEL_SIZE["function"]
     for node in by_id.values():
@@ -114,7 +108,7 @@ def test_uniform_sizing_without_scores() -> None:
 
 def test_centrality_fades_nodes_by_rank() -> None:
     """With a metric, backgrounds become rgba and the top node is most opaque."""
-    by_id = _node_payload(_build_pyvis(NODES, EDGES, scores=SCORES))
+    by_id = _node_payload(build_graph_html(NODES, EDGES, scores=SCORES))
     backgrounds = {k: v["color"]["background"] for k, v in by_id.items()}
     assert backgrounds["fn:a.py:hot"].startswith("rgba(")
 
@@ -124,20 +118,20 @@ def test_centrality_fades_nodes_by_rank() -> None:
 
 def test_opacity_never_reaches_zero() -> None:
     """The least central node must stay visible."""
-    by_id = _node_payload(_build_pyvis(NODES, EDGES, scores=SCORES))
+    by_id = _node_payload(build_graph_html(NODES, EDGES, scores=SCORES))
     bg = by_id["fn:a.py:cold"]["color"]["background"]
     assert float(bg.rsplit(",", 1)[1].rstrip(") ")) > 0.0
 
 
 def test_more_central_node_renders_larger() -> None:
     """The top-ranked node must be drawn bigger than the bottom-ranked one."""
-    by_id = _node_payload(_build_pyvis(NODES, EDGES, scores=SCORES))
+    by_id = _node_payload(build_graph_html(NODES, EDGES, scores=SCORES))
     assert by_id["fn:a.py:hot"]["size"] > by_id["fn:a.py:cold"]["size"]
 
 
 def test_unscored_node_still_renders(caplog: pytest.LogCaptureFixture) -> None:
     """A node absent from the metric must not be dropped from the graph."""
-    html = _build_pyvis(NODES, EDGES, scores=SCORES)
+    html = build_graph_html(NODES, EDGES, scores=SCORES)
     assert "fn:a.py:_priv" in html
 
 
@@ -145,7 +139,7 @@ def test_private_function_uses_its_own_colour() -> None:
     """``resolve_kind`` reaches the 2-D renderer, not just the 3-D one."""
     from pycode_kg import theme
 
-    html = _build_pyvis(NODES, EDGES)
+    html = build_graph_html(NODES, EDGES)
     r, g, b = (
         int(theme.KIND_COLOR["private_function"].lstrip("#")[i : i + 2], 16) for i in (0, 2, 4)
     )
@@ -169,14 +163,14 @@ def _many(n: int) -> list[dict]:
 def test_no_selection_needed_under_the_limit() -> None:
     """Everything is kept when the graph already fits."""
     nodes = _many(5)
-    kept, how = _select_nodes(nodes, 10, None, "central")
+    kept, how = select_nodes(nodes, 10, None, "central")
     assert kept == nodes
     assert how == "all matching nodes"
 
 
 def test_falls_back_to_path_order_without_scores() -> None:
     """With no metric loaded there is nothing to rank by."""
-    kept, how = _select_nodes(_many(10), 3, None, "central")
+    kept, how = select_nodes(_many(10), 3, None, "central")
     assert [n["id"] for n in kept] == ["fn:z00", "fn:z01", "fn:z02"]
     assert how == "first by module path"
 
@@ -217,7 +211,7 @@ def test_central_mode_seeds_then_expands_to_neighbours() -> None:
         ranks={f"fn:z{i:02d}": 10 - i for i in range(10)},
     )
     adjacency = {"fn:z09": {"fn:z00", "fn:z01"}}
-    kept, how = _select_nodes(nodes, 4, scores, "central", expand=_fake_expand(adjacency))
+    kept, how = select_nodes(nodes, 4, scores, "central", expand=_fake_expand(adjacency))
     ids = [n["id"] for n in kept]
 
     assert ids[0] == "fn:z09"
@@ -234,7 +228,7 @@ def test_leftover_budget_falls_back_to_centrality() -> None:
         scores={f"fn:z{i:02d}": float(i) for i in range(10)},
         ranks={f"fn:z{i:02d}": 10 - i for i in range(10)},
     )
-    kept, _ = _select_nodes(nodes, 4, scores, "central", expand=_fake_expand({}))
+    kept, _ = select_nodes(nodes, 4, scores, "central", expand=_fake_expand({}))
     assert [n["id"] for n in kept] == ["fn:z09", "fn:z08", "fn:z07", "fn:z06"]
 
 
@@ -252,7 +246,7 @@ def test_central_mode_without_expand_falls_back_to_top_n() -> None:
         scores={f"fn:z{i:02d}": float(i) for i in range(10)},
         ranks={f"fn:z{i:02d}": 10 - i for i in range(10)},
     )
-    kept, how = _select_nodes(nodes, 3, scores, "central")
+    kept, how = select_nodes(nodes, 3, scores, "central")
     assert [n["id"] for n in kept] == ["fn:z09", "fn:z08", "fn:z07"]
     assert "sir_pagerank" in how
     assert "plus neighbours" not in how
@@ -266,7 +260,7 @@ def test_path_mode_is_still_available(_=None) -> None:
         scores={"fn:z09": 1.0},
         ranks={"fn:z09": 1},
     )
-    kept, _how = _select_nodes(_many(10), 2, scores, "path")
+    kept, _how = select_nodes(_many(10), 2, scores, "path")
     assert [n["id"] for n in kept] == ["fn:z00", "fn:z01"]
 
 
@@ -279,7 +273,7 @@ def test_unscored_nodes_sort_last_and_are_reported() -> None:
         scores={"fn:z04": 1.0},
         ranks={"fn:z04": 1},
     )
-    kept, how = _select_nodes(nodes, 3, scores, "central")
+    kept, how = select_nodes(nodes, 3, scores, "central")
     assert kept[0]["id"] == "fn:z04"
     assert "2 unscored" in how
 
@@ -293,6 +287,6 @@ def test_selection_is_deterministic() -> None:
         scores=dict.fromkeys((f"fn:z{i:02d}" for i in range(6)), 1.0),
         ranks=dict.fromkeys((f"fn:z{i:02d}" for i in range(6)), 1),
     )
-    first, _ = _select_nodes(list(nodes), 3, scores, "central")
-    second, _ = _select_nodes(list(reversed(nodes)), 3, scores, "central")
+    first, _ = select_nodes(list(nodes), 3, scores, "central")
+    second, _ = select_nodes(list(reversed(nodes)), 3, scores, "central")
     assert [n["id"] for n in first] == [n["id"] for n in second]

@@ -79,6 +79,112 @@ def viz(db: str, port: str, no_browser: bool) -> None:
         click.echo("\nStopped.")
 
 
+@cli.command("viz-export")
+@click.option(
+    "--db",
+    default=".pycodekg/graph.sqlite",
+    show_default=True,
+    help="SQLite database path.",
+)
+@click.option(
+    "-o",
+    "--output",
+    default="graph.html",
+    show_default=True,
+    type=click.Path(dir_okay=False, writable=True),
+    help="Where to write the HTML file.",
+)
+@click.option(
+    "--metric",
+    default=None,
+    help="Centrality metric for node size and opacity. Defaults to the first "
+    "available; use --metric none for uniform sizing.",
+)
+@click.option(
+    "--max-nodes",
+    default=150,
+    show_default=True,
+    type=click.IntRange(2, 5000),
+    help="Node budget. The graph becomes unreadable well before the upper bound.",
+)
+@click.option(
+    "--kinds",
+    default="module,class,function,method",
+    show_default=True,
+    help="Comma-separated node kinds to include.",
+)
+@click.option(
+    "--selection",
+    default="central",
+    show_default=True,
+    type=click.Choice(["central", "path"]),
+    help="Which nodes survive the budget: most central plus their neighbours, "
+    "or the first by module path.",
+)
+def viz_export(
+    db: str,
+    output: str,
+    metric: str | None,
+    max_nodes: int,
+    kinds: str,
+    selection: str,
+) -> None:
+    """Write the graph to a self-contained HTML file.
+
+    Produces the same picture as the Streamlit explorer's Graph tab, without
+    starting a server. The output has vis-network inlined, so it opens straight
+    from the filesystem and can be sent to someone who has neither the repo nor
+    Python installed.
+    """
+    if importlib.util.find_spec("pyvis") is None:
+        raise click.UsageError(
+            f"pyvis is not installed. Install viz dependencies with:\n  {_VIZ_EXTRA}"
+        )
+
+    from pycode_kg.analysis.scores import available_metrics, load_scores  # noqa: PLC0415
+    from pycode_kg.graph_html import build_graph_html, select_nodes  # noqa: PLC0415
+    from pycode_kg.store import GraphStore  # noqa: PLC0415
+
+    db_path = Path(db)
+    if not db_path.is_file():
+        raise click.UsageError(f"No graph at {db_path}. Run `pycodekg build-sqlite` first.")
+
+    scores = None
+    if metric != "none":
+        chosen = metric
+        if chosen is None:
+            found = available_metrics(db_path)
+            chosen = found[0].metric if found else None
+        if chosen is not None:
+            scores = load_scores(db_path, chosen)
+            if scores is None:
+                raise click.UsageError(
+                    f"Metric {chosen!r} not found. Run `pycodekg analyze` to compute "
+                    "centrality, or pass --metric none."
+                )
+
+    with GraphStore(db_path) as store:
+        nodes = store.query_nodes(kinds=[k.strip() for k in kinds.split(",") if k.strip()])
+        if not nodes:
+            raise click.UsageError(f"No nodes match kinds {kinds!r}.")
+        total = len(nodes)
+        nodes, how = select_nodes(
+            nodes,
+            max_nodes,
+            scores,
+            selection,
+            expand=lambda ids, hop: set(store.expand(ids, hop=hop)),
+        )
+        edges = store.edges_within({n["id"] for n in nodes})
+
+    html = build_graph_html(nodes, edges, height="800px", scores=scores)
+    Path(output).write_text(html, encoding="utf-8")
+
+    shown = f"{len(nodes)} of {total} nodes"
+    sized = f"sized by {scores.metric}" if scores else "uniform sizing"
+    click.echo(f"Wrote {output} — {shown} ({how}), {len(edges)} edges, {sized}.")
+
+
 @cli.command("viz3d")
 @click.option(
     "--db",
