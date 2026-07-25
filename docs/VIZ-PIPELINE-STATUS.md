@@ -169,13 +169,14 @@ dependency of something else. Each works until the intermediary drops it.
 |---|---|---|---|---|
 | pycode_kg | `networkx` | `ranking/coderank.py` | `torch` | fixed — declared |
 | doc_kg | `scikit-learn` | 5 modules incl. `dockg.py` | `sentence-transformers` | fixed — `analysis` extra |
-| gutenberg_kg | `matplotlib` | `viz3d.py:674` | `pyvista` | **left as-is** |
+| gutenberg_kg | `matplotlib`, `numpy` | `viz3d.py` | `pyvista` | fixed — `viz3d` extra |
 
-The gutenberg_kg case is deliberately not fixed: the import carries an inline
-comment (`# pyvista dependency, always present`), matplotlib genuinely is a hard
-dependency of pyvista, and that module already requires pyvista. The reliance is
-acknowledged rather than accidental. Worth making explicit anyway, but it is not
-the same latent break as the other two.
+The gutenberg_kg import carried an inline comment (`# pyvista dependency, always
+present`), so the reliance was acknowledged rather than accidental. But the sweep
+found `numpy` imported at *module* scope in the same file and equally undeclared,
+which is the more serious of the two — matplotlib is at least imported lazily.
+Both are now named in the `viz3d` extra alongside the pyvista that was silently
+supplying them.
 
 **The fleet-wide check has since been run** — every top-level import under each
 repo's `src/`, compared against the distributions its `pyproject.toml` names:
@@ -206,8 +207,8 @@ and `_embedders.py`. Not fixed here; needs a look at whether each is guarded.
   virtualenvs used here, so the dependency sets differ.
 - Collapse the `layout3d.py` fork: pycode_kg (486 LOC) and metabo_kg (460 LOC)
   differ by ~222 lines, almost entirely domain vocabulary.
-- `KGRAG` still declares `kgmodule-utils>=0.4.4` while the rest of the fleet is
-  on `>=0.6.2`. (`metabo_kg`'s was lifted when it migrated off `kg-snapshot`.)
+- Check whether KGRAG's `httpx`, `huggingface_hub` and `llama_cpp` imports are
+  guarded; they are undeclared and used outside adapter code.
 - `doc_kg`'s `ManifoldAnalyzer.analyze()` wraps every sub-analysis in a broad
   `except Exception` and leaves failed fields at their zero defaults, so a caller
   cannot distinguish "intrinsic dimension is 0" from "the analysis failed". The
