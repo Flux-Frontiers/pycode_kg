@@ -27,7 +27,7 @@ import streamlit as st  # noqa: E402
 st.set_page_config = lambda **kwargs: None  # type: ignore[assignment]
 
 from pycode_kg.analysis.scores import ScoreSet  # noqa: E402
-from pycode_kg.app import _build_pyvis  # noqa: E402
+from pycode_kg.app import _build_pyvis, _select_nodes  # noqa: E402
 
 NODES = [
     {"id": "mod:a.py", "kind": "module", "name": "a", "module_path": "a.py"},
@@ -150,3 +150,149 @@ def test_private_function_uses_its_own_colour() -> None:
         int(theme.KIND_COLOR["private_function"].lstrip("#")[i : i + 2], 16) for i in (0, 2, 4)
     )
     assert theme.KIND_COLOR["private_function"] in html or f"rgba({r}, {g}, {b}" in html
+
+
+# ---------------------------------------------------------------------------
+# Node selection under the display cap
+# ---------------------------------------------------------------------------
+
+
+def _many(n: int) -> list[dict]:
+    """Build *n* nodes in module-path order.
+
+    :param n: How many nodes to build.
+    :return: Node dicts, ``fn:z00`` first.
+    """
+    return [{"id": f"fn:z{i:02d}", "kind": "function", "name": f"f{i}"} for i in range(n)]
+
+
+def test_no_selection_needed_under_the_limit() -> None:
+    """Everything is kept when the graph already fits."""
+    nodes = _many(5)
+    kept, how = _select_nodes(nodes, 10, None, "central")
+    assert kept == nodes
+    assert how == "all matching nodes"
+
+
+def test_falls_back_to_path_order_without_scores() -> None:
+    """With no metric loaded there is nothing to rank by."""
+    kept, how = _select_nodes(_many(10), 3, None, "central")
+    assert [n["id"] for n in kept] == ["fn:z00", "fn:z01", "fn:z02"]
+    assert how == "first by module path"
+
+
+def _fake_expand(edges: dict[str, set[str]]):
+    """Build an ``expand`` callable from an adjacency map.
+
+    :param edges: Undirected adjacency, node ID to neighbour IDs.
+    :return: A callable matching ``_select_nodes``' expand parameter.
+    """
+
+    def expand(seeds: set[str], hop: int) -> set[str]:
+        reached = set(seeds)
+        frontier = set(seeds)
+        for _ in range(hop):
+            nxt: set[str] = set()
+            for node in frontier:
+                nxt |= edges.get(node, set())
+            frontier = nxt - reached
+            reached |= nxt
+        return reached
+
+    return expand
+
+
+def test_central_mode_seeds_then_expands_to_neighbours() -> None:
+    """Seeding and expanding keeps the picture connected.
+
+    Taking the top N by centrality alone strands most of them, because the most
+    central nodes sit in different modules. Here z09 is the only seed the budget
+    allows, so its neighbours should fill the rest rather than z08 and z07.
+    """
+    nodes = _many(10)
+    scores = ScoreSet(
+        metric="m",
+        table="centrality_scores",
+        scores={f"fn:z{i:02d}": float(i) for i in range(10)},
+        ranks={f"fn:z{i:02d}": 10 - i for i in range(10)},
+    )
+    adjacency = {"fn:z09": {"fn:z00", "fn:z01"}}
+    kept, how = _select_nodes(nodes, 4, scores, "central", expand=_fake_expand(adjacency))
+    ids = [n["id"] for n in kept]
+
+    assert ids[0] == "fn:z09"
+    assert {"fn:z00", "fn:z01"} <= set(ids)
+    assert "plus neighbours" in how
+
+
+def test_leftover_budget_falls_back_to_centrality() -> None:
+    """When neighbours do not fill the budget, the next most central nodes do."""
+    nodes = _many(10)
+    scores = ScoreSet(
+        metric="m",
+        table="centrality_scores",
+        scores={f"fn:z{i:02d}": float(i) for i in range(10)},
+        ranks={f"fn:z{i:02d}": 10 - i for i in range(10)},
+    )
+    kept, _ = _select_nodes(nodes, 4, scores, "central", expand=_fake_expand({}))
+    assert [n["id"] for n in kept] == ["fn:z09", "fn:z08", "fn:z07", "fn:z06"]
+
+
+def test_central_mode_without_expand_falls_back_to_top_n() -> None:
+    """The cap must not silently discard the structurally important nodes.
+
+    This is the behaviour that matters: the store returns nodes ordered by
+    module path, so truncating it keeps an alphabetical slice rather than the
+    code everything depends on.
+    """
+    nodes = _many(10)
+    scores = ScoreSet(
+        metric="sir_pagerank",
+        table="centrality_scores",
+        scores={f"fn:z{i:02d}": float(i) for i in range(10)},
+        ranks={f"fn:z{i:02d}": 10 - i for i in range(10)},
+    )
+    kept, how = _select_nodes(nodes, 3, scores, "central")
+    assert [n["id"] for n in kept] == ["fn:z09", "fn:z08", "fn:z07"]
+    assert "sir_pagerank" in how
+    assert "plus neighbours" not in how
+
+
+def test_path_mode_is_still_available(_=None) -> None:
+    """The old behaviour remains selectable."""
+    scores = ScoreSet(
+        metric="m",
+        table="centrality_scores",
+        scores={"fn:z09": 1.0},
+        ranks={"fn:z09": 1},
+    )
+    kept, _how = _select_nodes(_many(10), 2, scores, "path")
+    assert [n["id"] for n in kept] == ["fn:z00", "fn:z01"]
+
+
+def test_unscored_nodes_sort_last_and_are_reported() -> None:
+    """Nodes with no score must not crowd out ranked ones, and are counted."""
+    nodes = _many(5)
+    scores = ScoreSet(
+        metric="m",
+        table="centrality_scores",
+        scores={"fn:z04": 1.0},
+        ranks={"fn:z04": 1},
+    )
+    kept, how = _select_nodes(nodes, 3, scores, "central")
+    assert kept[0]["id"] == "fn:z04"
+    assert "2 unscored" in how
+
+
+def test_selection_is_deterministic() -> None:
+    """Equal ranks break by node ID so reloads are reproducible."""
+    nodes = _many(6)
+    scores = ScoreSet(
+        metric="m",
+        table="centrality_scores",
+        scores=dict.fromkeys((f"fn:z{i:02d}" for i in range(6)), 1.0),
+        ranks=dict.fromkeys((f"fn:z{i:02d}" for i in range(6)), 1),
+    )
+    first, _ = _select_nodes(list(nodes), 3, scores, "central")
+    second, _ = _select_nodes(list(reversed(nodes)), 3, scores, "central")
+    assert [n["id"] for n in first] == [n["id"] for n in second]

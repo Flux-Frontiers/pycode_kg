@@ -17,6 +17,7 @@ from __future__ import annotations
 import json
 import os
 import tempfile
+from collections.abc import Callable
 from pathlib import Path
 
 import streamlit as st
@@ -42,6 +43,9 @@ _CENTRALITY_SIZE_RANGE: tuple[int, int] = (8, 42)
 # Opacity floor for the least central node.  Never 0 — an invisible node is
 # indistinguishable from a missing one.
 _CENTRALITY_MIN_OPACITY: float = 0.35
+
+# Share of the node budget spent on seeds; the rest goes to their neighbours.
+_SEED_FRACTION: int = 4
 
 # Honour the PYCODEKG_DB env var so the Docker image (which mounts
 # persistent data at /data) works out of the box without the user
@@ -696,6 +700,100 @@ def _node_detail_section(
 # ---------------------------------------------------------------------------
 
 
+def _describe(scores: ScoreSet, kept: list[str], suffix: str) -> str:
+    """Summarise a selection for the caption above the graph.
+
+    Reporting how many kept nodes carry no score matters once neighbours are
+    pulled in by expansion: those are frequently unscored, and a reader should
+    not assume every node on screen was ranked.
+
+    :param scores: The active metric.
+    :param kept: Node IDs that were kept.
+    :param suffix: Extra text describing the strategy.
+    :return: Human-readable description.
+    """
+    unscored = sum(1 for i in kept if scores.rank(i) is None)
+    tail = f" ({unscored} unscored)" if unscored else ""
+    return f"most central by {scores.metric}{suffix}{tail}"
+
+
+def _select_nodes(
+    nodes: list[dict],
+    limit: int,
+    scores: ScoreSet | None,
+    mode: str,
+    expand: Callable[[set[str], int], set[str]] | None = None,
+) -> tuple[list[dict], str]:
+    """Reduce *nodes* to at most *limit*, choosing which ones to keep.
+
+    The graph can only draw a few hundred nodes, so which ones survive the cap
+    decides what the user actually sees.  Two strategies, and the difference is
+    stark on a real graph:
+
+    * ``"path"`` truncates the store's natural order (``ORDER BY module_path,
+      lineno``).  Because that order is contiguous by module, the result is well
+      connected — but it is an alphabetical slice, and on pycode_kg's own graph
+      it is mostly ``test_*`` and ``a*`` modules with none of the important code.
+    * ``"central"`` seeds on the most central nodes and then pulls in their
+      graph neighbours until the budget is spent.
+
+    Seeding *and expanding* rather than simply taking the top N by centrality is
+    the important detail.  The most central nodes are scattered across modules,
+    so keeping only them strands most of them: measured on pycode_kg at a cap of
+    150, top-N-by-centrality left 47 nodes with no edges at all and halved the
+    edge count, producing a field of dots rather than a graph.  Expanding from a
+    smaller seed set keeps the picture connected.
+
+    :param nodes: Candidate nodes, already filtered.
+    :param limit: Maximum number to keep.
+    :param scores: Active centrality scores, or ``None``.
+    :param mode: ``"central"`` or ``"path"``.
+    :param expand: Callable taking ``(seed_ids, hop)`` and returning the node IDs
+        reachable within that many hops.  Without it, ``"central"`` degrades to
+        top-N by centrality.
+    :return: The kept nodes and a short description of how they were chosen.
+    """
+    if len(nodes) <= limit:
+        return nodes, "all matching nodes"
+    if mode != "central" or scores is None:
+        return nodes[:limit], "first by module path"
+
+    by_id = {n["id"]: n for n in nodes}
+    ranked = sorted(
+        by_id,
+        key=lambda i: (scores.rank(i) is None, scores.rank(i) or 0, i),
+    )
+
+    if expand is None:
+        top = ranked[:limit]
+        return [by_id[i] for i in top], _describe(scores, top, "")
+
+    # Seed on a fraction of the budget so there is room for the neighbourhood.
+    seed_count = max(1, limit // _SEED_FRACTION)
+    seeds = set(ranked[:seed_count])
+    reachable = expand(seeds, 1) & by_id.keys()
+
+    kept: list[str] = list(ranked[:seed_count])
+    seen = set(kept)
+    for node_id in sorted(
+        reachable, key=lambda i: (scores.rank(i) is None, scores.rank(i) or 0, i)
+    ):
+        if len(kept) >= limit:
+            break
+        if node_id not in seen:
+            kept.append(node_id)
+            seen.add(node_id)
+    # Any leftover budget goes to the next most central nodes.
+    for node_id in ranked:
+        if len(kept) >= limit:
+            break
+        if node_id not in seen:
+            kept.append(node_id)
+            seen.add(node_id)
+
+    return [by_id[i] for i in kept], _describe(scores, kept, ", plus neighbours")
+
+
 def _centrality_selector(db_path: str) -> ScoreSet | None:
     """Render the sidebar centrality control and return the chosen scores.
 
@@ -783,7 +881,7 @@ def _render_sidebar() -> dict:
     :return: A dict with keys ``db_path``, ``repo_root``, ``vectors_path``,
         ``model``, ``k``, ``hop``, ``rels``, ``include_symbols``,
         ``max_graph_nodes``, ``physics_on``, ``graph_height``, ``scores``,
-        and ``store``.
+        ``selection``, and ``store``.
     """
     st.sidebar.title("PyCodeKG Explorer")
     st.sidebar.markdown("---")
@@ -861,6 +959,25 @@ def _render_sidebar() -> dict:
     )
 
     scores = _centrality_selector(db_path)
+
+    selection = "central" if scores is not None else "path"
+    if scores is not None:
+        selection = (
+            "central"
+            if st.sidebar.radio(
+                "When over the node limit, keep",
+                options=["Most central + neighbours", "First by module path"],
+                index=0,
+                help=(
+                    "The graph can only draw a few hundred nodes. Seeding on the "
+                    "most central ones and expanding to their neighbours shows the "
+                    "code everything depends on, still connected; keeping the first "
+                    "by path shows a well-connected but alphabetical slice."
+                ),
+            )
+            == "Most central + neighbours"
+            else "path"
+        )
 
     st.sidebar.markdown("---")
     st.sidebar.subheader("🔨 Build pipeline")
@@ -950,6 +1067,7 @@ def _render_sidebar() -> dict:
         "physics_on": physics_on,
         "graph_height": graph_height,
         "scores": scores,
+        "selection": selection,
         "store": store,
     }
 
@@ -1003,8 +1121,17 @@ def _tab_graph(cfg: dict) -> None:
                 nodes = [n for n in nodes if module_filter.strip() in (n.get("module_path") or "")]
             max_n = cfg["max_graph_nodes"]
             if len(nodes) > max_n:
-                st.info(f"Showing first {max_n} of {len(nodes)} nodes (increase limit in sidebar).")
-                nodes = nodes[:max_n]
+                total = len(nodes)
+                nodes, how = _select_nodes(
+                    nodes,
+                    max_n,
+                    cfg["scores"],
+                    cfg["selection"],
+                    expand=lambda ids, hop: set(store.expand(ids, hop=hop)),
+                )
+                st.info(
+                    f"Showing {max_n} of {total} nodes — {how}. Adjust the limit in the sidebar."
+                )
             node_ids = {n["id"] for n in nodes}
             edges = store.edges_within(node_ids)
             st.session_state.graph_nodes = nodes
