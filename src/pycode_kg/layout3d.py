@@ -27,6 +27,8 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from pycode_kg import theme
+
 # ---------------------------------------------------------------------------
 # Fibonacci spatial utilities  (adapted from repo_vis/pkg_visualizer/utility.py)
 # ---------------------------------------------------------------------------
@@ -398,22 +400,10 @@ class AlliumLayout(Layout3D):
 # FunnelLayout
 # ---------------------------------------------------------------------------
 
-# Z level per node kind
-_KIND_ZLEVEL: dict[str, int] = {
-    "module": 0,
-    "class": 1,
-    "function": 2,
-    "method": 2,
-    "symbol": 3,
-}
-
-# Representative node radius per Z level (mirrors KIND_SIZE in viz3d)
-_LEVEL_NODE_SIZE: dict[int, float] = {
-    0: 1.2,  # module
-    1: 0.9,  # class
-    2: 0.7,  # function / method
-    3: 0.4,  # symbol
-}
+# Z levels and per-level radii come from pycode_kg.theme so the layout engine,
+# the 3-D viewer and the 2-D explorer share one definition.
+_KIND_ZLEVEL: dict[str, int] = dict(theme.KIND_ZLEVEL)
+_LEVEL_NODE_SIZE: dict[int, float] = dict(theme.LEVEL_NODE_SIZE)
 
 
 class FunnelLayout(Layout3D):

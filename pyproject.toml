@@ -72,6 +72,7 @@ requires-python = ">=3.12,<3.14"
 dependencies = [
     "click>=8.1.0,<9",
     "mcp>=1.0.0",
+    "networkx>=3.0",
     "numpy>=1.24.0",
     "pandas>=2.0.0",
     "rich>=14.3.3,<15",
@@ -97,7 +98,7 @@ dev = [
 viz = [
     "plotly>=5.14.0",
     "pyvis>=0.3.2",
-    "streamlit>=1.35.0",
+    "streamlit>=1.56.0",
 ]
 viz3d = [
     "markdown>=3.6",
@@ -126,7 +127,7 @@ all = [
     "pyvistaqt>=0.11.0",
     "pyvis>=0.3.2",
     "ruff>=0.4.0",
-    "streamlit>=1.35.0",
+    "streamlit>=1.56.0",
     "trame-vtk>=2.0.0",
     "ty>=0.0.41",
 ]

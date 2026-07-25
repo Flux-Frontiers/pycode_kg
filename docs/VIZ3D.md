@@ -24,11 +24,15 @@ Every node is one of:
 | Node kind | Shape | Colour |
 |-----------|-------|--------|
 | Module | Cube | Blue `#4A90D9` |
-| Class | Icosahedron / Octahedron | Green `#27AE60` |
-| Function | Cylinder | Red `#E74C3C` |
+| Class | Icosahedron (Octahedron at low LOD) | Orange `#E67E22` |
+| Function | Cylinder | Green `#27AE60` |
 | Private function (`_…`) | Cylinder | Yellow `#F1C40F` |
-| Method | Sphere | Sky blue `#3498DB` |
+| Method | Icosahedron (Sphere at low LOD) | Purple `#8E44AD` |
 | Symbol stub | Small sphere | Grey `#95A5A6` |
+
+Colours come from `pycode_kg.theme`, shared with the 2-D explorer so the two
+views agree. Shape and colour together identify the node's *kind*; node **size**
+is reserved for centrality (see below).
 
 Node geometry is automatically simplified for large repos (Level-of-Detail tiers at
 800 and 1 500 visible nodes) so rendering stays interactive at scale.
@@ -126,7 +130,50 @@ picked node.  Close the popup or click another node to clear the highlight.
 | **Render Options** | Checkboxes: Methods, Symbols, CONTAINS edges |
 | **Edge Types** | Checkboxes: CALLS, IMPORTS, INHERITS |
 | **Funnel Spacing** | Slider (0.5 – 10.0) — controls the XY spread of each funnel layer; only active when Funnel layout is selected |
+| **Size Nodes By** | Dropdown — `(uniform)` sizes nodes by kind; any other entry sizes them by that centrality metric |
 | **Graph Statistics** | Live node/edge counts updated after each render |
+
+#### Sizing nodes by centrality
+
+By default node radius encodes node *kind* — every function is the same size as
+every other function. Selecting a metric under **Size Nodes By** switches the
+radius to encode structural importance instead, so the modules and functions
+everything else depends on are visibly larger.
+
+The dropdown is populated from the `centrality_scores` and `node_metrics` tables,
+which are written by the analysis pipeline rather than by the graph build. A
+graph that has been built but never analysed offers only `(uniform)`; run:
+
+```bash
+pycodekg analyze .
+```
+
+then reopen the viewer (or re-enter the database path) to pick up the metrics.
+
+Radius is the node's per-kind size multiplied by a factor between 0.6× and
+1.8×, derived from the node's **rank percentile** within the metric.
+
+Rank rather than raw magnitude because centrality scores are extremely
+top-heavy — on pycode_kg's own graph the median score is 1.2× the minimum while
+the maximum is 58× it. Scaling by magnitude collapses almost every node onto one
+end of the range: linearly they all sit at the minimum, logarithmically they all
+sit near the maximum. Rank spreads them across the full range instead. The exact
+score and rank are still available on hover in the 2-D explorer.
+
+A *multiplier* rather than an absolute range, because 3-D node positions are
+fixed by the layout and so radius has a spatial budget. An allium head is only
+about `2 + sqrt(n_children) * 0.4` units across; nodes sized on an absolute
+scale outgrew it, fusing each head into a solid ball that hid the stem and every
+CALLS arc inside it. Scaling the per-kind size keeps every node inside the room
+the layout gave it.
+
+Node *kind* is carried by shape and colour, not size, so size is free to encode
+centrality alone. A highly central method can therefore render larger than an
+unimportant module — that is intended. Nodes with no score for the selected
+metric render at exactly their per-kind size.
+
+The same metrics drive the 2-D Streamlit explorer, where they control node
+diameter *and* opacity; see the **Centrality** section of its sidebar.
 
 ### Viewport buttons (below the 3-D view)
 

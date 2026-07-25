@@ -51,7 +51,8 @@ from PyQt5.QtWidgets import (
 from pyvistaqt import QtInteractor
 from rich.logging import RichHandler
 
-from pycode_kg import __version__
+from pycode_kg import __version__, theme
+from pycode_kg.analysis.scores import ScoreSet, available_metrics, load_scores
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -73,33 +74,31 @@ CONTROL_PANEL_WIDTH: int = 240
 BUTTON_WIDTH: int = 120
 ZOOM_FACTOR: float = 10.0
 
-# Node colours (aligned with app.py pyvis visualiser)
-KIND_COLOR: dict[str, str] = {
-    "module": "#4A90D9",
-    "class": "#27AE60",
-    "function": "#E74C3C",
-    "private_function": "#F1C40F",
-    "method": "#3498DB",
-    "symbol": "#95A5A6",
-}
+# Colours and sizes come from pycode_kg.theme, the single source of truth shared
+# with the 2-D explorer and the layout engine.  These names are kept as aliases
+# so the rest of this module (and any external caller) is unaffected.
+KIND_COLOR: dict[str, str] = dict(theme.KIND_COLOR)
+KIND_SIZE: dict[str, float] = dict(theme.KIND_SIZE)
+REL_COLOR: dict[str, str] = dict(theme.REL_COLOR_3D)
 
-# Node sizes (radius)
-KIND_SIZE: dict[str, float] = {
-    "module": 1.2,
-    "class": 0.9,
-    "function": 0.7,
-    "private_function": 0.7,
-    "method": 0.5,
-    "symbol": 0.4,
-}
+# Centrality sizing in 3-D is a *multiplier* on the node's per-kind radius, not
+# an absolute range replacing it.  Two reasons, both learned by rendering:
+#
+#   1. Node positions are fixed by the layout, so a node that outgrows the space
+#      the layout allotted it occludes its neighbours.  An allium head has a
+#      radius of roughly ``2 + sqrt(n_children) * 0.4``; absolute radii up to 2.4
+#      fused an entire head into a solid ball, hiding the stem and every CALLS
+#      arc inside it.
+#   2. An absolute range discards the kind hierarchy, letting a central method
+#      render larger than the module containing it — which contradicts the
+#      allium structure, where the module box is the stem base.
+#
+# The 2-D renderer uses an absolute pixel range instead, because force-directed
+# layout pushes oversized nodes apart rather than letting them overlap.
+CENTRALITY_SCALE_RANGE: tuple[float, float] = (0.6, 1.8)
 
-# Edge colours
-REL_COLOR: dict[str, str] = {
-    "CONTAINS": "#555555",
-    "CALLS": "#E74C3C",
-    "IMPORTS": "#3498DB",
-    "INHERITS": "#F39C12",
-}
+# Selector entry meaning "size by node kind" rather than by a metric.
+UNIFORM_METRIC: str = "(uniform)"
 
 # LOD thresholds (total visible nodes)
 LOD_HIGH: int = 800  # icospheres / cylinders
@@ -344,17 +343,20 @@ def create_kg_visualization(
 
     node_id_set = {n.id for n in nodes}
 
+    scores = viz.scores
+    lo_scale, hi_scale = CENTRALITY_SCALE_RANGE
+
     for node in nodes:
         pos = positions.get(node.id)  # type: ignore[assignment]
         if pos is None:
             continue
-        kind = node.kind
-        if kind == "function" and node.name.startswith("_"):
-            kind = "private_function"
-        elif kind not in KIND_SIZE:
-            kind = "symbol"
+        kind = theme.resolve_kind(node.kind, node.name)
 
-        mesh = _make_node_mesh(kind, pos, KIND_SIZE[kind], lod)
+        radius = KIND_SIZE[kind]
+        if scores is not None:
+            radius *= scores.scaled(node.id, lo_scale, hi_scale, default=1.0)
+
+        mesh = _make_node_mesh(kind, pos, radius, lod)
         kind_blocks[kind].append(mesh)
 
         mesh_id = f"{kind}_{kind_counters[kind]}"
@@ -547,6 +549,14 @@ class KGVisualizer(param.Parameterized):
         default=[], objects=[], doc="Selected module names"
     )
 
+    # Centrality encoding.  UNIFORM_METRIC means "size by node kind", the
+    # behaviour from before persisted centrality was wired into the renderer.
+    centrality_metric: str = param.Selector(  # ty: ignore[invalid-assignment]
+        objects=[UNIFORM_METRIC],
+        default=UNIFORM_METRIC,
+        doc="Metric driving node radius",
+    )
+
     def __init__(self, plotter: pv.Plotter | None = None, **params) -> None:
         """
         Initialise the visualiser data model.
@@ -559,6 +569,7 @@ class KGVisualizer(param.Parameterized):
         self.nodes: list = []
         self.edges: list = []
         self.actor_to_node: dict[str, dict] = {}
+        self.scores: ScoreSet | None = None
         self._load_graph()
 
     @param.depends("db_path", watch=True)  # ty: ignore[invalid-argument-type]
@@ -589,6 +600,8 @@ class KGVisualizer(param.Parameterized):
         self.num_functions = counts.get("function", 0)
         self.num_methods = counts.get("method", 0)
 
+        self._refresh_metrics()
+
         mod_names = sorted(n.name for n in self.nodes if n.kind == "module")
         self.available_modules = mod_names
         self.param.selected_modules.objects = mod_names
@@ -604,6 +617,30 @@ class KGVisualizer(param.Parameterized):
 
         if self.plotter and hasattr(self.plotter, "clear_actors"):
             self.plotter.clear_actors()
+
+    def _refresh_metrics(self) -> None:
+        """Repopulate the centrality selector from the current database.
+
+        The metric tables are written by the analysis pipeline and are absent
+        from a freshly built graph, so the selector always offers
+        :data:`UNIFORM_METRIC` and simply has nothing else to add in that case.
+        A previously chosen metric is preserved when it still exists.
+        """
+        names = [UNIFORM_METRIC] + [m.metric for m in available_metrics(self.db_path)]
+        self.param.centrality_metric.objects = names
+        if self.centrality_metric not in names:
+            self.centrality_metric = UNIFORM_METRIC
+        self._load_scores()
+
+    @param.depends("centrality_metric", watch=True)  # ty: ignore[invalid-argument-type]
+    def _load_scores(self) -> None:
+        """Load the selected metric's scores, or clear them for uniform sizing."""
+        if self.centrality_metric == UNIFORM_METRIC:
+            self.scores = None
+            return
+        self.scores = load_scores(self.db_path, self.centrality_metric)
+        if self.scores is None:
+            self.status = f"Metric '{self.centrality_metric}' could not be loaded"
 
     def visualize(self) -> None:
         """
@@ -876,6 +913,17 @@ class MainWindow(QMainWindow):
         spacing_row.addWidget(self.spacing_val_label)
         ctrl.addLayout(spacing_row)
 
+        ctrl.addWidget(self._lbl("<b>Size Nodes By</b>"))
+        self.centrality_combo = QComboBox()
+        self.centrality_combo.addItems(self.visualizer.param.centrality_metric.objects)
+        self.centrality_combo.setCurrentText(self.visualizer.centrality_metric)
+        self.centrality_combo.setToolTip(
+            "Node radius encodes the selected metric by rank percentile.\n"
+            "Run `pycodekg analyze` to compute metrics."
+        )
+        self.centrality_combo.currentTextChanged.connect(self._on_centrality_changed)
+        ctrl.addWidget(self.centrality_combo)
+
         ctrl.addWidget(self._lbl("<b>Graph Statistics</b>"))
         self.stats_label = QLabel(self._stats_text())
         self.stats_label.setWordWrap(True)
@@ -1040,6 +1088,17 @@ class MainWindow(QMainWindow):
         spacing = value / 10.0
         self.visualizer.node_spacing = spacing
         self.spacing_val_label.setText(f"{spacing:.1f}")
+
+    def _on_centrality_changed(self, metric: str) -> None:
+        """Apply a new centrality metric selection.
+
+        Assigning the param triggers ``_load_scores``; the change takes effect
+        on the next render, consistent with the other staged render options.
+
+        :param metric: Metric name, or :data:`UNIFORM_METRIC`.
+        """
+        if metric and metric in self.visualizer.param.centrality_metric.objects:
+            self.visualizer.centrality_metric = metric
 
     # ── Stats helper ────────────────────────────────────────────────────────
 
