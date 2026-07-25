@@ -24,11 +24,15 @@ Every node is one of:
 | Node kind | Shape | Colour |
 |-----------|-------|--------|
 | Module | Cube | Blue `#4A90D9` |
-| Class | Icosahedron / Octahedron | Green `#27AE60` |
-| Function | Cylinder | Red `#E74C3C` |
+| Class | Icosahedron (Octahedron at low LOD) | Orange `#E67E22` |
+| Function | Cylinder | Green `#27AE60` |
 | Private function (`_…`) | Cylinder | Yellow `#F1C40F` |
-| Method | Sphere | Sky blue `#3498DB` |
+| Method | Icosahedron (Sphere at low LOD) | Purple `#8E44AD` |
 | Symbol stub | Small sphere | Grey `#95A5A6` |
+
+Colours come from `pycode_kg.theme`, shared with the 2-D explorer so the two
+views agree. Shape and colour together identify the node's *kind*; node **size**
+is reserved for centrality (see below).
 
 Node geometry is automatically simplified for large repos (Level-of-Detail tiers at
 800 and 1 500 visible nodes) so rendering stays interactive at scale.
