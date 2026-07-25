@@ -154,20 +154,31 @@ class ScoreSet:
         lo: float,
         hi: float,
         *,
-        scaler: Scaler = "log",
+        scaler: Scaler = "rank",
         default: float | None = None,
     ) -> float:
         """Map *node_id*'s score onto the range ``[lo, hi]``.
 
-        The default ``"log"`` scaler suits PageRank-family metrics, whose values
-        span orders of magnitude; ``"linear"`` is faithful but visually flat on
-        such data, and ``"rank"`` ignores magnitude entirely in favour of
-        ordering.
+        ``"rank"`` is the default because it is the only option that uses the
+        full output range on real data.  Centrality scores are extremely
+        top-heavy — on pycode_kg's own graph the median SIR score is 1.2x the
+        minimum while the maximum is 58x it — and both alternatives handle that
+        badly.  ``"linear"`` collapses three quarters of the nodes onto the
+        floor; ``"log"`` overcorrects, because the single smallest value
+        stretches the bottom of the range far enough to push the bulk to ~0.73
+        of it.  Measured interquartile spread over an 8-42 px range was 1 px for
+        ``"linear"``, 4 px for ``"log"`` and 8 px for ``"rank"``.
+
+        The trade is that ``"rank"`` discards magnitude, implying visual
+        difference between scores that are nearly identical.  That is acceptable
+        for a node-link diagram, where size is a navigational affordance rather
+        than a measurement — callers wanting faithful magnitude should pass
+        ``"linear"`` and read exact values from the score itself.
 
         :param node_id: Node ID to look up.
         :param lo: Lower bound of the output range.
         :param hi: Upper bound of the output range.
-        :param scaler: One of ``"log"``, ``"linear"`` or ``"rank"``.
+        :param scaler: One of ``"rank"`` (default), ``"log"`` or ``"linear"``.
         :param default: Returned when the node is unscored.  When ``None``, the
             midpoint of ``[lo, hi]`` is used.
         :return: A value within ``[lo, hi]``.

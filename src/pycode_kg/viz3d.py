@@ -918,7 +918,7 @@ class MainWindow(QMainWindow):
         self.centrality_combo.addItems(self.visualizer.param.centrality_metric.objects)
         self.centrality_combo.setCurrentText(self.visualizer.centrality_metric)
         self.centrality_combo.setToolTip(
-            "Node radius encodes the selected metric (log-scaled).\n"
+            "Node radius encodes the selected metric by rank percentile.\n"
             "Run `pycodekg analyze` to compute metrics."
         )
         self.centrality_combo.currentTextChanged.connect(self._on_centrality_changed)

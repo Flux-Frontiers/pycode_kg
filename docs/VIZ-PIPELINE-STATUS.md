@@ -288,7 +288,7 @@ working directory untouched.
 It also matters for Phase 2: "self-contained HTML" is the entire premise of the
 exporter, and this is exactly the trap it has to avoid.
 
-### 7.2 The `log` default is the wrong scaler — open
+### 7.2 The `log` default was the wrong scaler — fixed
 
 Measured over the 150 nodes the graph browser displays, out of an 8–42 px range:
 
@@ -329,16 +329,24 @@ questions:
 - **`rank`** uses the full size range and is robust to outliers, at the cost of
   implying visual differences between scores that are nearly identical.
 
-**Recommendation: default to `rank`, and expose the scaler as a control.** In a
-node-link diagram, size is a navigational affordance — "look here" — rather than
-a measurement instrument; the true score and rank are already one hover away in
-the tooltip, so magnitude is not lost. Local rescaling should be at most an
-opt-in toggle: it doubles discrimination again (8 px → 17 px) but only in
-combination with `rank`, and it costs cross-view comparability, since the same
-node changes size when the filter changes.
+**Resolution: `rank` is now the default**, in `ScoreSet.scaled`. In a node-link
+diagram size is a navigational affordance — "look here" — rather than a
+measurement instrument; the true score and rank are one hover away in the 2-D
+tooltip, so magnitude is not lost. `"log"` and `"linear"` remain available as
+explicit arguments.
 
-Not applied — changing the default changes what every existing view looks like,
-so it is left for a decision.
+Measured effect on the 150 displayed nodes: interquartile band 4 px → 8 px, and
+the 3-D radius multiplier now spans the full 0.60×–1.79× range. Re-rendered to
+confirm the picture actually improved rather than just the statistic.
+
+**Still not applied: local rescaling.** It doubles discrimination again
+(8 px → 17 px) but only in combination with `rank`, and it costs cross-view
+comparability — the same node changes size when the filter changes. Worth having
+as an opt-in toggle; not worth making the default.
+
+**Still not applied: exposing the scaler as a UI control.** The recommendation
+included it, and it remains a sensible addition to both renderers' existing
+metric selectors, but it is UI work rather than a default change.
 
 ### 7.3 The 3-D centrality sizing was actively harmful — fixed
 

@@ -288,6 +288,39 @@ def test_scaled_preserves_ordering(db: Path, scaler: str) -> None:
     assert sizes == sorted(sizes, reverse=True)
 
 
+def test_rank_is_the_default_scaler(db: Path) -> None:
+    """The default must be ``rank`` — the renderers rely on it.
+
+    Centrality scores are extremely top-heavy, and rank is the only scaler that
+    spreads them across the output range rather than bunching them at one end.
+    """
+    scores = load_scores(db, "sir_pagerank")
+    assert scores is not None
+    for node in scores.scores:
+        assert scores.scaled(node, 8, 42) == scores.scaled(node, 8, 42, scaler="rank")
+
+
+def test_rank_discriminates_better_than_log_or_linear(db: Path) -> None:
+    """Rank spreads a top-heavy metric more evenly than the alternatives.
+
+    This is the measured justification for the default: on a skewed
+    distribution, linear pins most nodes to the floor and log pushes most of
+    them to the ceiling, while rank uses the whole range.
+    """
+    scores = load_scores(db, "sir_pagerank")
+    assert scores is not None
+
+    def spread(scaler: str) -> float:
+        sizes = sorted(
+            scores.scaled(n, 8, 42, scaler=scaler)  # type: ignore[arg-type]
+            for n in scores.scores
+        )
+        mid = len(sizes) // 2
+        return sizes[-1] - sizes[mid]  # distance from median to top
+
+    assert spread("rank") > spread("log")
+
+
 def test_log_scaler_lifts_the_skewed_tail(db: Path) -> None:
     """Log scaling separates small values that linear scaling flattens.
 

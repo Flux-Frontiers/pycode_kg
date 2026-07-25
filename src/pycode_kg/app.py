@@ -345,9 +345,10 @@ def _build_pyvis(
             size: float = theme.KIND_PIXEL_SIZE.get(kind, 12)
             background = color
         else:
-            # Size encodes magnitude, opacity encodes rank.  Both come from the
-            # same metric, but a log-scaled score separates the heavy tail while
-            # the rank percentile stays readable across a skewed distribution.
+            # Both size and opacity derive from rank percentile.  Centrality
+            # scores are top-heavy enough that magnitude-preserving scalers
+            # bunch almost every node at one end of the range; see
+            # ScoreSet.scaled for the measurements behind that default.
             size = scores.scaled(node_id, lo_size, hi_size, default=lo_size)
             alpha = _CENTRALITY_MIN_OPACITY + (1.0 - _CENTRALITY_MIN_OPACITY) * (
                 scores.percentile(node_id)
@@ -724,8 +725,8 @@ def _centrality_selector(db_path: str) -> ScoreSet | None:
         options=options,
         index=1,
         help=(
-            "Node diameter encodes the metric's magnitude (log-scaled) and "
-            "opacity encodes its rank percentile."
+            "Node diameter and opacity both encode the metric's rank "
+            "percentile. Hover a node for its exact score and rank."
         ),
     )
     if choice == options[0]:

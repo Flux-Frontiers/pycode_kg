@@ -150,10 +150,15 @@ pycodekg analyze .
 
 then reopen the viewer (or re-enter the database path) to pick up the metrics.
 
-Radius is the node's per-kind size multiplied by a log-scaled factor between
-0.6× and 1.8×. Log rather than linear because PageRank-family scores span orders
-of magnitude — under a linear map almost every node collapses to the minimum
-size and only one or two hubs stand out.
+Radius is the node's per-kind size multiplied by a factor between 0.6× and
+1.8×, derived from the node's **rank percentile** within the metric.
+
+Rank rather than raw magnitude because centrality scores are extremely
+top-heavy — on pycode_kg's own graph the median score is 1.2× the minimum while
+the maximum is 58× it. Scaling by magnitude collapses almost every node onto one
+end of the range: linearly they all sit at the minimum, logarithmically they all
+sit near the maximum. Rank spreads them across the full range instead. The exact
+score and rank are still available on hover in the 2-D explorer.
 
 A *multiplier* rather than an absolute range, because 3-D node positions are
 fixed by the layout and so radius has a spatial budget. An allium head is only
