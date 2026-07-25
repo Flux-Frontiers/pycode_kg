@@ -10,19 +10,20 @@ Working branch across the fleet: **`claude/knowledge-graph-viz-pipeline-qvt5ui`*
 
 ## 1. What has actually happened so far
 
-Two things, and it is worth being clear that only one of them is progress on the
-visualization work:
+Four things. Only one of them is progress on the visualization work itself:
 
 1. **A survey and a proposal.** All six repos' viz layers were mapped, the
    techniques from the source article were reconstructed from `d3graph` /
    `d3blocks` documentation and source, and the result is written up as an
-   analysis with three options and a phasing proposal.
-2. **Incidental defect cleanup.** The survey turned up seven unrelated defects.
-   Six are fixed and pushed; one needs a decision (§4).
-3. **Phase 0 is implemented in pycode_kg** (§6.1) — persisted centrality now
-   reaches both renderers, and the three divergent kind→colour maps are gone.
-   Phases 1 onward are still unstarted, and no stand-alone HTML exporter
-   exists yet.
+   analysis with three options and a phasing proposal (see the plan document).
+2. **Phase 0, in pycode_kg** (§6) — persisted centrality now reaches both
+   renderers and the three divergent kind→colour maps are gone. Phases 1 onward
+   are unstarted; there is still no stand-alone HTML exporter.
+3. **Incidental defect cleanup** across three repos — seven defects found during
+   the survey (§2.5 of the plan), plus three more found by rendering (§7) and one
+   found by chasing test failures (§5.4).
+4. **Two corrections to my own earlier claims** — the `st.iframe` diagnosis (§3)
+   and the scaling diagnosis (§7.2). Both were confidently stated and wrong.
 
 ---
 
@@ -32,52 +33,60 @@ All six repos are on the working branch with clean working trees.
 
 | Repo | Ahead of `main` | Contents | Risk |
 |---|---|---|---|
-| **pycode_kg** | 5 commits | Plan + status docs; the dependency and doc fixes (`networkx>=3.0`, streamlit floor `>=1.56.0`, `cake`→`funnel`); and **Phase 0** — `theme.py`, `analysis/scores.py`, centrality wired into both renderers, 61 new tests | medium — Phase 0 changes what both viewers look like |
-| **metabo_kg** | 2 commits | `tempfile` fix in `_build_pyvis`; streamlit floor `>=1.56.0`; remove dead `_golden_spiral_2d` alias; pyvis `cdn_resources` fix + 5 tests | low — layouts smoke-tested, render output verified self-contained |
-| **doc_kg** | 2 commits | Drop unused `plotly` from `viz` and `all` extras; pyvis `cdn_resources` fix + 5 tests | low |
+| **pycode_kg** | 11 commits | Plan + status docs; dependency and doc fixes (`networkx>=3.0`, streamlit floor `>=1.56.0`, `cake`→`funnel`, stale 3-D colour table); **Phase 0** (`theme.py`, `analysis/scores.py`, centrality in both renderers); pyvis `cdn_resources` fix; 3-D sizing regression fix | medium — Phase 0 changes what both viewers look like |
+| **metabo_kg** | 2 commits | `tempfile` fix in `_build_pyvis`; streamlit floor `>=1.56.0`; dead `_golden_spiral_2d` alias removed; pyvis `cdn_resources` fix | low |
+| **doc_kg** | 3 commits | Unused `plotly` dropped; pyvis `cdn_resources` fix; **`scikit-learn` declared** as an `analysis` extra after five modules were found importing it undeclared (§5.4) | low |
 | **KG_utils** | — | untouched | — |
 | **gutenberg_kg** | — | untouched | — |
 | **KGRAG** | — | untouched | — |
 
-`poetry.lock` was regenerated in all three changed repos, since CI runs
-`poetry install` and fails against a stale lock. Streamlit resolves to 1.59.0.
+`poetry.lock` regenerated wherever `pyproject.toml` changed, since CI runs
+`poetry install` and fails against a stale lock.
+
+### Test state
+
+All three changed repos are **fully green** locally, with every declared
+dependency installed:
+
+| Repo | Passing | Skipped | Failing |
+|---|---|---|---|
+| pycode_kg | 373 | 16 | 0 |
+| doc_kg | 387 | 4 | 0 |
+| metabo_kg | 188 | 0 | 0 |
+
+Earlier revisions of this document reported failures in these suites. Every one
+of them traced either to a declared dependency missing from the ad-hoc
+virtualenvs used here (`scipy`, `sqlite-vec`, `sentence-transformers`,
+`kg-snapshot`, `pymupdf4llm`) or to the one genuine declaration bug in §5.4. None
+were regressions.
 
 ### Verification performed
 
-- `ruff format --check .` and `ruff check .` clean across the repo.
-- `ty check src/` clean (the CI type-check job).
-- **353 tests pass**, including 61 new ones for `theme` and `analysis.scores`.
-  The 6 failures in the local run are missing optional dependencies (`scipy`,
-  `sqlite-vec`) and reproduce identically on stashed, pre-change code — they are
-  environmental, not regressions.
+- `ruff format --check .` and `ruff check .` clean in all three repos.
+- `ty check src/` clean in pycode_kg (the CI type-check job).
+- Both renderers exercised for real, headless, against a graph built from
+  pycode_kg itself — 10,312 nodes / 10,654 edges with 883 SIR centrality scores
+  computed and persisted:
+  - **2-D** — Streamlit served headless, driven and screenshotted through the
+    pre-installed Chromium via Playwright. The Centrality selector populates
+    (`sir pagerank — 883 nodes`) and node size and opacity vary by metric.
+  - **3-D** — `pyvista` off-screen under `xvfb-run` with
+    `QT_QPA_PLATFORM=offscreen`, calling the real `create_kg_visualization`.
+- **`st.iframe` confirmed empirically** on Streamlit 1.60.0 — it exists, and its
+  docstring states it auto-detects URLs, file paths and HTML strings. The §3
+  correction is observed, not inferred.
+- Both sibling repos' pyvis output confirmed self-contained (~698 KB, no cdnjs
+  reference, no relative asset path, nothing written to the working directory).
 - `metabo_kg.layout3d` imported and both layouts confirmed to compute positions
   after the alias removal.
-- Lockfiles confirmed to reflect the intended changes.
 
 ### Verification *not* performed
 
-- No visual review of the 3-D viewer's *interactive* behaviour (picking,
-  camera, popups) — only a headless still frame was captured.
-- Nothing was tested on a graph larger than pycode_kg's own (10,312 nodes).
-
-### Rendering — done headless
-
-Both renderers were subsequently exercised for real in this container, against
-a freshly built graph of pycode_kg itself (10,312 nodes / 10,654 edges) with
-883 SIR centrality scores computed and persisted:
-
-- **2-D** — Streamlit served headless, driven and screenshotted with the
-  pre-installed Chromium via Playwright. The Centrality selector populates
-  (`sir pagerank — 883 nodes`), the graph renders, and node sizes and opacities
-  vary by metric.
-- **3-D** — `pyvista` off-screen under `xvfb-run` with
-  `QT_QPA_PLATFORM=offscreen`, calling the real `create_kg_visualization`.
-  400 nodes, 6,138 faces, metric selector populated and scores applied.
-- **`st.iframe` confirmed empirically** on Streamlit 1.60.0 — it exists and its
-  docstring states it "auto-detects" URLs, file paths and HTML strings. The
-  §3 correction is now observed, not merely inferred.
-
-Two things this turned up that no amount of linting would have — see §7.
+- No review of the 3-D viewer's *interactive* behaviour — picking, camera,
+  docstring popups. Only still frames were captured.
+- Nothing tested on a graph larger than pycode_kg's own (10,312 nodes). The
+  fleet spans up to ~850k nodes.
+- No CI run yet on any of the three branches.
 
 ---
 
@@ -173,12 +182,19 @@ they turn up.
 
 ### 5.5 Hygiene worth doing whenever
 
-- Confirm the three pushed branches go green in CI — the test suites were not run
-  locally (§2).
+- Confirm the three pushed branches go green in CI. The suites pass locally
+  (§2), but CI installs via `poetry install --extras dev` rather than the ad-hoc
+  virtualenvs used here, so the dependency sets differ.
 - Collapse the `layout3d.py` fork: pycode_kg (486 LOC) and metabo_kg (460 LOC)
   differ by ~222 lines, almost entirely domain vocabulary.
 - `metabo_kg` and `KGRAG` still declare `kgmodule-utils>=0.4.4` while the rest of
   the fleet is on `>=0.6.2`.
+- `doc_kg`'s `ManifoldAnalyzer.analyze()` wraps every sub-analysis in a broad
+  `except Exception` and leaves failed fields at their zero defaults, so a caller
+  cannot distinguish "intrinsic dimension is 0" from "the analysis failed". The
+  missing-scikit-learn path that exposed this is fixed, but the silent-zeros
+  behaviour itself remains — resolving it needs `ManifoldReport` to record which
+  passes failed.
 
 ---
 
@@ -194,24 +210,32 @@ started.
 | `src/pycode_kg/theme.py` | The shared visual vocabulary — kind→colour/shape/size, relation colours, Z levels, `resolve_kind`, `with_alpha`. Replaces three divergent copies. |
 | `src/pycode_kg/analysis/scores.py` | Reads `centrality_scores` / `node_metrics` back out of SQLite. `available_metrics`, `load_scores`, and a `ScoreSet` exposing raw score, dense rank, percentile and range scaling. |
 
-Wired into `app.py` (2-D), `viz3d.py` (3-D) and `layout3d.py` (constants only).
+Wired into `app.py` (2-D), `viz3d.py` (3-D) and `layout3d.py` (constants only),
+with 61 tests for `theme` and `analysis.scores`. Later work on this branch added
+`tests/test_app_render.py` (9) and `tests/test_viz3d_sizing.py` (5), guarding the
+fixes in §7.
 
 ### 6.2 What changed on screen
 
 - **2-D explorer** — a **Centrality** sidebar section. Node diameter encodes the
   metric (log-scaled, 8–42 px) and opacity encodes rank percentile, floored at
   0.35 so nothing becomes invisible. Tooltips gained a rank line.
-- **3-D viewer** — a **Size Nodes By** dropdown. Node radius encodes the metric
-  (log-scaled, 0.35–2.4 world units).
+- **3-D viewer** — a **Size Nodes By** dropdown. Node radius is the per-kind
+  radius multiplied by a log-scaled 0.6×–1.8× factor. (This began as an absolute
+  0.35–2.4 range, which broke the layout; see §7.3.)
 - **Both** — one palette. The 3-D viewer's class/function/method colours changed
   to match the 2-D explorer, which is what its own comment always claimed. 2-D
   now distinguishes `private_function` in yellow, as 3-D already did.
 
 ### 6.3 Decisions worth knowing about
 
-- **Log scaling is the default.** PageRank-family scores are power-law
-  distributed; under a linear map nearly every node sits at the minimum size.
-  `"linear"` and `"rank"` scalers exist for callers that want them.
+- **Log scaling is the default — and measurement since suggests it should not
+  be.** The reasoning was that PageRank-family scores are power-law distributed,
+  so a linear map leaves nearly every node at the minimum size. That much is
+  true, but log overcorrects: it puts the bulk at ~0.73 of the range instead, and
+  is beaten by `rank` on discriminability and by `linear` on faithfulness. See
+  §7.2 for the numbers and the recommendation. `"linear"` and `"rank"` already
+  exist as options; only the default is in question.
 - **Ranks are derived on load, not read from the `rank` column.** The stored rank
   reflects whatever set the writer ranked, which may have been truncated.
   Deriving guarantees dense ranks over exactly the rows loaded, and makes
