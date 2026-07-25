@@ -177,8 +177,27 @@ dependency of pyvista, and that module already requires pyvista. The reliance is
 acknowledged rather than accidental. Worth making explicit anyway, but it is not
 the same latent break as the other two.
 
-Worth a fleet-wide check for the general case rather than fixing instances as
-they turn up.
+**The fleet-wide check has since been run** — every top-level import under each
+repo's `src/`, compared against the distributions its `pyproject.toml` names:
+
+| Repo | Undeclared third-party imports |
+|---|---|
+| **pycode_kg** | none |
+| **KG_utils** | none |
+| **metabo_kg** | `vtkmodules` (a hard dependency of `pyvista`, imported inside `viz3d.py`) |
+| **doc_kg** | `joblib`, `torch`, `tqdm` — all transitively guaranteed by declared deps |
+| **gutenberg_kg** | `numpy` (module scope) and `matplotlib` — **now declared**; plus ~12 optional-feature imports (`diffusers`, `mflux`, `spacy`, `openai`, sibling KGs) that are lazily imported behind guards |
+| **KGRAG** | `httpx`, `huggingface_hub`, `llama_cpp`, `tomli`, plus sibling-KG adapters |
+
+Two things the sweep clarified. `tomli` in `KGRAG/config.py` looks undeclared but
+is a correctly guarded fallback for Python < 3.11 that can never fire, since the
+project floor is 3.12 — harmless dead code, not a missing dependency. And the
+bulk of gutenberg_kg's and KGRAG's hits are optional-feature imports behind
+`try`/`except ImportError`, which is the intended pattern rather than a defect.
+
+What remains genuinely worth attention is the KGRAG group — `httpx`,
+`huggingface_hub` and `llama_cpp` are used by `app.py`, `model_coordinator.py`
+and `_embedders.py`. Not fixed here; needs a look at whether each is guarded.
 
 ### 5.5 Hygiene worth doing whenever
 
