@@ -1,7 +1,7 @@
 """
 test_scores.py
 
-Tests for :mod:`pycode_kg.analysis.scores` — reading persisted centrality
+Tests for :mod:`kg_utils.analysis.scores` — reading persisted centrality
 metrics back out of SQLite for visual encoding.
 
 The behaviour that matters most here is graceful degradation.  Neither
@@ -17,8 +17,7 @@ import sqlite3
 from pathlib import Path
 
 import pytest
-
-from pycode_kg.analysis.scores import (
+from kg_utils.analysis.scores import (
     METRIC_TABLES,
     MetricRef,
     ScoreSet,

@@ -17,9 +17,9 @@ from __future__ import annotations
 from pathlib import Path
 
 import streamlit as st
+from kg_utils.analysis.scores import ScoreSet, available_metrics, load_scores
 
 from pycode_kg import theme
-from pycode_kg.analysis.scores import ScoreSet, available_metrics, load_scores
 from pycode_kg.graph_html import build_graph_html, select_nodes
 from pycode_kg.store import DEFAULT_RELS, GraphStore
 

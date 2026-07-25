@@ -20,7 +20,8 @@ import pytest
 
 pytest.importorskip("pyvis")
 
-from pycode_kg.analysis.scores import ScoreSet  # noqa: E402
+from kg_utils.analysis.scores import ScoreSet  # noqa: E402
+
 from pycode_kg.graph_html import build_graph_html, select_nodes  # noqa: E402
 
 NODES = [
@@ -172,7 +173,7 @@ def test_falls_back_to_path_order_without_scores() -> None:
     """With no metric loaded there is nothing to rank by."""
     kept, how = select_nodes(_many(10), 3, None, "central")
     assert [n["id"] for n in kept] == ["fn:z00", "fn:z01", "fn:z02"]
-    assert how == "first by module path"
+    assert how == "first in store order"
 
 
 def _fake_expand(edges: dict[str, set[str]]):

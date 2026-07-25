@@ -141,7 +141,8 @@ def viz_export(
             f"pyvis is not installed. Install viz dependencies with:\n  {_VIZ_EXTRA}"
         )
 
-    from pycode_kg.analysis.scores import available_metrics, load_scores  # noqa: PLC0415
+    from kg_utils.analysis.scores import available_metrics, load_scores  # noqa: PLC0415
+
     from pycode_kg.graph_html import build_graph_html, select_nodes  # noqa: PLC0415
     from pycode_kg.store import GraphStore  # noqa: PLC0415
 
