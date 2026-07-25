@@ -150,7 +150,28 @@ decision gates everything after it.
 
 Phases 2–5 are in the plan and depend on the decisions above.
 
-### 5.4 Hygiene worth doing whenever
+### 5.4 Dependency hygiene — a recurring pattern
+
+Three instances of the same failure mode have now surfaced on this branch:
+a package is imported but declared nowhere, resolving only as a transitive
+dependency of something else. Each works until the intermediary drops it.
+
+| Repo | Package | Imported by | Resolved via | Status |
+|---|---|---|---|---|
+| pycode_kg | `networkx` | `ranking/coderank.py` | `torch` | fixed — declared |
+| doc_kg | `scikit-learn` | 5 modules incl. `dockg.py` | `sentence-transformers` | fixed — `analysis` extra |
+| gutenberg_kg | `matplotlib` | `viz3d.py:674` | `pyvista` | **left as-is** |
+
+The gutenberg_kg case is deliberately not fixed: the import carries an inline
+comment (`# pyvista dependency, always present`), matplotlib genuinely is a hard
+dependency of pyvista, and that module already requires pyvista. The reliance is
+acknowledged rather than accidental. Worth making explicit anyway, but it is not
+the same latent break as the other two.
+
+Worth a fleet-wide check for the general case rather than fixing instances as
+they turn up.
+
+### 5.5 Hygiene worth doing whenever
 
 - Confirm the three pushed branches go green in CI — the test suites were not run
   locally (§2).
