@@ -99,10 +99,7 @@ def _append_callers(out: list[str], kg: Any, node_id: str, kind: str, limit: int
 
 def _append_callees(out: list[str], kg: Any, node_id: str, kind: str, limit: int) -> None:
     try:
-        store = getattr(kg, "_store", None)
-        if store is None:
-            return
-        edges = store.edges_from(node_id, rel="CALLS", limit=50)
+        edges = kg.store.edges_from(node_id, rel="CALLS", limit=50)
     except (AttributeError, ValueError, RuntimeError):
         return
     if not edges:
@@ -195,10 +192,7 @@ def _role_label(kg: Any, node_id: str, node: dict) -> str:
 
 def _count_internal_callees(kg: Any, node_id: str) -> int:
     try:
-        store = getattr(kg, "_store", None)
-        if store is None:
-            return 0
-        edges = store.edges_from(node_id, rel="CALLS", limit=100)
+        edges = kg.store.edges_from(node_id, rel="CALLS", limit=100)
     except (AttributeError, ValueError, RuntimeError):
         return 0
     count = 0
