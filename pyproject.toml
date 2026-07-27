@@ -80,7 +80,7 @@ dependencies = [
     "sentence-transformers>=5.4.1",
     "torch>=2.5.1",
     "transformers>=4.40.0,<4.57",
-    "kgmodule-utils[semantic,sqlite-vec]>=0.8.0",
+    "kgmodule-utils[semantic,sqlite-vec,viz]>=0.8.0",
 ]
 
 [project.optional-dependencies]

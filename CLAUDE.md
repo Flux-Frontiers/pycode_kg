@@ -58,6 +58,7 @@ Each command is available as a `pycodekg <subcommand>` **or** a dedicated `pycod
 | `query` / `pycodekg-query` | Run hybrid query over the graph |
 | `pack` / `pycodekg-pack` | Generate source-grounded snippet packs |
 | `viz` / `pycodekg-viz` | Launch Streamlit interactive visualizer |
+| `viz-export` | Write the graph to a self-contained HTML file (no server) |
 | `viz3d` / `pycodekg-viz3d` | Launch 3D PyVista/PyQt5 visualizer |
 | `analyze` / `pycodekg-analyze` | Run thorough codebase analysis |
 | `mcp` / `pycodekg-mcp` | Start MCP server for Claude/Cursor/Continue |
@@ -91,6 +92,10 @@ pycodekg analyze .
 
 # Launch Streamlit visualizer
 pycodekg viz --port 8501
+
+# Export the same graph to one shareable file — no server, no Python needed to view
+pycodekg viz-export -o graph.html
+pycodekg viz-export --metric none --max-nodes 300 --selection path -o all.html
 
 # Launch 3D PyVista visualizer
 pycodekg viz3d --layout allium

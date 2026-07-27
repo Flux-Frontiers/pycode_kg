@@ -1,12 +1,13 @@
 """Analysis primitives for PyCodeKG."""
 
+from kg_utils.analysis.scores import MetricRef, ScoreSet, available_metrics, load_scores
+
 from .centrality import (
     CentralityConfig,
     CentralityRecord,
     StructuralImportanceRanker,
     aggregate_module_scores,
 )
-from .scores import MetricRef, ScoreSet, available_metrics, load_scores
 
 __all__ = [
     "CentralityConfig",

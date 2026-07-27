@@ -28,6 +28,7 @@ from pathlib import Path
 import numpy as np
 import param
 import pyvista as pv
+from kg_utils.analysis.scores import ScoreSet, available_metrics, load_scores
 from markdown import markdown  # type: ignore[import-untyped]
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont
@@ -52,7 +53,6 @@ from pyvistaqt import QtInteractor
 from rich.logging import RichHandler
 
 from pycode_kg import __version__, theme
-from pycode_kg.analysis.scores import ScoreSet, available_metrics, load_scores
 
 # ---------------------------------------------------------------------------
 # Logging
