@@ -80,7 +80,7 @@ dependencies = [
     "sentence-transformers>=5.4.1",
     "torch>=2.5.1",
     "transformers>=4.40.0,<4.57",
-    "kgmodule-utils[semantic,sqlite-vec]>=0.6.2",
+    "kgmodule-utils[semantic,sqlite-vec]>=0.8.0",
 ]
 
 [project.optional-dependencies]
@@ -161,10 +161,10 @@ pycodekg-viz3d          = "pycode_kg.cli.cmd_viz:viz3d"
 [tool.ruff]
 line-length    = 100
 target-version = "py312"
-# Vendored Claude Code skills — not project code. The pre-commit hook's
-# exclude can't cover these (it runs with pass_filenames: false), so the
-# exclusion must live here.
-extend-exclude = [".claude"]
+# Vendored agent scratch dirs (Claude Code skills, Codex) — not project code.
+# The pre-commit hook's exclude can't cover these (it runs with
+# pass_filenames: false), so the exclusion must live here.
+extend-exclude = [".claude", ".agents", ".codex"]
 
 [tool.ruff.lint]
 # B023, BLE001, PLC0415 replace the retired pylint hook's cell-var-from-loop,

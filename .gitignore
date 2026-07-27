@@ -103,3 +103,7 @@ assets/pycode_kg_arch_*.png
 # Misc
 bundles/
 uv.lock
+
+# Agent scratch dirs (Claude Code / Codex)
+.agents/
+.codex/
