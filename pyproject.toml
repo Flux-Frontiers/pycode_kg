@@ -46,19 +46,26 @@ build-backend = "poetry.core.masonry.api"
 [tool.poetry]
 packages = [{ include = "pycode_kg", from = "src" }]
 
-# CPU-only torch: dev/CI here has no GPU, but the default PyPI linux wheel
-# bundles the full CUDA runtime (~2.7G of nvidia-* packages, ~700M of triton)
-# regardless. "explicit" priority means only packages naming this source use
-# it — nothing else is redirected off PyPI. This affects local/CI installs
-# only; it is not part of published wheel metadata, so `pip install
+# CPU-only torch on Linux: dev/CI here has no GPU, but the default PyPI linux
+# wheel bundles the full CUDA runtime (~2.7G of nvidia-* packages, ~700M of
+# triton) regardless. "explicit" priority means only packages naming this
+# source use it — nothing else is redirected off PyPI. This affects local/CI
+# installs only; it is not part of published wheel metadata, so `pip install
 # pycode-kg` for a GPU user still resolves torch normally.
+#
+# Linux only: macOS/Windows torch builds are already CPU/MPS, and this index
+# publishes the macOS ones without the "+cpu" local version label, so locking
+# it globally leaves those platforms with no installable candidate.
 [[tool.poetry.source]]
 name = "pytorch-cpu"
 url = "https://download.pytorch.org/whl/cpu"
 priority = "explicit"
 
 [tool.poetry.dependencies]
-torch = {source = "pytorch-cpu"}
+torch = [
+    { markers = "sys_platform == 'linux'", source = "pytorch-cpu" },
+    { markers = "sys_platform != 'linux'" },
+]
 
 # ---------------------------------------------------------------------------
 # PEP 621 project metadata
