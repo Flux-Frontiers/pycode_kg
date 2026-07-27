@@ -15,6 +15,15 @@ Note: older entries preserve the API names used at that release (for example com
 
 ### Fixed
 
+- **MCP `list_nodes()` and `find_node()` failed when called first in a fresh
+  server session**, returning `"No database store available."`. Both read the
+  private lazy `_store` field via `getattr` instead of the `KGModule.store`
+  property that creates it on first access, so whichever tool an agent happened
+  to call first would fail. All six `getattr(kg, "_store", None)` sites in
+  `mcp_server.py` and `explain.py` now use `kg.store`; the remaining four were
+  latent, working only because earlier code in their call paths happened to
+  touch the store first. Covered by `tests/test_mcp_cold_start.py`.
+
 ## [0.20.0] - 2026-07-15
 
 ### Changed

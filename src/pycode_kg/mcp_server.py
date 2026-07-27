@@ -731,16 +731,15 @@ def get_node(node_id: str, include_edges: bool = False) -> str:
         return "\n".join(out)
 
     # Build neighborhood: outgoing edges per relation type
-    store = getattr(kg, "_store", None)
-    if store is not None:
-        for rel in ("CALLS", "CONTAINS", "IMPORTS", "INHERITS"):
-            edges = store.edges_from(node_id, rel=rel)
-            visible = [e for e in edges if not e["dst"].startswith("sym:")] if edges else []
-            if visible:
-                out.append(f"### Outgoing {rel}\n")
-                for e in visible:
-                    out.append(f"- `{e['dst']}`")
-                out.append("")
+    store = kg.store
+    for rel in ("CALLS", "CONTAINS", "IMPORTS", "INHERITS"):
+        edges = store.edges_from(node_id, rel=rel)
+        visible = [e for e in edges if not e["dst"].startswith("sym:")] if edges else []
+        if visible:
+            out.append(f"### Outgoing {rel}\n")
+            for e in visible:
+                out.append(f"- `{e['dst']}`")
+            out.append("")
 
     # Incoming CALLS callers (resolved through sym: stubs)
     try:
@@ -834,9 +833,7 @@ def list_nodes(
     :return: JSON array of matching node dicts.
     """
     kg = _get_kg()
-    store = getattr(kg, "_store", None)
-    if not store:
-        return json.dumps({"error": "No database store available."}, indent=2)
+    store = kg.store
 
     query = "SELECT id, name, qualname, kind, module_path, lineno, docstring FROM nodes WHERE 1=1"
     params = []
@@ -906,9 +903,7 @@ def find_node(name: str, kind: str = "") -> str:
              is found.
     """
     kg = _get_kg()
-    store = getattr(kg, "_store", None)
-    if not store:
-        return json.dumps({"error": "No database store available."}, indent=2)
+    store = kg.store
 
     name_lower = name.lower()
     query = (
@@ -1164,9 +1159,7 @@ def find_definition_at(file: str, line: int) -> str:
              message if no node spans that location.
     """
     kg = _get_kg()
-    store = getattr(kg, "_store", None) or getattr(kg, "store", None)
-    if store is None:
-        return "## Error\n\nNo graph store available."
+    store = kg.store
 
     norm_file = file.lstrip("./")
 
