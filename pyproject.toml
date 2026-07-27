@@ -46,6 +46,20 @@ build-backend = "poetry.core.masonry.api"
 [tool.poetry]
 packages = [{ include = "pycode_kg", from = "src" }]
 
+# CPU-only torch: dev/CI here has no GPU, but the default PyPI linux wheel
+# bundles the full CUDA runtime (~2.7G of nvidia-* packages, ~700M of triton)
+# regardless. "explicit" priority means only packages naming this source use
+# it — nothing else is redirected off PyPI. This affects local/CI installs
+# only; it is not part of published wheel metadata, so `pip install
+# pycode-kg` for a GPU user still resolves torch normally.
+[[tool.poetry.source]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+priority = "explicit"
+
+[tool.poetry.dependencies]
+torch = {source = "pytorch-cpu"}
+
 # ---------------------------------------------------------------------------
 # PEP 621 project metadata
 # ---------------------------------------------------------------------------
