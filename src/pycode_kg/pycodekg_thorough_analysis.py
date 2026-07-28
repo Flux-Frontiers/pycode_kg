@@ -287,7 +287,7 @@ class PyCodeKGAnalyzer:
         """
 
         try:
-            # --- Option A: seed from CodeRank top nodes (deterministic, no LanceDB) ---
+            # --- Option A: seed from CodeRank top nodes (deterministic, no vector search) ---
             if self.coderank_scores:
                 # Pull ALL real function/method/class nodes from SQLite, sorted by
                 # CodeRank score descending.  This is O(nodes) but avoids the k-limit
@@ -1199,7 +1199,7 @@ class PyCodeKGAnalyzer:
         dicts with ``rank``, ``node_id``, ``name``, ``module``, ``kind``,
         ``score``, and ``why`` fields.
 
-        Requires the LanceDB vector index to be available (``self.kg`` must
+        Requires the sqlite-vec vector index to be available (``self.kg`` must
         support ``query()``).  Degrades gracefully if the index is unavailable.
         """
 
@@ -1254,7 +1254,7 @@ class PyCodeKGAnalyzer:
             for label, query in CONCERNS:
                 try:
                     # Get semantic scores from the vector index.
-                    # Suppress tqdm progress bars from LanceDB embedding model loading.
+                    # Suppress tqdm progress bars from embedding model loading.
                     import os as _os  # noqa: PLC0415
 
                     _old_disable = _os.environ.get("TQDM_DISABLE")

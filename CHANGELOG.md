@@ -57,6 +57,14 @@ Note: older entries preserve the API names used at that release (for example com
   *still* named `lancedb_dir`, which is now documented as the leftover it is
   rather than silently renamed.
 
+  Regenerating the pdoc API docs then exposed three stale strings in
+  `pycodekg_thorough_analysis.py` — including a public docstring claiming a
+  method "Requires the LanceDB vector index" — which were the reason the
+  generated HTML kept re-emitting LanceDB text. Comment/docstring only, no
+  behaviour change. `docs/pycode_kg.html` is regenerated; its remaining
+  LanceDB mentions all come from upstream `kg_utils` symbols
+  (`lancedb_dir`, `LanceDBBackend`) that still legitimately exist.
+
   `article/` is deliberately untouched: its `.tex` and compiled PDF predate
   the 0.20.0 migration and describe the system accurately as of that writing.
 
