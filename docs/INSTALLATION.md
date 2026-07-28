@@ -17,7 +17,7 @@ This sets up everything end-to-end:
 1. Installs SKILL.md reference files for Claude Code, Kilo Code, and other agents
 2. Installs Claude Code slash commands (`/pycodekg`, `/setup-mcp`)
 3. Installs the `pycode-kg` package if not already present
-4. Builds the SQLite knowledge graph and LanceDB semantic index
+4. Builds the SQLite knowledge graph and sqlite-vec semantic index
 5. Writes MCP configuration for Claude Code, Kilo Code, GitHub Copilot, and Cline
 
 ```bash
@@ -41,7 +41,7 @@ Python ≥ 3.12, < 3.14
 ## Install via pip
 
 ```bash
-# Core install (SQLite + LanceDB + MCP server)
+# Core install (SQLite + sqlite-vec + MCP server)
 pip install pycode-kg
 
 # With Streamlit web visualizer
@@ -147,7 +147,7 @@ pycodekg build --repo /path/to/repo [--wipe]
 # 1. SQLite knowledge graph
 pycodekg build-sqlite --repo /path/to/repo [--wipe]
 
-# 2. LanceDB semantic index
+# 2. sqlite-vec semantic index
 pycodekg build-index [--model BAAI/bge-small-en-v1.5] [--wipe]
 
 # 3. Pre-download the embedding model (offline / CI)
@@ -160,7 +160,7 @@ pycodekg-download-model --repo .
 pycodekg query "module structure"
 ```
 
-A non-empty result confirms both the SQLite graph and LanceDB index are wired up correctly. For the full MCP smoke test see [MCP.md § Smoke Test](MCP.md#smoke-test).
+A non-empty result confirms both the SQLite graph and vector index are wired up correctly. For the full MCP smoke test see [MCP.md § Smoke Test](MCP.md#smoke-test).
 
 ### Gitignore
 
@@ -170,7 +170,7 @@ Add this to `.gitignore` to keep the binary artifacts out of version control:
 .pycodekg/
 ```
 
-The SQLite graph and LanceDB index are transient and rebuildable. Snapshots in `.pycodekg/snapshots/` are tracked separately and committed atomically by the pre-commit hook.
+The SQLite graph and vector index are transient and rebuildable. Snapshots in `.pycodekg/snapshots/` are tracked separately and committed atomically by the pre-commit hook.
 
 ---
 
@@ -332,7 +332,7 @@ my-mcp           = "pycode_kg.mcp_server:main"               # ✅
 my-build-sqlite = "pycode_kg.build_pycodekg_sqlite:main"  # ❌ legacy
 ```
 
-The legacy modules (`build_pycodekg_sqlite`, `build_pycodekg_lancedb`) exist only as backward-compatibility stubs. Always import from `pycode_kg.cli.cmd_build`.
+The legacy module `build_pycodekg_sqlite` exists only as a backward-compatibility stub; `build_pycodekg_lancedb` was removed with the sqlite-vec migration. Always import from `pycode_kg.cli.cmd_build`.
 
 ---
 
@@ -341,6 +341,6 @@ The legacy modules (`build_pycodekg_sqlite`, `build_pycodekg_lancedb`) exist onl
 | Artifact | Description |
 |---|---|
 | `.pycodekg/graph.sqlite` | Canonical knowledge graph (nodes + edges) |
-| `.pycodekg/lancedb/` | Derived semantic vector index |
+| `.pycodekg/vectors.sqlite` | Derived semantic vector index |
 | Markdown | Human-readable context packs with line numbers |
 | JSON | Structured payload for agent/LLM ingestion |

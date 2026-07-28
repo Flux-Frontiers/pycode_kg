@@ -43,9 +43,22 @@ Note: older entries preserve the API names used at that release (for example com
   across `.claude/skills/pycodekg/`, `.claude/commands/`, `docs/MCP.md`, and
   `docs/Architecture-brief.md` (which also dropped a `table` parameter that no
   longer exists). Every corrected command and example was executed to confirm
-  it works. Prose-level mentions in `docs/INSTALLATION.md`,
-  `Architecture-plain.md`, `SNAPSHOTS.md`, `assets/`, `article/`, and the
-  pdoc-generated `docs/pycode_kg.html` are unchanged and remain to be swept.
+  it works.
+
+  The prose sweep then covered `docs/INSTALLATION.md`,
+  `docs/Architecture-plain.md`, `docs/Architecture-brief.md`,
+  `docs/SNAPSHOTS.md`, `docs/MCP.md`, and `assets/architecture_description.md`
+  — artifact paths, layer descriptions, and two dependency lists that still
+  named `lancedb 0.29.0+` instead of `kgmodule-utils[…,sqlite-vec,…] 0.8.0+`.
+  Three factual corrections came out of it rather than simple renames:
+  `build_pycodekg_lancedb` is gone (while `build_pycodekg_sqlite` remains a
+  stub); the `SemanticIndex` example omitted the `SqliteVecBackend` the real
+  build path constructs; and `SemanticIndex.__init__`'s first parameter is
+  *still* named `lancedb_dir`, which is now documented as the leftover it is
+  rather than silently renamed.
+
+  `article/` is deliberately untouched: its `.tex` and compiled PDF predate
+  the 0.20.0 migration and describe the system accurately as of that writing.
 
 - **MCP `list_nodes()` and `find_node()` failed when called first in a fresh
   server session**, returning `"No database store available."`. Both read the
