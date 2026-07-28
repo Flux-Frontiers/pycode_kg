@@ -5,9 +5,9 @@
 The following PyCodeKG workflow tasks are available via the VS Code command palette (**Cmd+Shift+P** → search task name):
 
 ### Knowledge Graph Tasks
-- **PyCodeKG: Rebuild** — Full rebuild with `--wipe` (both SQLite + LanceDB). Use after significant code changes or renames.
+- **PyCodeKG: Rebuild (SQLite + vector index with --wipe)** — Full rebuild with `--wipe` (both the SQLite graph and the sqlite-vec index). Use after significant code changes or renames.
 - **PyCodeKG: Build SQLite Graph** — Build/update the SQLite knowledge graph (incremental).
-- **PyCodeKG: Build LanceDB Index** — Build/update the semantic vector index (incremental).
+- **PyCodeKG: Build Vector Index** — Build/update the semantic vector index (incremental).
 
 ### Query & Analysis Tasks
 - **PyCodeKG: Query (Interactive)** — Run an interactive semantic query over the graph.
@@ -21,7 +21,7 @@ The following PyCodeKG workflow tasks are available via the VS Code command pale
 ## Invoking Tasks in Copilot Chat
 
 In Copilot chat, you can reference or ask to run these tasks:
-- "Run the **PyCodeKG: Rebuild** task"
+- "Run the **PyCodeKG: Rebuild (SQLite + vector index with --wipe)** task"
 - "Execute **PyCodeKG: Query (Interactive)** and search for database layer"
 - "Generate architecture with the **PyCodeKG: Generate Architecture** task"
 
@@ -46,7 +46,7 @@ The repo is also configured with PyCodeKG MCP server in `.vscode/mcp.json`. You 
 | Task | Use when |
 |---|---|
 | **Rebuild** | You've renamed/moved/deleted code; after major refactors |
-| **Build SQLite/LanceDB** | Minor additions; incremental updates (after small commits) |
+| **Build SQLite / Vector Index** | Minor additions; incremental updates (after small commits) |
 | **Query** | You need to explore the codebase via natural language |
 | **Architecture** | You need a high-level overview of module relationships |
 | **Thorough Analysis** | You need detailed metrics (complexity, coupling, docstring coverage) |
