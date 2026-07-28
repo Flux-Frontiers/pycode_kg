@@ -27,16 +27,6 @@ This project uses [Claude Copilot](https://github.com/Everyone-Needs-A-Copilot/c
 
 ---
 
-## Session Management
-
-**Start:** `/protocol` - Activates Agent-First Protocol
-
-**Resume:** `/continue` - Loads from Memory Copilot
-
-**End:** Call `initiative_update` with completed tasks, decisions, lessons, and resume instructions
-
----
-
 ## Project-Specific Rules
 
 ### No Time Estimates
