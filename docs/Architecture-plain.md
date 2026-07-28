@@ -5,17 +5,17 @@ Author: Eric G. Suchanek, PhD
 
 OVERVIEW
 
-PyCodeKG constructs a deterministic, explainable knowledge graph from a Python codebase using static analysis. The graph captures structural relationships (definitions, calls, imports, inheritance) and data-flow relationships (reads, writes, attribute access) directly from the Python AST, stores them in SQLite, and augments retrieval with vector embeddings via LanceDB. Structure is treated as ground truth; semantic search is an acceleration layer. Every node and edge maps to a concrete file and line number.
+PyCodeKG constructs a deterministic, explainable knowledge graph from a Python codebase using static analysis. The graph captures structural relationships (definitions, calls, imports, inheritance) and data-flow relationships (reads, writes, attribute access) directly from the Python AST, stores them in SQLite, and augments retrieval with vector embeddings via sqlite-vec. Structure is treated as ground truth; semantic search is an acceleration layer. Every node and edge maps to a concrete file and line number.
 
 The system ships with: a Python library with a layered class API, a Click-based CLI (pycodekg) with subcommands, a Streamlit web application (pycodekg viz) for 2D interactive exploration, a 3D PyVista visualizer (pycodekg viz3d) for immersive graph navigation, a thorough analysis tool (pycodekg analyze) for architectural insights, an MCP server (pycodekg-mcp) for AI agent integration, and a /setup-mcp Claude skill for automated MCP configuration.
 
 DESIGN PRINCIPLES
 
-Structure is authoritative. Semantics accelerate, never decide. Everything is traceable. Determinism over heuristics. Composable artifacts (SQLite + LanceDB + Markdown/JSON). Honest extraction - only what is explicitly visible in the AST; no inference, no guessing.
+Structure is authoritative. Semantics accelerate, never decide. Everything is traceable. Determinism over heuristics. Composable artifacts (SQLite + sqlite-vec + Markdown/JSON). Honest extraction - only what is explicitly visible in the AST; no inference, no guessing.
 
 LAYERED ARCHITECTURE
 
-The system is organized into focused layers, each independently testable and composable. PyCodeKG (orchestrator) owns CodeGraph (pure AST extraction), GraphStore (SQLite canonical store), and SemanticIndex (LanceDB vector index). The primitives layer in pycodekg.py is the locked v0 contract. The visitor.py module provides Pass 3 data-flow extraction via PyCodeKGVisitor. The config.py module provides directory exclusion configuration via load_exclude_dirs().
+The system is organized into focused layers, each independently testable and composable. PyCodeKG (orchestrator) owns CodeGraph (pure AST extraction), GraphStore (SQLite canonical store), and SemanticIndex (sqlite-vec vector index). The primitives layer in pycodekg.py is the locked v0 contract. The visitor.py module provides Pass 3 data-flow extraction via PyCodeKGVisitor. The config.py module provides directory exclusion configuration via load_exclude_dirs().
 
 LAYER 1 - PRIMITIVES (pycodekg.py)
 
@@ -47,11 +47,11 @@ SQLite-backed authoritative store. No embeddings, no AST. Methods: write(nodes, 
 
 LAYER 4 - SemanticIndex (index.py)
 
-LanceDB-backed vector index. Derived from SQLite; disposable and rebuildable. Embedder is an abstract interface with embed_texts(texts) and embed_query(query) methods. SentenceTransformerEmbedder is the default implementation using sentence-transformers (model: BAAI/bge-small-en-v1.5). SeedHit is a dataclass with fields: id, kind, name, qualname, module_path, distance, rank. Index text format (stable): KIND, NAME, QUALNAME, MODULE, LINE, DOCSTRING.
+sqlite-vec-backed vector index. Derived from SQLite; disposable and rebuildable. Embedder is an abstract interface with embed_texts(texts) and embed_query(query) methods. SentenceTransformerEmbedder is the default implementation using sentence-transformers (model: BAAI/bge-small-en-v1.5). SeedHit is a dataclass with fields: id, kind, name, qualname, module_path, distance, rank. Index text format (stable): KIND, NAME, QUALNAME, MODULE, LINE, DOCSTRING.
 
 ORCHESTRATOR - PyCodeKG (kg.py)
 
-Top-level entry point owning all four layers with lazy initialization. The embedder and LanceDB connection are only created on first use. Methods: build(wipe=True) for the full pipeline, build_graph(wipe=True) for AST to SQLite, build_index(wipe=True) for SQLite to LanceDB, query(q, k=8, hop=1, min_score=0.0, max_per_module=None) returning QueryResult, pack(q, k=8, hop=1, min_score=0.0, max_per_module=None) returning SnippetPack with source snippets, callers(node_id, rel=CALLS) for two-phase fan-in lookup with import-aware stub disambiguation, stats() for store stats, node(id) to fetch a node dict. Supports context manager.
+Top-level entry point owning all four layers with lazy initialization. The embedder and vector store connection are only created on first use. Methods: build(wipe=True) for the full pipeline, build_graph(wipe=True) for AST to SQLite, build_index(wipe=True) for SQLite to sqlite-vec, query(q, k=8, hop=1, min_score=0.0, max_per_module=None) returning QueryResult, pack(q, k=8, hop=1, min_score=0.0, max_per_module=None) returning SnippetPack with source snippets, callers(node_id, rel=CALLS) for two-phase fan-in lookup with import-aware stub disambiguation, stats() for store stats, node(id) to fetch a node dict. Supports context manager.
 
 RESULT TYPES
 
@@ -65,7 +65,7 @@ BUILD PIPELINE
 
 Phase 1 - Static Analysis (AST to SQLite): Walk .py files skipping .venv, __pycache__, .git, and any configured exclude directories. Pass 1 extracts modules, classes, functions, methods, imports, and inheritance. Pass 2 extracts the call graph; unresolved calls become sym: stub nodes. Pass 3 emits data-flow edges via PyCodeKGVisitor (READS, WRITES, ATTR_ACCESS). Generate stable node IDs (mod:, cls:, fn:, m:, sym:) with evidence (lineno, expr, file). Persist to SQLite via upsert (idempotent). GraphStore.resolve_symbols() prefers exact qualified-name matches (including `src/` alias variants), then falls back to names and writes RESOLVES_TO edges with confidence metadata, enabling fan-in queries across module boundaries. Operation is idempotent.
 
-Phase 2 - Semantic Indexing (SQLite to LanceDB): Read module, class, function, and method nodes from SQLite. Build canonical index text (name + qualname + module + docstring). Embed in batches via SentenceTransformerEmbedder. Upsert to LanceDB (delete-then-add per batch). The vector index is derived and disposable - rebuild from SQLite at any time.
+Phase 2 - Semantic Indexing (SQLite to sqlite-vec): Read module, class, function, and method nodes from SQLite. Build canonical index text (name + qualname + module + docstring). Embed in batches via SentenceTransformerEmbedder. Upsert to the vector store (delete-then-add per batch). The vector index is derived and disposable - rebuild from SQLite at any time.
 
 HYBRID QUERY MODEL
 
@@ -89,7 +89,7 @@ Thorough Analysis Tool (pycodekg analyze): PyCodeKGAnalyzer runs 7 analysis phas
 
 MCP Server (pycodekg-mcp): Thin wrapper around PyCodeKG. Stateful (one PyCodeKG instance per server process). Read-only. Start: pycodekg-mcp --repo /path/to/repo [--db ...] [--vectors ...] [--transport stdio|sse]. Tools: query_codebase(q, k, hop, rels, include_symbols, max_nodes, min_score, max_per_module) returning JSON, pack_snippets(q, k, hop, rels, context, max_lines, max_nodes, min_score, max_per_module) returning Markdown, callers(node_id, rel) returning JSON (with import-aware stub filtering), get_node(node_id) returning JSON, graph_stats() returning JSON, plus snapshot_list/snapshot_show/snapshot_diff for temporal metrics keyed by tree hash. MCP server is included in the standard install: pip install 'pycode-kg @ git+https://github.com/Flux-Frontiers/pycode_kg.git'.
 
-/setup-mcp Claude Skill: Automates full MCP setup. Steps: resolve repo path, verify PyCodeKG installation, build SQLite graph, build LanceDB index, smoke-test pipeline, configure .mcp.json, .vscode/mcp.json, and claude_desktop_config.json.
+/setup-mcp Claude Skill: Automates full MCP setup. Steps: resolve repo path, verify PyCodeKG installation, build SQLite graph, build vector index, smoke-test pipeline, configure .mcp.json, .vscode/mcp.json, and claude_desktop_config.json.
 
 DIRECTORY EXCLUSION
 
@@ -101,8 +101,8 @@ Primary interface: pycodekg (the main Click CLI). Each subcommand is also availa
 
 pycodekg build-sqlite (alias: pycodekg-build-sqlite): AST extraction to SQLite.
 pycodekg build-index (alias: pycodekg-build-index): SQLite to sqlite-vec embeddings.
-pycodekg build (alias: pycodekg-build): Full pipeline (SQLite + LanceDB), always wipes existing data.
-pycodekg update (alias: pycodekg-update): Incremental upsert pipeline (SQLite + LanceDB), no wipe.
+pycodekg build (alias: pycodekg-build): Full pipeline (SQLite + sqlite-vec), always wipes existing data.
+pycodekg update (alias: pycodekg-update): Incremental upsert pipeline (SQLite + sqlite-vec), no wipe.
 pycodekg query (alias: pycodekg-query): Hybrid query, text output.
 pycodekg pack (alias: pycodekg-pack): Hybrid query + snippet pack.
 pycodekg viz (alias: pycodekg-viz): Launch Streamlit 2D visualizer.
@@ -124,11 +124,11 @@ assets/: pycode_kg_arch_square-web.jpg, pycode_kg_arch_square.png, pycode_kg_arc
 
 DATA FLOW
 
-.py files filtered by iter_python_files(exclude=...) to extract_repo() running three AST passes yielding (nodes, edges) with CONTAINS/IMPORTS/INHERITS from Pass 1, CALLS and sym: stubs from Pass 2, and READS/WRITES/ATTR_ACCESS from Pass 3 to GraphStore.write() persisting to .pycodekg/graph.sqlite (authoritative) to GraphStore.resolve_symbols() writing RESOLVES_TO edges (sym: to fn:/cls:/m:) to SemanticIndex.build() writing to .pycodekg/lancedb (derived, disposable) to PyCodeKG.query()/.pack() combining semantic seeds from LanceDB with structural BFS from SQLite to rank and dedupe to QueryResult/SnippetPack to Markdown/JSON output to Streamlit (pycodekg viz), 3D visualizer (pycodekg viz3d), thorough analyzer (pycodekg analyze), or MCP server (pycodekg-mcp).
+.py files filtered by iter_python_files(exclude=...) to extract_repo() running three AST passes yielding (nodes, edges) with CONTAINS/IMPORTS/INHERITS from Pass 1, CALLS and sym: stubs from Pass 2, and READS/WRITES/ATTR_ACCESS from Pass 3 to GraphStore.write() persisting to .pycodekg/graph.sqlite (authoritative) to GraphStore.resolve_symbols() writing RESOLVES_TO edges (sym: to fn:/cls:/m:) to SemanticIndex.build() writing to .pycodekg/vectors.sqlite (derived, disposable) to PyCodeKG.query()/.pack() combining semantic seeds from the vector store with structural BFS from SQLite to rank and dedupe to QueryResult/SnippetPack to Markdown/JSON output to Streamlit (pycodekg viz), 3D visualizer (pycodekg viz3d), thorough analyzer (pycodekg analyze), or MCP server (pycodekg-mcp).
 
 DEPENDENCIES
 
-Core (required): lancedb 0.29.0+, sentence-transformers 2.7.0+, numpy 1.24.0+, streamlit 1.35.0+, pyvis 0.3.2+, pandas 2.0.0+, rich 14.0.0+, click 8.1.0+, Python stdlib ast and sqlite3.
+Core (required): kgmodule-utils[semantic,sqlite-vec,viz] 0.8.0+ (which supplies the sqlite-vec vector backend and the shared visualisers), sentence-transformers 5.4.1+, torch 2.5.1+, transformers 4.40.0+, safetensors 0.5.0+, networkx 3.0+, numpy 1.24.0+, pandas 2.0.0+, rich 14.3.3+, click 8.1.0+, mcp 1.0.0+, Python stdlib ast and sqlite3.
 
 MCP server is included in the standard install (no extra needed). The mcp package (1.0.0+) is a core dependency.
 

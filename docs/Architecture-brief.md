@@ -14,7 +14,7 @@
 2. **Semantics accelerate, never decide** — Vector embeddings seed/rank, never invent
 3. **Everything traceable** — Nodes/edges map to concrete file:lineno
 4. **Deterministic** — Identical input → identical output
-5. **Composable** — SQLite (structure), LanceDB (vectors), Markdown/JSON (export)
+5. **Composable** — SQLite (structure), sqlite-vec (vectors), Markdown/JSON (export)
 6. **Honest** — Only what is visible in the AST; no inference, no LLMs
 
 ---
@@ -25,7 +25,7 @@
 PyCodeKG (orchestrator — kg.py)
   ├─ CodeGraph     (pure AST extraction, no I/O — graph.py)
   ├─ GraphStore    (SQLite: nodes/edges, BFS traversal — store.py)
-  ├─ SemanticIndex (LanceDB: embeddings, disposable — index.py)
+  ├─ SemanticIndex (sqlite-vec: embeddings, disposable — index.py)
   └─ Primitives    (locked v0 contract — pycodekg.py)
        ├─ PyCodeKGVisitor  (Pass 3 data-flow — visitor.py)
        └─ load_exclude_dirs()  (pyproject.toml config — config.py)
@@ -102,13 +102,20 @@ SQLite-backed authoritative store. No embeddings, no AST.
 
 ## Layer 4: SemanticIndex (`index.py`)
 
-LanceDB-backed vector index. Derived, disposable, rebuildable.
+sqlite-vec-backed vector index. Derived, disposable, rebuildable.
 
 ```python
-idx = SemanticIndex("./lancedb", embedder=SentenceTransformerEmbedder())
+embedder = SentenceTransformerEmbedder()
+backend  = SqliteVecBackend(vectors_path, dim=embedder.dim, meta_columns=META_COLUMNS)
+idx = SemanticIndex(vectors_path.parent, embedder=embedder, backend=backend)
 idx.build(store, wipe=True)
 hits = idx.search("database setup", k=8)  # → List[SeedHit]
 ```
+
+> The first positional parameter is still named `lancedb_dir` in
+> `SemanticIndex.__init__` — a leftover from the pre-0.20.0 backend. It takes
+> the *directory* holding the store (`vectors_path.parent`); the vector file
+> itself is passed to `SqliteVecBackend`.
 
 **Embedder**: abstract interface (`embed_texts`, `embed_query`)
 **SentenceTransformerEmbedder**: default (model: `BAAI/bge-small-en-v1.5`)
@@ -123,7 +130,7 @@ hits = idx.search("database setup", k=8)  # → List[SeedHit]
 Owns all four layers with lazy initialization. Supports context manager.
 
 ```python
-kg = PyCodeKG(repo_root, db_path, lancedb_dir, model, table)
+kg = PyCodeKG(repo_root, db_path, vectors_path, model=model)
 kg.build(wipe=True)           # full pipeline
 kg.build_graph(wipe=True)     # AST → SQLite only
 kg.build_index(wipe=True)     # SQLite → sqlite-vec only
@@ -157,7 +164,7 @@ kg.node(node_id)              # fetch node dict
 1. Read module/class/function/method nodes
 2. Build canonical index text (name + qualname + module + docstring)
 3. Embed in batches via SentenceTransformerEmbedder
-4. Upsert to LanceDB (delete-then-add per batch)
+4. Upsert to the vector store (delete-then-add per batch)
 
 ---
 
@@ -287,7 +294,7 @@ filtered files
   ↓ resolve_symbols()
 RESOLVES_TO edges         sym: → fn:/cls:/m: defs
   ↓ SemanticIndex.build()
-.pycodekg/lancedb           derived, disposable
+.pycodekg/vectors.sqlite           derived, disposable
   ↓ PyCodeKG.query() / .pack()
 semantic seeds + structural BFS
   ↓ rank + dedupe
@@ -304,7 +311,7 @@ QueryResult / SnippetPack
 ## Dependencies
 
 ### Core
-- `lancedb ≥ 0.29.0` — vector database
+- `kgmodule-utils[semantic,sqlite-vec,viz] ≥ 0.8.0` — sqlite-vec vector backend
 - `sentence-transformers ≥ 2.7.0` — embedder
 - `numpy ≥ 1.24.0` — vector ops
 - `streamlit ≥ 1.35.0` — web app

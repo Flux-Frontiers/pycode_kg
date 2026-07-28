@@ -13,7 +13,60 @@ Note: older entries preserve the API names used at that release (for example com
 
 ### Changed
 
+- **`.vscode/mcp.json` no longer hardcodes an absolute developer path.** It now
+  sets `"cwd": "${workspaceFolder}"` with a relative command and `--repo .`,
+  letting `--db` and `--vectors` fall back to their `.pycodekg/` defaults —
+  which resolve to exactly the paths that were previously spelled out. This
+  removes the two values most likely to drift, and makes the tracked config
+  usable by any contributor rather than one machine. `cwd` is used rather than
+  `${workspaceFolder}` in `command`, because VS Code documents variable
+  substitution for `cwd` and sandbox paths but not for the `command` field.
+
 ### Fixed
+
+- **Finished the v0.20.0 LanceDB → sqlite-vec migration across scripts, IDE
+  config, docs, and agent skills.** The library moved to sqlite-vec in 0.20.0,
+  but a number of call sites and instructions still referenced the retired
+  backend, and nothing type-checks Markdown or JSON so they drifted silently.
+  Three were outright broken rather than merely stale:
+  - `scripts/exercise_runner.py` passed the removed `lancedb_dir=` keyword to
+    `PyCodeKG()`, raising `TypeError` on invocation.
+  - `.vscode/mcp.json` passed `--lancedb`, which `pycodekg-mcp` no longer
+    accepts — the server exited 2 with `unrecognized arguments`.
+  - `.vscode/tasks.json` and `.claude/commands/release.md` invoked
+    `pycodekg build-lancedb`, a command that no longer exists.
+
+  The rest were instructions that would teach agents and users the wrong API:
+  `pycodekg build-lancedb` → `build-index`, `--lancedb` → `--vectors`,
+  `lancedb_dir=` → `vectors_path=`, `LANCEDB_DIR` → `VECTORS_PATH`, and stale
+  `all-MiniLM-L6-v2` model defaults corrected to `BAAI/bge-small-en-v1.5`
+  across `.claude/skills/pycodekg/`, `.claude/commands/`, `docs/MCP.md`, and
+  `docs/Architecture-brief.md` (which also dropped a `table` parameter that no
+  longer exists). Every corrected command and example was executed to confirm
+  it works.
+
+  The prose sweep then covered `docs/INSTALLATION.md`,
+  `docs/Architecture-plain.md`, `docs/Architecture-brief.md`,
+  `docs/SNAPSHOTS.md`, `docs/MCP.md`, and `assets/architecture_description.md`
+  — artifact paths, layer descriptions, and two dependency lists that still
+  named `lancedb 0.29.0+` instead of `kgmodule-utils[…,sqlite-vec,…] 0.8.0+`.
+  Three factual corrections came out of it rather than simple renames:
+  `build_pycodekg_lancedb` is gone (while `build_pycodekg_sqlite` remains a
+  stub); the `SemanticIndex` example omitted the `SqliteVecBackend` the real
+  build path constructs; and `SemanticIndex.__init__`'s first parameter is
+  *still* named `lancedb_dir`, which is now documented as the leftover it is
+  rather than silently renamed.
+
+  Regenerating the pdoc API docs then exposed three stale strings in
+  `pycodekg_thorough_analysis.py` — including a public docstring claiming a
+  method "Requires the LanceDB vector index" — which were the reason the
+  generated HTML kept re-emitting LanceDB text. Comment/docstring only, no
+  behaviour change. `docs/pycode_kg.html` is regenerated; its remaining
+  LanceDB mentions all come from upstream `kg_utils` symbols
+  (`lancedb_dir`, `LanceDBBackend`) that still legitimately exist.
+
+  `article/` is deliberately untouched: its `.tex` and compiled PDF predate
+  the 0.20.0 migration and describe the system accurately as of that writing.
 
 - **MCP `list_nodes()` and `find_node()` failed when called first in a fresh
   server session**, returning `"No database store available."`. Both read the

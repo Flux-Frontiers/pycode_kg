@@ -78,7 +78,7 @@ Replace `<current_version>` with `<new_version>` (e.g. `0.2.3` → `0.2.4`).
 1. Rebuild the PyCodeKG index against the current source:
    ```bash
    poetry run pycodekg-build-sqlite --repo . --wipe
-   poetry run pycodekg-build-lancedb --repo . --wipe
+   poetry run pycodekg-build-index --repo . --wipe
    ```
 2. Run the thorough analysis:
    ```bash

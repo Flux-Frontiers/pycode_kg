@@ -9,15 +9,6 @@ Always use the PyCodeKG MCP tools before reading files. You have direct, source-
 
 ---
 
-## Project Overview
-
-**Name:** pycode_kg
-**Description:** A tool that indexes Python codebases into a knowledge graph and exposes it via MCP for AI agents
-**Stack:** Python/Poetry
-**Status:** Installed and active ✅
-
----
-
 ## Partnership & Values
 
 **CRITICAL PRINCIPLE:** Consistency is essential. Every decision, pattern, and structure must maintain alignment across the codebase. Inconsistency creates confusion, technical debt, and friction.
@@ -28,137 +19,11 @@ Always use the PyCodeKG MCP tools before reading files. You have direct, source-
 
 ---
 
-## PyCodeKG Toolkit
-
-You have direct access to PyCodeKG's full power through **two interfaces**:
-
-### MCP Tools (Query the Live Index)
-Always use these first — they're faster and source-grounded:
-
-| Tool | Purpose | Example |
-|------|---------|---------|
-| `graph_stats` | View node/edge counts by kind/relation | Understand graph structure |
-| `query_codebase(q, k, hop, rels, include_symbols, max_nodes, min_score, max_per_module)` | Hybrid semantic + structural query with precision/diversity controls | "database connection setup" |
-| `pack_snippets(q, k, hop, ...)` | Extract source-grounded code snippets | Get relevant code for LLM analysis |
-| `get_node(node_id)` | Fetch a single node by stable ID | Precise node lookup |
-| `callers(node_id, rel)` | Find all callers of a function, including import-aware disambiguation of same-name symbols | Understand call graph |
-| `centrality(top, kinds, group_by)` | SIR PageRank — rank nodes or modules by structural importance | Identify hotspots before refactoring |
-
-### CLI Commands (Build & Explore Locally)
-Build or interact with the knowledge graph from the command line.
-
-Each command is available as a `pycodekg <subcommand>` **or** a dedicated `pycodekg-<name>` script — both forms are equivalent:
-
-| Subcommand / Script alias | Purpose |
-|---------------------------|---------|
-| `init` / `pycodekg-init` | One-command setup: download model, build graph, install hooks, snapshot |
-| `build-sqlite` / `pycodekg-build-sqlite` | Extract AST-based knowledge graph → SQLite |
-| `build-index` / `pycodekg-build-index` | Build semantic vector index for NL queries |
-| `build` / `pycodekg-build` | SQLite + sqlite-vec index in one step |
-| `query` / `pycodekg-query` | Run hybrid query over the graph |
-| `pack` / `pycodekg-pack` | Generate source-grounded snippet packs |
-| `viz` / `pycodekg-viz` | Launch Streamlit interactive visualizer |
-| `viz-export` | Write the graph to a self-contained HTML file (no server) |
-| `viz3d` / `pycodekg-viz3d` | Launch 3D PyVista/PyQt5 visualizer |
-| `analyze` / `pycodekg-analyze` | Run thorough codebase analysis |
-| `mcp` / `pycodekg-mcp` | Start MCP server for Claude/Cursor/Continue |
-| `install-hooks` / `pycodekg-install-hooks` | Install pre-commit git hook for automatic snapshots |
-
-### Quick Examples
-
-```bash
-# First-time setup (downloads model, builds graph, installs hooks, snapshots)
-pycodekg init --repo .
-
-# Build the knowledge graph (one-time setup)
-pycodekg build-sqlite --repo /path/to/repo
-pycodekg build-index
-
-# Or with individual script aliases (useful in Poetry projects / Makefiles)
-pycodekg-build-sqlite --repo /path/to/repo
-pycodekg-build-index
-
-# Build with only specific directories (CLI flags)
-pycodekg build --repo . --include-dir src --include-dir lib
-
-# Query the graph
-pycodekg query "authentication flow"
-
-# Generate snippet pack for LLM analysis
-pycodekg pack "database layer"
-
-# Run thorough architectural analysis
-pycodekg analyze .
-
-# Launch Streamlit visualizer
-pycodekg viz --port 8501
-
-# Export the same graph to one shareable file — no server, no Python needed to view
-pycodekg viz-export -o graph.html
-pycodekg viz-export --metric none --max-nodes 300 --selection path -o all.html
-
-# Launch 3D PyVista visualizer
-pycodekg viz3d --layout allium
-
-# Start MCP server (for IDE integrations)
-pycodekg mcp --repo .
-```
-
-**Directory Includes:** Configure via `[tool.pycodekg].include` in `pyproject.toml` or use `--include-dir` CLI flags (can be repeated). When unset, all directories are indexed. See README for details.
-
-For detailed options: `pycodekg <command> --help`
-
----
-
 ## Claude Copilot
 
 This project uses [Claude Copilot](https://github.com/Everyone-Needs-A-Copilot/claude-copilot).
 
 **Full documentation:** `~/.claude/copilot/README.md`
-
-### Commands
-
-| Command | Purpose |
-|---------|---------|
-| `/protocol` | Start fresh work with Agent-First Protocol |
-| `/continue` | Resume previous work via Memory Copilot |
-| `/setup-project` | Initialize Claude Copilot in a new project |
-| `/knowledge-copilot` | Build or link shared knowledge repository |
-
-### Capabilities
-
-| Capability | Tools | Purpose |
-|------------|-------|---------|
-| **Memory** | `initiative_*`, `memory_*` | Persist decisions, lessons, progress across sessions |
-| **Agents** | 11 specialists via `/protocol` | Expert guidance routed by task type |
-| **Knowledge** | `knowledge_search`, `knowledge_get` | Search company/product documentation |
-| **Skills** | `skill_search`, `skill_get` | Load expertise on demand |
-| **PyCodeKG** | `graph_stats`, `query_codebase`, `pack_snippets`, `get_node` | Source-grounded codebase exploration via MCP |
-
-### Agents
-
-| Agent | Domain |
-|-------|--------|
-| `ta` | Tech Architect - system design, task breakdown |
-| `me` | Engineer - code implementation |
-| `qa` | QA - testing, edge cases |
-| `sec` | Security - vulnerabilities, OWASP |
-| `doc` | Documentation - technical writing |
-| `do` | DevOps - CI/CD, infrastructure |
-| `sd` | Service Designer - customer journeys |
-| `uxd` | UX Designer - interaction design |
-| `uids` | UI Designer - visual design |
-| `uid` | UI Developer - component implementation |
-| `cw` | Copywriter - microcopy, voice |
-| `kc` | Knowledge Copilot - shared knowledge setup |
-
-### Configuration
-
-| Component | Status |
-|-----------|--------|
-| Memory | Workspace: `pycode_kg` |
-| Knowledge | Not configured |
-| Skills | Local: `.claude/skills/` |
 
 ---
 

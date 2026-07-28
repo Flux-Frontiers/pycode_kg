@@ -51,7 +51,7 @@ Passes extracted nodes/edges to Layer 2.
 
 ### Layer 2 — GraphStore (`store.py` → SQLite)
 
-**Authoritative, canonical store.** No embeddings, no LanceDB.
+**Authoritative, canonical store.** No embeddings, no vector data.
 
 | Symbol | Role |
 |--------|------|
@@ -67,21 +67,21 @@ Passes extracted nodes/edges to Layer 2.
 
 ---
 
-### Layer 3 — SemanticIndex (`index.py` → LanceDB)
+### Layer 3 — SemanticIndex (`index.py` → sqlite-vec)
 
 **Derived, disposable vector index.** Rebuilt from SQLite at any time.
 
 | Symbol | Role |
 |--------|------|
-| `SemanticIndex` | LanceDB-backed semantic index |
+| `SemanticIndex` | sqlite-vec-backed semantic index |
 | `SentenceTransformerEmbedder` | Embedding backend (`BAAI/bge-small-en-v1.5`) |
-| `.build(store, wipe)` | Read nodes from GraphStore → embed → upsert into LanceDB |
+| `.build(store, wipe)` | Read nodes from GraphStore → embed → upsert into the vector store |
 | `.search(q, k)` | ANN vector search, returns top-K hits with distance scores |
 | `_build_index_text(node)` | Canonical text format for embedding (KIND, NAME, QUALNAME, MODULE, DOCSTRING, KEYWORDS) |
 
 Reads nodes from Layer 2 (GraphStore).
 
-**Artifact:** `.pycodekg/lancedb/`
+**Artifact:** `.pycodekg/vectors.sqlite`
 
 ---
 
@@ -94,7 +94,7 @@ Wires all layers together. `KGModule` is abstract; `PyCodeKG` is the concrete su
 | `KGModule` (abstract) | Base class: build/query/pack infrastructure. Domain authors implement `make_extractor()` + `kind()` |
 | `PyCodeKG` | Concrete subclass for Python repos. Wires `CodeGraph` → `GraphStore` → `SemanticIndex` |
 | `.build(wipe)` | Full pipeline: AST extraction → GraphStore → SemanticIndex |
-| `.query(q, k, hop, rels, rerank_mode)` | Hybrid query: semantic seeding (LanceDB) + BFS expansion (SQLite) + reranking |
+| `.query(q, k, hop, rels, rerank_mode)` | Hybrid query: semantic seeding (sqlite-vec) + BFS expansion (SQLite) + reranking |
 | `.pack(q, ...)` | Source-grounded snippet extraction with context lines |
 
 **Rerank modes:**
@@ -150,7 +150,7 @@ Built with Click. Entry point: `pycodekg` / `src/pycode_kg/cli/main.py`.
 | Command | Module | Purpose |
 |---------|--------|---------|
 | `build` / `update` | `cmd_build_full.py` | Full wipe+rebuild or incremental upsert |
-| `build-sqlite` / `build-lancedb` | `cmd_build.py` | Individual build steps |
+| `build-sqlite` / `build-index` | `cmd_build.py` | Individual build steps |
 | `init` | `cmd_init.py` | One-command setup: download model, build, install hooks, snapshot |
 | `query` | `cmd_query.py` | Hybrid query from terminal |
 | `analyze` | `cmd_analyze.py` | Thorough codebase analysis |
@@ -180,7 +180,7 @@ Built with Click. Entry point: `pycodekg` / `src/pycode_kg/cli/main.py`.
 | Artifact | Location | Description |
 |----------|----------|-------------|
 | SQLite graph | `.pycodekg/graph.sqlite` | Authoritative nodes + edges; canonical source of truth |
-| LanceDB index | `.pycodekg/lancedb/` | Derived vector index; disposable, rebuilt from SQLite |
+| Vector index | `.pycodekg/vectors.sqlite` | Derived vector index; disposable, rebuilt from SQLite |
 | Snapshots | `.pycodekg/snapshots/` | JSON metric snapshots keyed by git tree hash |
 
 ---
@@ -193,7 +193,7 @@ src/pycode_kg/
 ├── visitor.py           # Layer 0: AST visitor (ATTR_ACCESS / data-flow pass)
 ├── graph.py             # Layer 1: CodeGraph (pure AST extraction)
 ├── store.py             # Layer 2: GraphStore (SQLite)
-├── index.py             # Layer 3: SemanticIndex (LanceDB)
+├── index.py             # Layer 3: SemanticIndex (sqlite-vec)
 ├── kg.py                # Layer 4: PyCodeKG (top-level orchestrator subclass)
 ├── module/
 │   ├── base.py          # Layer 4: KGModule (abstract orchestrator)

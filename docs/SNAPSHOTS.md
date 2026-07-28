@@ -93,7 +93,7 @@ critical_issues          1             0             -1
 ```
 .pycodekg/
 ├── graph.sqlite          # Knowledge graph database
-├── lancedb/              # Semantic embeddings
+├── vectors.sqlite        # Semantic embeddings
 └── snapshots/
     ├── manifest.json     # Index of all snapshots
     ├── 3487ed5.json      # Snapshot keyed by tree hash
