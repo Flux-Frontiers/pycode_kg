@@ -70,7 +70,7 @@ Or call PyCodeKG directly from Python:
 poetry run python -c "
 from pycode_kg import PyCodeKG
 import json
-kg = PyCodeKG(repo_root='.', db_path='.pycodekg/graph.sqlite', lancedb_dir='.pycodekg/lancedb')
+kg = PyCodeKG(repo_root='.', db_path='.pycodekg/graph.sqlite', vectors_path='.pycodekg/vectors.sqlite')
 print(json.dumps(kg.stats(), indent=2))
 "
 ```

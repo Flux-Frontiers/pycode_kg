@@ -107,7 +107,7 @@ def init_kg(repo: Path) -> None:
     from pycode_kg.snapshots import SnapshotManager  # noqa: PLC0415
 
     db = repo / ".pycodekg" / "graph.sqlite"
-    lancedb_dir = repo / ".pycodekg" / "lancedb"
+    vectors = repo / ".pycodekg" / "vectors.sqlite"
 
     if not db.exists():
         print(
@@ -117,7 +117,7 @@ def init_kg(repo: Path) -> None:
         )
         sys.exit(1)
 
-    kg = PyCodeKG(repo_root=repo, db_path=db, lancedb_dir=lancedb_dir, model=DEFAULT_MODEL)
+    kg = PyCodeKG(repo_root=repo, db_path=db, vectors_path=vectors, model=DEFAULT_MODEL)
     _srv._kg = kg  # type: ignore[attr-defined]
     _srv._snapshot_mgr = SnapshotManager(  # type: ignore[attr-defined]
         repo / ".pycodekg" / "snapshots", db_path=db

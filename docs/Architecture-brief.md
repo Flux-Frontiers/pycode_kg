@@ -123,7 +123,7 @@ hits = idx.search("database setup", k=8)  # → List[SeedHit]
 Owns all four layers with lazy initialization. Supports context manager.
 
 ```python
-kg = PyCodeKG(repo_root, db_path, lancedb_dir, model, table)
+kg = PyCodeKG(repo_root, db_path, vectors_path, model=model)
 kg.build(wipe=True)           # full pipeline
 kg.build_graph(wipe=True)     # AST → SQLite only
 kg.build_index(wipe=True)     # SQLite → sqlite-vec only

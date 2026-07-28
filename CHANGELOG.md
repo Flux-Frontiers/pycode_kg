@@ -13,7 +13,39 @@ Note: older entries preserve the API names used at that release (for example com
 
 ### Changed
 
+- **`.vscode/mcp.json` no longer hardcodes an absolute developer path.** It now
+  sets `"cwd": "${workspaceFolder}"` with a relative command and `--repo .`,
+  letting `--db` and `--vectors` fall back to their `.pycodekg/` defaults —
+  which resolve to exactly the paths that were previously spelled out. This
+  removes the two values most likely to drift, and makes the tracked config
+  usable by any contributor rather than one machine. `cwd` is used rather than
+  `${workspaceFolder}` in `command`, because VS Code documents variable
+  substitution for `cwd` and sandbox paths but not for the `command` field.
+
 ### Fixed
+
+- **Finished the v0.20.0 LanceDB → sqlite-vec migration across scripts, IDE
+  config, docs, and agent skills.** The library moved to sqlite-vec in 0.20.0,
+  but a number of call sites and instructions still referenced the retired
+  backend, and nothing type-checks Markdown or JSON so they drifted silently.
+  Three were outright broken rather than merely stale:
+  - `scripts/exercise_runner.py` passed the removed `lancedb_dir=` keyword to
+    `PyCodeKG()`, raising `TypeError` on invocation.
+  - `.vscode/mcp.json` passed `--lancedb`, which `pycodekg-mcp` no longer
+    accepts — the server exited 2 with `unrecognized arguments`.
+  - `.vscode/tasks.json` and `.claude/commands/release.md` invoked
+    `pycodekg build-lancedb`, a command that no longer exists.
+
+  The rest were instructions that would teach agents and users the wrong API:
+  `pycodekg build-lancedb` → `build-index`, `--lancedb` → `--vectors`,
+  `lancedb_dir=` → `vectors_path=`, `LANCEDB_DIR` → `VECTORS_PATH`, and stale
+  `all-MiniLM-L6-v2` model defaults corrected to `BAAI/bge-small-en-v1.5`
+  across `.claude/skills/pycodekg/`, `.claude/commands/`, `docs/MCP.md`, and
+  `docs/Architecture-brief.md` (which also dropped a `table` parameter that no
+  longer exists). Every corrected command and example was executed to confirm
+  it works. Prose-level mentions in `docs/INSTALLATION.md`,
+  `Architecture-plain.md`, `SNAPSHOTS.md`, `assets/`, `article/`, and the
+  pdoc-generated `docs/pycode_kg.html` are unchanged and remain to be swept.
 
 - **MCP `list_nodes()` and `find_node()` failed when called first in a fresh
   server session**, returning `"No database store available."`. Both read the

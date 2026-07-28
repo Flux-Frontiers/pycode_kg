@@ -2,12 +2,12 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "PyCodeKG: Rebuild (SQLite + LanceDB with --wipe)",
+      "label": "PyCodeKG: Rebuild (SQLite + vector index with --wipe)",
       "type": "shell",
       "command": "/bin/bash",
       "args": [
         "-c",
-        "${workspaceFolder}/.venv/bin/pycodekg build-sqlite --repo . --wipe && ${workspaceFolder}/.venv/bin/pycodekg build-lancedb --wipe"
+        "${workspaceFolder}/.venv/bin/pycodekg build-sqlite --repo . --wipe && ${workspaceFolder}/.venv/bin/pycodekg build-index --wipe"
       ],
       "group": {
         "kind": "build",
@@ -31,10 +31,10 @@
       }
     },
     {
-      "label": "PyCodeKG: Build LanceDB Index",
+      "label": "PyCodeKG: Build Vector Index",
       "type": "shell",
       "command": "${workspaceFolder}/.venv/bin/pycodekg",
-      "args": ["build-lancedb"],
+      "args": ["build-index"],
       "group": "build",
       "presentation": {
         "reveal": "always",
