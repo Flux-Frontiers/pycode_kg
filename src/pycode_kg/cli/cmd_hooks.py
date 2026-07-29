@@ -25,8 +25,8 @@ from pycode_kg.cli.main import cli
 
 _PRE_COMMIT_HOOK = """\
 #!/usr/bin/env bash
-# PyCodeKG + DocKG pre-commit hook — keeps local indices in sync and captures
-# metrics snapshots BEFORE quality checks run.
+# PyCodeKG pre-commit hook — keeps the local index in sync and captures a
+# metrics snapshot BEFORE quality checks run.
 # Installed by: pycodekg install-hooks
 # Skip with: PYCODEKG_SKIP_SNAPSHOT=1 git commit ...
 set -euo pipefail
@@ -34,8 +34,6 @@ set -euo pipefail
 [ "${PYCODEKG_SKIP_SNAPSHOT:-0}" = "1" ] && exit 0
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
-WORKSPACE_ROOT="$(cd "$REPO_ROOT/.." && pwd)"
-DOCKG_REPO="${WORKSPACE_ROOT}/doc_kg"
 
 cd "$REPO_ROOT"
 
@@ -43,11 +41,8 @@ cd "$REPO_ROOT"
 TREE_HASH=$(git write-tree)
 BRANCH=$(git rev-parse --abbrev-ref HEAD)
 
-# Rebuild both local indices to keep them in sync with staged content.
+# Rebuild the local index to keep it in sync with staged content.
 "$REPO_ROOT/.venv/bin/pycodekg" build --repo "$REPO_ROOT" || exit 1
-if [ -d "$DOCKG_REPO" ]; then
-    "$REPO_ROOT/.venv/bin/dockg" build --repo "$DOCKG_REPO" || true
-fi
 
 # Snapshot PyCodeKG (version auto-detected from installed package).
 "$REPO_ROOT/.venv/bin/pycodekg" snapshot save \\
@@ -56,19 +51,8 @@ fi
     --branch "$BRANCH" \\
   || { echo "[pycodekg] snapshot skipped (run 'pycodekg build' to initialize)" >&2; }
 
-# Snapshot DocKG if available (version auto-detected from installed package).
-if [ -d "$DOCKG_REPO/.dockg" ]; then
-    (cd "$DOCKG_REPO" && "$REPO_ROOT/.venv/bin/dockg" snapshot save \\
-        --repo . \\
-        --tree-hash "$TREE_HASH" \\
-        --branch "$BRANCH") || true
-fi
-
-# Stage both snapshot directories so they are included in the commit.
+# Stage the snapshot directory so it is included in the commit.
 git add .pycodekg/snapshots/ 2>/dev/null || true
-if [ -d "$DOCKG_REPO" ]; then
-    (cd "$DOCKG_REPO" && git add .dockg/snapshots/ 2>/dev/null || true)
-fi
 
 # Run pre-commit framework checks (ruff, mypy, detect-secrets, etc.) AFTER
 # snapshots are captured and staged. Delegates to .pre-commit-config.yaml so
@@ -101,13 +85,13 @@ def install_hooks(repo: str, force: bool) -> None:
     """Install the PyCodeKG pre-commit git hook.
 
     After installation, before each commit:
-      1. Rebuilds local PyCodeKG index (full wipe)
-      2. Rebuilds local DocKG index if available (full wipe)
-      3. Captures metrics snapshots for both KGs, keyed by tree hash
-      4. Stages both snapshot directories atomically
+      1. Rebuilds the local PyCodeKG index (full wipe)
+      2. Captures a metrics snapshot, keyed by tree hash
+      3. Stages the snapshot directory
 
-    This keeps PyCodeKG and DocKG indices in sync and ensures snapshots
-    reflect the current state of both knowledge graphs at commit time.
+    This keeps the index in sync and ensures snapshots reflect the state of
+    the knowledge graph at commit time.  The hook only ever touches its own
+    repository — sibling KG repos install their own hooks.
 
     Example:
         pycodekg install-hooks --repo .

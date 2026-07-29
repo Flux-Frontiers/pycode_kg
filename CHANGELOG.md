@@ -17,6 +17,26 @@ Note: older entries preserve the API names used at that release (for example com
 
 ### Fixed
 
+- **The pre-commit hook no longer reaches into the `doc_kg` repository.**
+  `install-hooks` generated a hook that, in addition to its own repo, ran
+  `dockg build` and `dockg snapshot save` against a sibling checkout guessed at
+  `../doc_kg` — and then ran `git add .dockg/snapshots/` **inside that other
+  repository**. Three problems, all removed:
+
+  - It *staged* files in a repo the user was not committing to, so unrelated
+    snapshot churn would silently ride along on the next `git commit` there.
+  - It stamped DocKG's snapshot with PyCodeKG's `--tree-hash` and `--branch`.
+    The tree hash is the snapshot's identity, so DocKG's temporal series
+    accumulated entries keyed by a foreign repo's tree, on a branch name that
+    need not exist in DocKG.
+  - The target was a positional guess (`../doc_kg`), so the hook did different
+    things depending on checkout layout.
+
+  It was also redundant: DocKG installs its own hook, which snapshots DocKG with
+  DocKG's own tree hash when you commit there. The hook now only ever touches
+  its own repository. Re-run `pycodekg install-hooks --repo . --force` to pick
+  up the change in an existing clone.
+
 ## [0.21.0] - 2026-07-28
 
 ### Added
