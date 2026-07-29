@@ -90,7 +90,13 @@ classifiers = [
 requires-python = ">=3.12,<3.14"
 dependencies = [
     "click>=8.1.0,<9",
-    "mcp>=1.0.0",
+    # Upper-bounded: mcp 2.0 removed the bundled `mcp.server.fastmcp` module
+    # (FastMCP was split out into the standalone `fastmcp` package) and rebuilt
+    # mcp.server around new submodules. src/pycode_kg/mcp_server.py imports
+    # FastMCP from mcp, so an unbounded floor lets a clean install pull 2.x and
+    # break `pycodekg-mcp` at import time. Lift this only alongside a port to
+    # the standalone fastmcp package.
+    "mcp>=1.0.0,<2",
     "networkx>=3.0",
     "numpy>=1.24.0",
     "pandas>=2.0.0",
@@ -131,9 +137,8 @@ viz3d = [
 # forces poetry's universal resolution to reconcile the transformers pin of
 # every *published* sibling against this project's own -- a deadlock, since
 # doc-kg and pycode-kg each depend on the other. Install them by hand:
-#   pip install doc-kg pycode-kg          # both on PyPI
-#   pip install 'kg-rag @ git+https://github.com/Flux-Frontiers/KGRAG.git'
-#   pip install 'agent-kg @ git+https://github.com/Flux-Frontiers/agent_kg.git'
+#   pip install doc-kg pycode-kg         # both on PyPI
+#   pip install agent-kg kg-rag          # both on PyPI as of 2026-07-29
 all = [
     "detect-secrets>=1.5.0",
     "markdown>=3.6",

@@ -11,7 +11,29 @@ Note: older entries preserve the API names used at that release (for example com
 
 ### Added
 
+- **`tests/test_mcp_server.py`** — import-level regression tests for the MCP
+  server. The server builds its `FastMCP` instance and registers all 19 tools
+  with module-level decorators, so an incompatible `mcp` release breaks it at
+  *import* time and only for people installing from PyPI — a pinned lock file
+  keeps every developer working. One test asserts `mcp.server.fastmcp` exists
+  directly, so a future break names the incompatibility instead of surfacing as
+  an opaque `ImportError`. Ported from `agent_kg`, where the absence of exactly
+  this coverage let mcp 2.0 reach PyPI.
+
 ### Changed
+
+- **`mcp` is now upper-bounded at `<2`.** mcp 2.0 removed the bundled
+  `mcp.server.fastmcp` module — FastMCP was split out into the standalone
+  `fastmcp` package — and rebuilt `mcp.server` around new submodules.
+  `src/pycode_kg/mcp_server.py` imports `FastMCP` from `mcp`, so the previous
+  unbounded `mcp>=1.0.0` let a clean `pip install pycode-kg` resolve 2.x and
+  crash `pycodekg-mcp` at import. Verified against a real mcp 2.0 install:
+  `mcp.server.fastmcp` raises `ModuleNotFoundError`. Lift this pin only
+  alongside a port to the standalone `fastmcp` package.
+
+  Note the low-level `mcp.server.Server` API *does* still import under 2.0, so
+  sibling packages break for different reasons — or not at all — depending on
+  which API they use.
 
 ### Removed
 
