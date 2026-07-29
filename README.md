@@ -5,7 +5,7 @@
 
 [![Python](https://img.shields.io/badge/python-3.12%20%7C%203.13-blue.svg)](https://www.python.org/)
 [![License: Elastic-2.0](https://img.shields.io/badge/License-Elastic%202.0-blue.svg)](https://www.elastic.co/licensing/elastic-license)
-[![Version](https://img.shields.io/badge/version-0.21.1-blue.svg)](https://github.com/Flux-Frontiers/pycode_kg/releases)
+[![Version](https://img.shields.io/badge/version-0.21.2-blue.svg)](https://github.com/Flux-Frontiers/pycode_kg/releases)
 [![CI](https://github.com/Flux-Frontiers/pycode_kg/actions/workflows/ci.yml/badge.svg)](https://github.com/Flux-Frontiers/pycode_kg/actions/workflows/ci.yml)
 [![Poetry](https://img.shields.io/endpoint?url=https://python-poetry.org/badge/v0.json)](https://python-poetry.org/)
 [![DOI](https://zenodo.org/badge/1202379010.svg)](https://zenodo.org/badge/latestdoi/1202379010)
@@ -202,13 +202,13 @@ If you use PyCodeKG in your research or project, please cite it:
 
 [![DOI](https://zenodo.org/badge/1202379010.svg)](https://zenodo.org/badge/latestdoi/1202379010)
 
-> Suchanek, E. G. (2026). *PyCodeKG: A Knowledge Graph for Python Codebases* (Version 0.21.1) [Software]. Flux-Frontiers. https://doi.org/10.5281/zenodo.19834777
+> Suchanek, E. G. (2026). *PyCodeKG: A Knowledge Graph for Python Codebases* (Version 0.21.2) [Software]. Flux-Frontiers. https://doi.org/10.5281/zenodo.19834777
 
 ```bibtex
 @software{suchanek_pycode_kg,
   author    = {Suchanek, Eric G.},
   title     = {{PyCodeKG}: A Knowledge Graph for Python Codebases},
-  version   = {0.21.1},
+  version   = {0.21.2},
   year      = {2026},
   publisher = {Flux-Frontiers},
   url       = {https://github.com/Flux-Frontiers/pycode_kg},

@@ -17,6 +17,50 @@ Note: older entries preserve the API names used at that release (for example com
 
 ### Fixed
 
+## [0.21.2] - 2026-07-29
+
+### Added
+
+### Changed
+
+### Removed
+
+### Fixed
+
+- **The generated pre-commit hook now runs quality checks *before* the KG build,
+  not after.** `pycodekg install-hooks` previously emitted a hook that rebuilt
+  the index and staged snapshots first, then handed off to `pre-commit run`.
+  That ordering caused real damage, not just wasted time.
+
+  `pre-commit run` stashes unstaged changes and restores them afterwards.
+  Building first put the build's freshly-rewritten `snapshots/manifest.json`
+  inside that stash window. In one repo the restore failed outright — *"patch
+  does not apply"* — and aborted a commit whose hooks had all reported success
+  up to that point. In another, a staged deletion of a tracked snapshot slipped
+  into the commit the same way, silently removing a file from history. Running
+  the build after `pre-commit run` has fully finished keeps KG artifacts
+  entirely outside the stash cycle.
+
+  Secondary benefit: a full index rebuild costs 60–90s, and there is no longer
+  any reason to pay it for a commit that ruff/ty/pytest is about to reject.
+
+  `TREE_HASH` moves with the build. It was captured first, deliberately, "before
+  any tool modifies files" — but a hook that rewrites files exits non-zero, so
+  the build is never reached in that case. Capturing it after the checks pass
+  keys the snapshot to the content actually being committed.
+
+  Snapshots are now staged after `pre-commit run` and therefore not scanned by
+  it; `detect-secrets` already excludes `snapshots/` by config, which is why
+  that is safe. Noted inline in the hook so the exemption is not rediscovered.
+
+  **Existing installs are not updated automatically** — the hook is a generated
+  file in `.git/hooks/`, not something that travels with the package. Re-run
+  `pycodekg install-hooks --force` to pick up the new ordering.
+
+- **`.gitignore`: KG artifact rules are `**/`-prefixed and cover `*.db`.** The
+  patterns previously matched only a root-level `.pycodekg/`, so nested stores
+  were ignored by nothing. `snapshots/` remains tracked at every depth.
+
 ## [0.21.1] - 2026-07-29
 
 **Hotfix for 0.21.0**, which was published with an unbounded `mcp>=1.0.0` and

@@ -23,7 +23,7 @@ No persistence, no embeddings, no LLMs—just pure AST extraction. Integration w
 vector databases and semantic search happens downstream.
 
 Author: Eric G. Suchanek, PhD
-Last Revision: 2026-05-23 14:45:37
+Last Revision: 2026-07-28 22:44:43
 """
 
 from __future__ import annotations

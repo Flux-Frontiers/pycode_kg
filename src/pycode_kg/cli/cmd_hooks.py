@@ -6,7 +6,7 @@ CLI command for installing PyCodeKG git hooks:
   install-hooks — install the pre-commit snapshot hook into .git/hooks/
 
   Author: Eric G. Suchanek, PhD
-  Last Revision: 2026-04-06 09:21:00
+  Last Revision: 2026-07-29 15:21:32
 """
 
 from __future__ import annotations
