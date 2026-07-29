@@ -95,7 +95,7 @@ def mock_sentence_transformers():
             {
                 "sentence_transformers": mock_st,
                 "transformers": mock_tf,
-                "transformers.logging": mock_tf_logging,
+                "transformers.utils.logging": mock_tf_logging,
             },
         ),
     ):
@@ -205,7 +205,7 @@ def test_ste_loads_from_local_cache_when_exists(tmp_path, monkeypatch):
             {
                 "sentence_transformers": mock_st,
                 "transformers": mock_tf,
-                "transformers.logging": mock_tf.logging,
+                "transformers.utils.logging": mock_tf.logging,
             },
         ),
     ):
@@ -231,7 +231,7 @@ def test_ste_uses_local_files_only_when_no_local_cache(tmp_path, monkeypatch):
             {
                 "sentence_transformers": mock_st,
                 "transformers": mock_tf,
-                "transformers.logging": mock_tf.logging,
+                "transformers.utils.logging": mock_tf.logging,
             },
         ),
     ):
@@ -258,7 +258,7 @@ def test_ste_downloads_when_hf_cache_misses(tmp_path):
             {
                 "sentence_transformers": mock_st,
                 "transformers": mock_tf,
-                "transformers.logging": mock_tf.logging,
+                "transformers.utils.logging": mock_tf.logging,
             },
         ),
     ):
@@ -296,7 +296,7 @@ def test_ste_tqdm_disable_set_during_loading(tmp_path):
             {
                 "sentence_transformers": mock_st,
                 "transformers": mock_tf,
-                "transformers.logging": mock_tf.logging,
+                "transformers.utils.logging": mock_tf.logging,
             },
         ),
         patch.dict("os.environ", {}, clear=False),
@@ -328,7 +328,7 @@ def test_ste_tqdm_disable_restored_after_loading(tmp_path):
             {
                 "sentence_transformers": mock_st,
                 "transformers": mock_tf,
-                "transformers.logging": mock_tf.logging,
+                "transformers.utils.logging": mock_tf.logging,
             },
         ),
     ):
@@ -356,7 +356,7 @@ def test_ste_tqdm_disable_restored_on_load_failure(tmp_path):
             {
                 "sentence_transformers": mock_st,
                 "transformers": mock_tf,
-                "transformers.logging": mock_tf.logging,
+                "transformers.utils.logging": mock_tf.logging,
             },
         ),
         pytest.raises(OSError),
@@ -381,7 +381,7 @@ def test_ste_calls_disable_progress_bar(tmp_path):
             {
                 "sentence_transformers": mock_st,
                 "transformers": mock_tf,
-                "transformers.logging": mock_tf_logging,
+                "transformers.utils.logging": mock_tf_logging,
             },
         ),
     ):
