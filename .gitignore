@@ -58,37 +58,6 @@ venv/
 *.fdb_latexmk
 *.synctex.gz
 
-# PyCodeKG generated artifacts — databases are transient/reproducible, snapshots are tracked
-# MUST include .pycodekg/snapshots!
-.pycodekg/lancedb/
-.pycodekg/lancedb-*
-.pycodekg/vectors.sqlite
-.pycodekg/vectors.sqlite*
-.pycodekg/graph.sqlite
-.pycodekg/graph.sqlite*
-.pycodekg/models
-
-# DocKG generated artifacts — same pattern as PyCodeKG; snapshots will be tracked once added
-.dockg/lancedb/
-.dockg/lancedb-*
-.dockg/graph.sqlite
-.dockg/graph.sqlite*
-.dockg/embeddings.json
-.dockg/models
-
-# DiaryKG generated artifacts — same pattern as PyCodeKG
-.diarykg/lancedb/
-.diarykg/lancedb-*
-.diarykg/graph.sqlite
-.diarykg/graph.sqlite*
-.diarykg/models
-
-# AgentKG
-.agentkg/
-
-# Local MCP configuration (contains absolute paths — copy .mcp.json.template)
-.mcp.json
-
 # macOS
 **/.DS_Store
 
@@ -104,6 +73,46 @@ assets/pycode_kg_arch_*.png
 bundles/
 uv.lock
 
+# === KG generated artifacts (normalized across the fleet) ===
+# Databases, vector indexes and model caches are transient and
+# reproducible. snapshots/ is TRACKED and must never be ignored --
+# never use a bare `**/.<ns>/` pattern here, it swallows snapshots too.
+
+.pycodekg/lancedb/
+.pycodekg/lancedb-*
+.pycodekg/*.sqlite
+.pycodekg/*.sqlite-shm
+.pycodekg/*.sqlite-wal
+.pycodekg/models
+
+.dockg/lancedb/
+.dockg/lancedb-*
+.dockg/*.sqlite
+.dockg/*.sqlite-shm
+.dockg/*.sqlite-wal
+.dockg/models
+.dockg/embeddings.json
+
+.agentkg/lancedb/
+.agentkg/lancedb-*
+.agentkg/*.sqlite
+.agentkg/*.sqlite-shm
+.agentkg/*.sqlite-wal
+.agentkg/models
+
+.diarykg/lancedb/
+.diarykg/lancedb-*
+.diarykg/*.sqlite
+.diarykg/*.sqlite-shm
+.diarykg/*.sqlite-wal
+.diarykg/models
+.diarykg/corpus/
+
 # Agent scratch dirs (Claude Code / Codex)
 .agents/
 .codex/
+
+# MCP server config -- machine-specific, contains absolute paths
+.mcp.json
+.mcp.json.sav
+# === end KG generated artifacts ===
