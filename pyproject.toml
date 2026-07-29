@@ -10,7 +10,6 @@
 #   pip install -e ".[dev]"             core + dev tools (pytest, ruff, ty, etc.)
 #   pip install -e ".[viz]"             core + Streamlit/Plotly/PyVis visualizer
 #   pip install -e ".[viz3d]"           core + PyVista 3D visualizer
-#   pip install -e ".[kgdeps]"          core + KG integrations (doc-kg, agent-kg)
 #   pip install -e ".[all]"             everything above
 #   pip install -e "."                  core runtime only
 #
@@ -20,7 +19,6 @@
 #   poetry install --extras "dev"       core + dev tools only
 #   poetry install --extras "viz"       core + Streamlit/Plotly visualizer only
 #   poetry install --extras "viz3d"     core + 3D visualizer only
-#   poetry install --extras "kgdeps"    core + KG integrations only
 #   poetry install                      core runtime only
 #
 # First-time setup
@@ -100,8 +98,8 @@ dependencies = [
     "safetensors>=0.5.0",
     "sentence-transformers>=5.4.1",
     "torch>=2.5.1",
-    "transformers>=4.40.0,<4.57",
-    "kgmodule-utils[semantic,sqlite-vec,viz]>=0.8.0",
+    "transformers>=5.5.0,<6",
+    "kgmodule-utils[semantic,sqlite-vec,viz]>=0.9.0",
 ]
 
 [project.optional-dependencies]
@@ -113,8 +111,6 @@ dev = [
     "pytest>=8.0.0",
     "pytest-cov>=5.0.0",
     "ruff>=0.4.0",
-    "doc-kg>=0.18.1",
-    # agent-kg not yet on PyPI — install manually: pip install git+https://github.com/Flux-Frontiers/agent_kg.git
 ]
 viz = [
     "plotly>=5.14.0",
@@ -130,10 +126,14 @@ viz3d = [
     "trame-vtk>=2.0.0",
 ]
 
-# note that dockg is on pypi; agent-kg is not yet — install manually from git
-kgdeps = [
-    "doc-kg>=0.18.1",
-]
+# Cross-KG sibling packages (doc-kg, pycode-kg, agent-kg, kg-rag) are NOT
+# declared here. They are never imported by this package, and listing them
+# forces poetry's universal resolution to reconcile the transformers pin of
+# every *published* sibling against this project's own -- a deadlock, since
+# doc-kg and pycode-kg each depend on the other. Install them by hand:
+#   pip install doc-kg pycode-kg          # both on PyPI
+#   pip install 'kg-rag @ git+https://github.com/Flux-Frontiers/KGRAG.git'
+#   pip install 'agent-kg @ git+https://github.com/Flux-Frontiers/agent_kg.git'
 all = [
     "detect-secrets>=1.5.0",
     "markdown>=3.6",
