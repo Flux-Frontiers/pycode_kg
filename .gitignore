@@ -78,35 +78,34 @@ uv.lock
 # reproducible. snapshots/ is TRACKED and must never be ignored --
 # never use a bare `**/.<ns>/` pattern here, it swallows snapshots too.
 
-.pycodekg/lancedb/
-.pycodekg/lancedb-*
-.pycodekg/*.sqlite
-.pycodekg/*.sqlite-shm
-.pycodekg/*.sqlite-wal
-.pycodekg/models
+**/.pycodekg/lancedb/
+**/.pycodekg/lancedb-*
+**/.pycodekg/*.sqlite
+**/.pycodekg/*.sqlite-shm
+**/.pycodekg/*.sqlite-wal
+**/.pycodekg/*.db
+**/.pycodekg/models
 
-.dockg/lancedb/
-.dockg/lancedb-*
-.dockg/*.sqlite
-.dockg/*.sqlite-shm
-.dockg/*.sqlite-wal
-.dockg/models
-.dockg/embeddings.json
+**/.dockg/lancedb/
+**/.dockg/lancedb-*
+**/.dockg/*.sqlite
+**/.dockg/*.sqlite-shm
+**/.dockg/*.sqlite-wal
+**/.dockg/*.db
+**/.dockg/models
+**/.dockg/embeddings.json
 
-.agentkg/lancedb/
-.agentkg/lancedb-*
-.agentkg/*.sqlite
-.agentkg/*.sqlite-shm
-.agentkg/*.sqlite-wal
-.agentkg/models
+# AgentKG local store -- nothing under it is ever tracked
+**/.agentkg/
 
-.diarykg/lancedb/
-.diarykg/lancedb-*
-.diarykg/*.sqlite
-.diarykg/*.sqlite-shm
-.diarykg/*.sqlite-wal
-.diarykg/models
-.diarykg/corpus/
+**/.diarykg/lancedb/
+**/.diarykg/lancedb-*
+**/.diarykg/*.sqlite
+**/.diarykg/*.sqlite-shm
+**/.diarykg/*.sqlite-wal
+**/.diarykg/*.db
+**/.diarykg/models
+**/.diarykg/corpus
 
 # Agent scratch dirs (Claude Code / Codex)
 .agents/
