@@ -11,6 +11,20 @@ Note: older entries preserve the API names used at that release (for example com
 
 ### Added
 
+### Changed
+
+### Removed
+
+### Fixed
+
+## [0.21.1] - 2026-07-29
+
+**Hotfix for 0.21.0**, which was published with an unbounded `mcp>=1.0.0` and
+so resolves `mcp` 2.0 on a clean install, crashing `pycodekg-mcp` at import.
+Anyone who installed 0.21.0 from PyPI should upgrade.
+
+### Added
+
 - **`tests/test_mcp_server.py`** — import-level regression tests for the MCP
   server. The server builds its `FastMCP` instance and registers all 19 tools
   with module-level decorators, so an incompatible `mcp` release breaks it at

@@ -1,26 +1,22 @@
-# Release Notes — v0.21.0
+# Release Notes — v0.21.1
 
-> Released: 2026-07-28
+> Released: 2026-07-29
 
-PyCodeKG now runs on `transformers` 5. The previous `<4.57` ceiling pinned the stack to 4.56.2, a release carrying two open high-severity advisories, and this version lifts it to `>=5.5.0,<6`. The upgrade is invisible to your data: embeddings come out bitwise identical and an index rebuilt on the new stack is byte-for-byte the same file. Nothing needs rebuilding.
+A hotfix for 0.21.0. That release went out with an unbounded `mcp>=1.0.0`, and `mcp` 2.0 landed on PyPI shortly afterwards — so a clean `pip install pycode-kg` now resolves a combination that `pycodekg-mcp` cannot import. If you installed 0.21.0 from PyPI, upgrade. If you work from a checkout with a lock file you were never affected, which is precisely why this reached the index unnoticed.
 
 ## What changed
 
-**The transformers ceiling is gone.** Lifting it clears a remote-code-execution advisory and an arbitrary-code-execution advisory in the model-loading path. Because the old and new ranges do not overlap, this is a breaking dependency change — an environment pinned to transformers 4.x cannot install this release. `huggingface-hub` moves to 1.x along with it, and `typer` arrives as a new transitive dependency.
+**`mcp` is pinned below 2.0.** mcp 2.0 removed the bundled `mcp.server.fastmcp` module — FastMCP now ships as the standalone `fastmcp` package — and rebuilt `mcp.server` around a new set of submodules. PyCodeKG's MCP server imports `FastMCP` from `mcp`, so the import fails outright and the console script dies before registering a single tool. The constraint is now `>=1.0.0,<2`; lifting it means porting to the standalone package rather than simply widening a range.
 
-**Embeddings were verified unchanged, not assumed unchanged.** Three models were checked across awkward inputs — empty strings, whitespace, three-thousand-character blocks, unicode and emoji, CRLF line endings — and every vector matched bit for bit, including the `trust_remote_code` model path. A full index rebuild reproduced an identical vector store, and queries run against an index built under the old stack returned identical results under the new one.
+**The gap that let it ship is closed.** The server builds its `FastMCP` instance and registers all nineteen tools with module-level decorators, so an incompatible release breaks at *import* time. Nothing in the suite asserted that import directly, and a developer's pinned lock file masks the problem entirely — the failure is visible only to someone installing fresh from PyPI. A new test module imports the server, checks the entry point resolves, and asserts the tool surface survives registration. One test asserts `mcp.server.fastmcp` exists on its own, so the next incompatibility names itself instead of surfacing as an opaque `ImportError` from our own code.
 
-**A silent embedder bug went with it.** `transformers` 5 removed the `transformers.logging` submodule alias. The shared embedder imported it by name, and the resulting `ModuleNotFoundError` was swallowed by a broad `except`, so log and progress-bar suppression quietly stopped working while appearing fine — a stray "Loading weights" bar leaked into every build and query. The fix ships in `kgmodule-utils` 0.9.0, which this release now requires.
-
-**The `kgdeps` extra has been removed.** PyCodeKG and DocKG each listed the other as an optional dependency, which meant neither could resolve a relaxed pin until the other had already been published — a deadlock with no first move. Since neither package actually imports the other, the dependency was removed rather than sequenced around.
-
-**Plus the tail of the 0.20.0 migration.** Scripts, IDE config, docs, and agent skills that still referenced the retired LanceDB backend have been swept — three of them outright broken rather than merely stale. See the changelog for the full accounting.
+**The break was reproduced, not inferred.** The pin was chosen after installing mcp 2.0 into a clean environment and confirming that `mcp.server.fastmcp` raises `ModuleNotFoundError` while the low-level `mcp.server.Server` API still imports cleanly. That distinction matters across the fleet: sibling packages break for different reasons, or not at all, depending on which API each one uses.
 
 ## Upgrading
 
-Existing indexes need no attention. There is no migration, no re-index, and no change to the vector store format — the same repository produces the same file before and after.
+`pip install --upgrade pycode-kg`. Nothing to rebuild — no graph, index, or snapshot format changed, and the only difference in resolved dependencies is that `mcp` stays on the 1.x line.
 
-The one thing to check is your environment. If you hold `transformers` at 4.x for another package, that pin now conflicts and must be resolved before upgrading. And if you installed via `pip install 'pycode-kg[kgdeps]'`, that extra no longer exists; install the sibling directly with `pip install doc-kg` instead.
+If you pinned `pycode-kg==0.21.0` and your MCP server stopped starting, this is the fix. If you install PyCodeKG alongside other KGRAG packages, note that several are still published with an unbounded `mcp` floor and may pull 2.0 independently of this release.
 
 ---
 
