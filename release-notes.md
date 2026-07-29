@@ -1,26 +1,26 @@
-# Release Notes — v0.20.0
+# Release Notes — v0.21.0
 
-> Released: 2026-07-15
+> Released: 2026-07-28
 
-PyCodeKG 0.20.0 replaces LanceDB with **sqlite-vec** as the vector store. The semantic index now lives in a single `.pycodekg/vectors.sqlite` file next to the graph database — no more directory-based index, no more table names, and search is an exact scan with recall 1.0. This is a breaking release: rebuild your index once after upgrading and you're done.
+PyCodeKG now runs on `transformers` 5. The previous `<4.57` ceiling pinned the stack to 4.56.2, a release carrying two open high-severity advisories, and this version lifts it to `>=5.5.0,<6`. The upgrade is invisible to your data: embeddings come out bitwise identical and an index rebuilt on the new stack is byte-for-byte the same file. Nothing needs rebuilding.
 
 ## What changed
 
-**Vector store migrated to sqlite-vec.** The whole semantic layer now runs on the `VectorBackend` seam in `kgmodule-utils` 0.6.2 (`[semantic,sqlite-vec]` is a core dependency). Before the switch, backend parity was verified on this repo's own index — identical top-5 results across 8 real queries on both backends — and that guarantee is pinned by a committed regression test. For code-KG-sized corpora the exact scan is fast, and one SQLite file is far easier to ship, back up, and gitignore than a LanceDB directory.
+**The transformers ceiling is gone.** Lifting it clears a remote-code-execution advisory and an arbitrary-code-execution advisory in the model-loading path. Because the old and new ranges do not overlap, this is a breaking dependency change — an environment pinned to transformers 4.x cannot install this release. `huggingface-hub` moves to 1.x along with it, and `typer` arrives as a new transitive dependency.
 
-**API and CLI surface renamed to match.** `PyCodeKG` now takes `vectors_path` instead of `lancedb_dir`/`table`. On the CLI, `build-lancedb` is now `build-index`, and every command that took `--lancedb` takes `--vectors`. The MCP server follows suit and now warns at startup when the vector store is missing instead of failing silently on the first query. The Streamlit app reads `PYCODEKG_VECTORS` in place of `PYCODEKG_LANCEDB`.
+**Embeddings were verified unchanged, not assumed unchanged.** Three models were checked across awkward inputs — empty strings, whitespace, three-thousand-character blocks, unicode and emoji, CRLF line endings — and every vector matched bit for bit, including the `trust_remote_code` model path. A full index rebuild reproduced an identical vector store, and queries run against an index built under the old stack returned identical results under the new one.
 
-**Linting consolidated on ruff.** The pylint pre-commit hook — by far the slowest in the chain — is gone. Its checks moved into ruff (`B023`, `BLE001`, `PLC0415`; `F821` already covered undefined names), and the one check ruff can't do, cyclic-import detection, is covered by `pycodekg analyze` itself. Dependency floors were also raised: `kgmodule-utils>=0.6.2`, `doc-kg>=0.18.1`.
+**A silent embedder bug went with it.** `transformers` 5 removed the `transformers.logging` submodule alias. The shared embedder imported it by name, and the resulting `ModuleNotFoundError` was swallowed by a broad `except`, so log and progress-bar suppression quietly stopped working while appearing fine — a stray "Loading weights" bar leaked into every build and query. The fix ships in `kgmodule-utils` 0.9.0, which this release now requires.
+
+**The `kgdeps` extra has been removed.** PyCodeKG and DocKG each listed the other as an optional dependency, which meant neither could resolve a relaxed pin until the other had already been published — a deadlock with no first move. Since neither package actually imports the other, the dependency was removed rather than sequenced around.
+
+**Plus the tail of the 0.20.0 migration.** Scripts, IDE config, docs, and agent skills that still referenced the retired LanceDB backend have been swept — three of them outright broken rather than merely stale. See the changelog for the full accounting.
 
 ## Upgrading
 
-After upgrading the package, rebuild your knowledge graph once:
+Existing indexes need no attention. There is no migration, no re-index, and no change to the vector store format — the same repository produces the same file before and after.
 
-```bash
-pycodekg build --repo .
-```
-
-Indexes rebuild in seconds; there is no conversion step. If you script against the CLI or API, rename `build-lancedb` → `build-index`, `--lancedb`/`lancedb_dir` → `--vectors`/`vectors_path`, and drop any `--table` arguments. MCP configs that pass `--lancedb` need the same one-line change. Old `.pycodekg/lancedb/` directories can be deleted.
+The one thing to check is your environment. If you hold `transformers` at 4.x for another package, that pin now conflicts and must be resolved before upgrading. And if you installed via `pip install 'pycode-kg[kgdeps]'`, that extra no longer exists; install the sibling directly with `pip install doc-kg` instead.
 
 ---
 
