@@ -202,7 +202,7 @@ If you use PyCodeKG in your research or project, please cite it:
 
 [![DOI](https://zenodo.org/badge/1202379010.svg)](https://zenodo.org/badge/latestdoi/1202379010)
 
-> Suchanek, E. G. (2026). *PyCodeKG: A Knowledge Graph for Python Codebases* (Version 0.21.2) [Software]. Flux-Frontiers. https://doi.org/10.5281/zenodo.19834777
+> Suchanek, E. G. (2026). *PyCodeKG: A Knowledge Graph for Python Codebases* (Version 0.21.2) [Software]. Flux-Frontiers. https://doi.org/10.5281/zenodo.19737993
 
 ```bibtex
 @software{suchanek_pycode_kg,
@@ -212,7 +212,7 @@ If you use PyCodeKG in your research or project, please cite it:
   year      = {2026},
   publisher = {Flux-Frontiers},
   url       = {https://github.com/Flux-Frontiers/pycode_kg},
-  doi       = {10.5281/zenodo.19834777},
+  doi       = {10.5281/zenodo.19737993},
 }
 ```
 
