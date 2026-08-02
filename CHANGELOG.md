@@ -13,9 +13,30 @@ Note: older entries preserve the API names used at that release (for example com
 
 ### Changed
 
+- **`sqlite-vec` is now a direct core dependency, pinned `==0.1.9`.** It was
+  previously pulled in transitively via `kgmodule-utils[semantic,sqlite-vec]`.
+  `kg.py` hard-codes `vector_backend="sqlite-vec"`, so it is a hard runtime
+  requirement of every build and query path, not an opt-in backend — declaring
+  it here makes that visible in this project's own metadata. Matches the
+  arrangement doc-kg adopted in 0.20.0.
+
 ### Removed
 
+- **Dropped the `[semantic]` and `[viz]` extras from the `kgmodule-utils`
+  requirement.** `sentence-transformers`, `torch` and `transformers` are already
+  declared directly, so `[semantic]` contributed only `lancedb`, which nothing
+  here imports; `kg_utils.viz` imports `pyvis` lazily, so `[viz]` only forced
+  `pyvis` into every bare install when it belongs in this project's own `viz`
+  extra. A default install no longer carries `lancedb` or `pyvis`.
+
 ### Fixed
+
+- **A bare `pip install pycode-kg` could no longer build or query a vector
+  index.** With the `kgmodule-utils` extras narrowed to `[viz]`, `sqlite-vec`
+  was absent from the dependency tree entirely and `SqliteVecBackend` raised
+  `ImportError` on first connect. The direct `sqlite-vec` pin restores it.
+- **`pyvista` in the `all` extra no longer requests the `[jupyter]` sub-extra,**
+  matching the `viz3d` extra it mirrors.
 
 ## [0.21.2] - 2026-07-29
 

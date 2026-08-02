@@ -667,9 +667,10 @@ class _HashEmbedder(Embedder):
 def test_lancedb_and_sqlite_vec_agree_on_topk(tmp_path):
     """LanceDB and sqlite-vec backends must return identical top-k ids and order.
 
-    Retirement guard: pycode_kg itself is sqlite-vec-only, but lancedb still
-    arrives transitively via kgmodule-utils[semantic]; while both are
-    importable, hold the two backends to identical rankings.
+    Retirement guard: pycode_kg is sqlite-vec-only and no longer requests
+    kgmodule-utils[semantic], so lancedb is absent from a default install and
+    this skips. It still runs for anyone who installs lancedb by hand — while
+    both are importable, hold the two backends to identical rankings.
     """
     pytest.importorskip("sqlite_vec")
     pytest.importorskip("lancedb")

@@ -32,12 +32,16 @@ You will create a new versioned release by promoting the `[Unreleased]` section 
 
 ## Step 3: Bump the Version in Source Files
 
-Update the version string in **both** of the following files:
+Update the version string in **all** of the following files:
 
-- `pyproject.toml` — the `version = "..."` field under `[tool.poetry]`
+- `pyproject.toml` — the `version = "..."` field under `[project]`
 - `src/pycode_kg/__init__.py` — the `__version__` assignment
+- `CITATION.cff` — the `version:` field, and `date-released:` (today's date)
+- `README.md` — the two citation blocks: `(Version <x>) [Software]` in the
+  plain-text citation and `version   = {<x>},` in the BibTeX block. The badge
+  is handled separately in Step 4b.
 
-Set both to the new version string (without the `v` prefix).
+Set them all to the new version string (without the `v` prefix).
 
 ---
 
@@ -80,20 +84,16 @@ Replace `<current_version>` with `<new_version>` (e.g. `0.2.3` → `0.2.4`).
    poetry run pycodekg-build-sqlite --repo . --wipe
    poetry run pycodekg-build-index --repo . --wipe
    ```
-2. Run the thorough analysis:
+2. Run the thorough analysis. Note the repo root is a **positional** argument
+   here — `pycodekg-analyze` has no `--repo` flag, unlike the build commands
+   above:
    ```bash
-   poetry run pycodekg-analyze --repo . --output docs/analysis_v<new_version>.md
+   poetry run pycodekg-analyze . --output docs/analysis_v<new_version>.md --quiet
    ```
-   If the `--output` flag is not available, run the analysis and write stdout to the file:
-   ```bash
-   poetry run pycodekg-analyze --repo . > docs/analysis_v<new_version>.md
-   ```
-3. Open `docs/analysis_v<new_version>.md` and ensure the header contains:
-   ```
-   **Version:** <new_version>
-   **Generated:** <today's date in YYYY-MM-DD>
-   ```
-   Add or update these fields if missing.
+3. The report stamps its own `> **Analysis Report Metadata**` header with the
+   version read from the working tree, so run this **after** Step 3's bump —
+   otherwise the file is named for the new version but stamped with the old
+   one. Do not hand-edit the stamped header; re-run the command instead.
 4. Delete any previous `docs/analysis_v<old_version>.md` file if it exists and differs from the new version.
 5. Stage the generated artifacts — the rebuild and analysis both produce new files:
    ```bash
@@ -111,6 +111,7 @@ Replace `<current_version>` with `<new_version>` (e.g. `0.2.3` → `0.2.4`).
    - `release-notes.md`
    - `pyproject.toml`
    - `src/pycode_kg/__init__.py`
+   - `CITATION.cff`
    - `README.md`
    - `docs/analysis_v<new_version>.md`
 2. Create a commit with message:
