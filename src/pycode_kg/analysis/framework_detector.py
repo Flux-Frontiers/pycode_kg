@@ -3,7 +3,7 @@ Framework Detector for PyCodeKG.
 Identifies repo-defining abstractions using centrality and cross-module signals.
 
 Author: Eric G. Suchanek, PhD
-Last Revision: 2026-07-28 22:44:43
+Last Revision: 2026-07-29 15:32:54
 License: Elastic 2.0
 """
 

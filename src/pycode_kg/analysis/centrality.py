@@ -12,7 +12,7 @@ Public API:
     - :func:`aggregate_module_scores` — roll node scores up to module level.
 
 Author: Eric G. Suchanek, PhD
-Last Revision: 2026-07-28 22:44:43
+Last Revision: 2026-07-29 15:32:54
 """
 
 from __future__ import annotations

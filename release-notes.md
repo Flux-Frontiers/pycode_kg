@@ -1,57 +1,52 @@
-# Release Notes — v0.21.2
+# Release Notes — v0.21.3
 
-> Released: 2026-07-29
+> Released: 2026-08-02
 
-A hook-correctness release. `pycodekg install-hooks` was generating a pre-commit hook
-that rebuilt the knowledge graph *before* running quality checks. That ordering is not
-merely wasteful — it put freshly-written snapshot files inside the window where
-`pre-commit` stashes and restores unstaged changes, and it corrupted two commits in
-practice. If you use the generated hook, re-run `pycodekg install-hooks --force`.
+A packaging-correctness release. A dependency change in 0.21.2's wake left `sqlite-vec`
+out of the install tree entirely, which broke every build and query path for anyone
+installing from PyPI — the vector index could neither be created nor read. This release
+restores it and tightens what a default install actually pulls down. There are no code
+changes; only the declared dependency surface moved.
 
 ## What changed
 
-**Quality checks now run before the KG build.** The generated hook previously did:
-build index → stage snapshots → `pre-commit run`. Because `pre-commit run` stashes
-unstaged changes and restores them afterwards, the build's rewritten
-`snapshots/manifest.json` landed squarely inside that stash window.
+**`sqlite-vec` is a first-class dependency again.** PyCodeKG hard-codes `sqlite-vec` as
+its vector backend, so the package is a hard runtime requirement of every build and
+query — not an opt-in alternative to something else. It had been arriving second-hand
+through an optional extra of `kgmodule-utils`, and when those extras were narrowed it
+silently vanished from the tree; the first thing a fresh install did on `pycodekg build`
+was raise `ImportError`. It is now declared directly, pinned to the exact version the
+rest of the KG family uses, so the requirement is visible in this package's own metadata
+rather than inherited from a sibling's optional feature set.
 
-Two distinct failures came out of that, both observed rather than theorised. In one
-repository the stash restore failed with *"patch does not apply"* and aborted the
-commit — after every hook had reported success, so nothing surfaced the problem except
-checking `git show HEAD` afterwards and finding the commit absent. In another, a staged
-deletion of a tracked snapshot slipped into the commit by the same route, silently
-removing a file from history. Running the build after `pre-commit run` has fully
-finished keeps KG artifacts entirely outside the stash cycle.
+The test suite had no opinion on any of this. Its sqlite-vec coverage is guarded by
+`importorskip`, so removing the dependency turned those tests into skips and the suite
+stayed green.
 
-The secondary benefit is cheaper but constant: a full index rebuild costs 60–90 seconds,
-and there is no longer any reason to pay it for a commit that ruff, ty or pytest is
-about to reject.
+**A default install is meaningfully smaller.** Two libraries were being pulled in for no
+reason. `lancedb` arrived through an extra that also carried `sentence-transformers`,
+`torch` and `transformers` — all three of which PyCodeKG already declares itself — and
+nothing in the codebase has imported LanceDB since the sqlite-vec migration. `pyvis` was
+being forced into every installation even though it is only reachable from the Streamlit
+and 3-D visualizers, both of which live behind optional extras and import it lazily.
+Neither is installed by default now.
 
-`TREE_HASH` moved along with the build. It used to be captured first, deliberately,
-"before any tool modifies files" — but a hook that rewrites files exits non-zero, so the
-build is never reached in that case. Capturing it after the checks pass keys the
-snapshot to the content actually being committed, which is strictly more accurate.
-
-**Ignore rules cover nested stores.** The `.gitignore` shipped in this repository
-matched only a root-level `.pycodekg/`, so artifacts inside a nested store were ignored
-by nothing at all, and `*.db` files were missed entirely. Patterns are now
-`**/`-prefixed. `snapshots/` remains tracked at every depth — that distinction matters,
-and a blanket `**/.pycodekg/` would silently discard snapshot history.
+**Documentation and release tooling caught up.** The committed architecture analysis was
+three releases stale and has been regenerated against current source. Two errors in the
+release workflow were corrected: it documented a CLI invocation that fails outright, and
+it pointed at the wrong table for the version string while omitting three of the files
+that carry it.
 
 ## Upgrading
 
-Existing hooks are **not** updated automatically. The hook is a generated file in
-`.git/hooks/`, which is local to each clone and does not travel with the package. After
-upgrading, re-run:
+Nothing to migrate and no rebuild required — existing `.pycodekg/` indices are
+unaffected. `pip install --upgrade pycode-kg` restores `sqlite-vec` on its own.
 
-```bash
-pycodekg install-hooks --force
-```
-
-Take care in repositories whose hook drives more than one KG tool — AgentKG and
-FileTreeKG install a combined hook that invokes both `pycodekg` and `dockg`. Each
-installer writes a whole hook file rather than a fragment, so running this there would
-overwrite the combined hook and silently drop the other half.
+One thing to check: if you were installing bare `pycode-kg` and relying on `lancedb` or
+`pyvis` showing up as a side effect, they no longer will. For the visualizers, install
+the extra that owns them — `pip install 'pycode-kg[viz]'` for the Streamlit graph view,
+or `[viz3d]` for the PyVista viewer. If you genuinely need LanceDB, install it directly;
+PyCodeKG itself no longer uses it.
 
 ---
 

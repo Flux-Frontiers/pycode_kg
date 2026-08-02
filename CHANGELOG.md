@@ -13,6 +13,16 @@ Note: older entries preserve the API names used at that release (for example com
 
 ### Changed
 
+### Removed
+
+### Fixed
+
+## [0.21.3] - 2026-08-02
+
+### Added
+
+### Changed
+
 - **`sqlite-vec` is now a direct core dependency, pinned `==0.1.9`.** It was
   previously pulled in transitively via `kgmodule-utils[semantic,sqlite-vec]`.
   `kg.py` hard-codes `vector_backend="sqlite-vec"`, so it is a hard runtime
