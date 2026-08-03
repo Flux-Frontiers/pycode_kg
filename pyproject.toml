@@ -175,6 +175,27 @@ all = [
     "ty>=0.0.41",
 ]
 
+# Maintainer tooling, not a dependency of this package. `.mcp.json` serves a
+# `dockg` MCP server from `.venv/bin/dockg`, so the CLI has to be in this repo's
+# environment — but nothing under src/ imports doc_kg, and declaring it as a real
+# dependency would put it in the published wheel for every consumer.
+#
+# A Poetry group is the right shape: it is locked and installable but never
+# written into wheel metadata, so `pip install pycode-kg` is unaffected.
+#
+#   poetry install --with kg      # gets the dockg CLI into .venv/bin
+#   poetry install                # default — the group is optional, skipped
+#
+# `kg` is the fleet-wide name for this group so there is one command to remember;
+# contents are per-repo and minimal, covering only what that repo actually
+# invokes. Safe to lock because doc-kg keeps its own pycode-kg in a group too, so
+# the published metadata on either side has no cycle for the resolver to chase.
+[tool.poetry.group.kg]
+optional = true
+
+[tool.poetry.group.kg.dependencies]
+doc-kg = ">=0.21.1"
+
 [project.urls]
 Homepage = "https://github.com/Flux-Frontiers/pycode_kg"
 Repository = "https://github.com/Flux-Frontiers/pycode_kg"

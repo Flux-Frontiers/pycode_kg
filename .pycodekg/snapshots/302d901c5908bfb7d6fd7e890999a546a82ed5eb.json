@@ -1,7 +1,7 @@
 {
-  "key": "cf407495805e0c81504c2bc5dea1952cc16a5523",
-  "branch": "ci/wheel-smoke-test",
-  "timestamp": "2026-08-03T18:22:32.435776+00:00",
+  "key": "302d901c5908bfb7d6fd7e890999a546a82ed5eb",
+  "branch": "chore/kg-group",
+  "timestamp": "2026-08-03T19:58:10.801615+00:00",
   "version": "0.21.3",
   "metrics": {
     "db_path": ".pycodekg/graph.sqlite",

@@ -11,6 +11,33 @@ Note: older entries preserve the API names used at that release (for example com
 
 ### Added
 
+- **CI job that verifies the built wheel, not just the source tree.** `lint`,
+  `type-check` and `test` all run against `src/` via `pythonpath`, which makes
+  them structurally unable to notice a broken artifact: a module the CLI imports
+  can be missing from the wheel, or a dependency declared in a form PyPI strips
+  from wheel metadata, and every existing job still passes. The new job builds
+  the wheel, installs it into a clean virtualenv with no source tree in sight,
+  and loads every console-script entry point. `entry_point.load()` imports the
+  module and resolves the attribute without calling it, so `pycodekg-mcp` is
+  verified rather than started and the job cannot hang. Added fleet-wide after
+  ia-kg 0.1.0 shipped to PyPI with green CI and a console script that died on
+  import.
+- **`[tool.poetry.group.kg]` — optional maintainer tooling.** `.mcp.json` serves
+  a `dockg` MCP server from `.venv/bin/dockg`, so that CLI has to exist in this
+  repo's environment, but nothing under `src/` imports `doc_kg`. It is now a
+  Poetry group rather than a dependency: locked and installable, never written
+  into wheel metadata, so `pip install pycode-kg` is unchanged (verified — the
+  built wheel's 42 `Requires-Dist` entries contain no `doc-kg`).
+
+  ```bash
+  poetry install --with kg   # gets the dockg CLI into .venv/bin
+  poetry install             # default — the group is optional, skipped
+  ```
+
+  `kg` is the fleet-wide group name so there is one command to remember;
+  contents stay per-repo and minimal, covering only what each repo actually
+  invokes.
+
 ### Changed
 
 ### Removed
