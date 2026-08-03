@@ -1,6 +1,6 @@
-# PyCodeKG Agent Assessment — Claude Code (Remote Execution)
+# PyCodeKG Agent Assessment — Claude Fable 5
 
-**Assessor:** Claude Code, remote execution environment (model identity withheld per harness policy; ask the session owner)
+**Assessor:** Claude Fable 5 (`claude-fable-5`), via Claude Code remote execution
 **Date:** 2026-06-10
 **Subject repo:** PyCodeKG itself, v0.19.3 (self-indexing — 6,283 nodes / 5,875 edges; 379 meaningful nodes)
 **Platform:** Ephemeral Linux cloud container, Python 3.13.x, fresh clone, no GPU
