@@ -13,6 +13,16 @@ Note: older entries preserve the API names used at that release (for example com
 
 ### Changed
 
+### Removed
+
+### Fixed
+
+## [0.21.4] - 2026-08-03
+
+### Added
+
+### Changed
+
 - **`kgmodule-utils` is requested as `[semantic]` again, floor raised to
   `>=0.10.0`.** 0.21.3 dropped the extra because it was the last thing dragging
   `lancedb` into a clean install; kgmodule-utils 0.10.0 moves `lancedb` out into

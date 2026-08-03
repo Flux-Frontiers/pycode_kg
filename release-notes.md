@@ -1,52 +1,46 @@
-# Release Notes — v0.21.3
+# Release Notes — v0.21.4
 
-> Released: 2026-08-02
+> Released: 2026-08-03
 
-A packaging-correctness release. A dependency change in 0.21.2's wake left `sqlite-vec`
-out of the install tree entirely, which broke every build and query path for anyone
-installing from PyPI — the vector index could neither be created nor read. This release
-restores it and tightens what a default install actually pulls down. There are no code
-changes; only the declared dependency surface moved.
+A dependency-hygiene release with no behavioural change. PyCodeKG once again requests
+`kgmodule-utils[semantic]` rather than re-declaring that extra's contents by hand, which
+removes a set of duplicate version pins that had to be kept in step with upstream
+manually. Nothing about how the graph is built or queried has changed, and a default
+install still carries neither `lancedb` nor `pyvis`.
 
 ## What changed
 
-**`sqlite-vec` is a first-class dependency again.** PyCodeKG hard-codes `sqlite-vec` as
-its vector backend, so the package is a hard runtime requirement of every build and
-query — not an opt-in alternative to something else. It had been arriving second-hand
-through an optional extra of `kgmodule-utils`, and when those extras were narrowed it
-silently vanished from the tree; the first thing a fresh install did on `pycodekg build`
-was raise `ImportError`. It is now declared directly, pinned to the exact version the
-rest of the KG family uses, so the requirement is visible in this package's own metadata
-rather than inherited from a sibling's optional feature set.
+**The `[semantic]` extra is back.** 0.21.3 dropped it for a good reason: it was the last
+thing dragging `lancedb` into a clean install, long after the retired backend stopped
+being reachable from any code path. Removing it meant re-declaring six of that extra's
+members directly, so this project and kgmodule-utils each carried their own copy of the
+same constraint — the kind of duplication that stays correct only until someone forgets
+to update one side. kgmodule-utils 0.10.0 moves `lancedb` into a dedicated `[lancedb]`
+extra, so `[semantic]` can be requested again without it, and the hand-maintained copies
+go away.
 
-The test suite had no opinion on any of this. Its sqlite-vec coverage is guarded by
-`importorskip`, so removing the dependency turned those tests into skips and the suite
-stayed green.
+**Two direct pins removed.** `transformers` is now inherited from `[semantic]`, which
+declares the identical `>=5.5.0,<6` range established in 0.21.0 — nothing under `src/`
+imports it directly, so the local entry was a second copy that could only drift.
+`safetensors` is gone outright: `transformers` already requires `safetensors>=0.8.0`, so
+the old `>=0.5.0` floor could never participate in resolution at all.
 
-**A default install is meaningfully smaller.** Two libraries were being pulled in for no
-reason. `lancedb` arrived through an extra that also carried `sentence-transformers`,
-`torch` and `transformers` — all three of which PyCodeKG already declares itself — and
-nothing in the codebase has imported LanceDB since the sqlite-vec migration. `pyvis` was
-being forced into every installation even though it is only reachable from the Streamlit
-and 3-D visualizers, both of which live behind optional extras and import it lazily.
-Neither is installed by default now.
-
-**Documentation and release tooling caught up.** The committed architecture analysis was
-three releases stale and has been regenerated against current source. Two errors in the
-release workflow were corrected: it documented a CLI invocation that fails outright, and
-it pointed at the wrong table for the version string while omitting three of the files
-that carry it.
+**`torch` stays declared directly, deliberately.** It looks like the same kind of
+duplicate, but it isn't. The `[tool.poetry.dependencies]` block routes Linux `torch` to
+the CPU-only wheel index, and that enrichment applies only to a dependency this project
+declares itself. Inheriting `torch` from the extra would silently restore the ~3.4 GB
+CUDA wheel on Linux installs and CI.
 
 ## Upgrading
 
-Nothing to migrate and no rebuild required — existing `.pycodekg/` indices are
-unaffected. `pip install --upgrade pycode-kg` restores `sqlite-vec` on its own.
+Nothing to do. There is no migration, no rebuild, and no configuration change — the graph
+format, CLI surface and MCP tool API are all untouched, and existing `.pycodekg/` indices
+are unaffected.
 
-One thing to check: if you were installing bare `pycode-kg` and relying on `lancedb` or
-`pyvis` showing up as a side effect, they no longer will. For the visualizers, install
-the extra that owns them — `pip install 'pycode-kg[viz]'` for the Streamlit graph view,
-or `[viz3d]` for the PyVista viewer. If you genuinely need LanceDB, install it directly;
-PyCodeKG itself no longer uses it.
+Developers working from a clone should run `poetry install --all-extras` to pick up the
+refreshed lock. One caveat worth knowing: a bare `poetry install --sync` will strip the
+`dev`, `viz` and `viz3d` extras from an existing environment, because `--sync` treats any
+extra you don't explicitly name as unwanted.
 
 ---
 
