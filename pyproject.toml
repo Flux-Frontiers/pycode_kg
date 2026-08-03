@@ -101,7 +101,6 @@ dependencies = [
     "numpy>=1.24.0",
     "pandas>=2.0.0",
     "rich>=14.3.3,<15",
-    "safetensors>=0.5.0",
     "sentence-transformers>=5.4.1",
     # Core, not optional: kg.py hard-codes vector_backend="sqlite-vec", so every
     # build/query path goes through kg_utils.vector_backend.SqliteVecBackend,
@@ -111,13 +110,19 @@ dependencies = [
     # requirement is visible in this project's own metadata (doc-kg 0.20.0 does
     # the same).
     "sqlite-vec==0.1.9",
+    # Kept direct even though `[semantic]` carries the same `>=2.5.1`: the
+    # `[tool.poetry.dependencies]` block above routes linux torch to the CPU-only
+    # index, and that enrichment only applies to a dependency this project
+    # declares itself. Dropping it here would pull the ~3.4G CUDA wheel back in.
     "torch>=2.5.1",
-    "transformers>=5.5.0,<6",
-    # No extras: sentence-transformers/torch/transformers are declared directly
-    # above (so [semantic] adds only lancedb, which nothing here uses), and
-    # kg_utils.viz imports pyvis lazily, so [viz] would force pyvis into every
-    # bare install when it belongs in this project's own `viz` extra.
-    "kgmodule-utils>=0.9.0",
+    # `[semantic]` is safe again as of kgmodule-utils 0.10.0, which moved
+    # `lancedb` out into its own `[lancedb]` extra. It now carries numpy, rich,
+    # sentence-transformers, sqlite-vec, torch and transformers under the same
+    # constraints used here, so `transformers` needs no direct entry.
+    # `[viz]` stays off: kg_utils.viz imports pyvis lazily, so it would force
+    # pyvis into every bare install when it belongs in this project's own `viz`
+    # extra.
+    "kgmodule-utils[semantic]>=0.10.0",
 ]
 
 [project.optional-dependencies]

@@ -13,7 +13,24 @@ Note: older entries preserve the API names used at that release (for example com
 
 ### Changed
 
+- **`kgmodule-utils` is requested as `[semantic]` again, floor raised to
+  `>=0.10.0`.** 0.21.3 dropped the extra because it was the last thing dragging
+  `lancedb` into a clean install; kgmodule-utils 0.10.0 moves `lancedb` out into
+  its own `[lancedb]` extra, so `[semantic]` is now safe to request. It carries
+  `numpy`, `rich`, `sentence-transformers`, `sqlite-vec`, `torch` and
+  `transformers` under the same constraints declared here, which removes the
+  duplicate pins that had to be kept in step by hand. Verified against a real
+  `poetry install --sync`: `lancedb` is still absent from the tree.
+
 ### Removed
+
+- **Dropped the direct `transformers>=5.5.0,<6` requirement.** `[semantic]`
+  declares the identical constraint and nothing under `src/` imports
+  `transformers`, so the direct entry was a second copy of a pin that could
+  only drift. The floor established in 0.21.0 is unchanged in effect.
+- **Dropped the direct `safetensors>=0.5.0` requirement.** It could never bind:
+  `transformers` already requires `safetensors>=0.8.0`, so the floor never
+  participated in resolution.
 
 ### Fixed
 
