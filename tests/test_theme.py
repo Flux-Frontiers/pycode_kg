@@ -204,9 +204,46 @@ def test_every_zlevel_has_a_radius() -> None:
 
 
 def test_layout_module_uses_the_shared_constants() -> None:
-    """``layout3d`` must not carry its own copy of the maps."""
+    """``layout3d`` must not carry its own copy of the maps.
+
+    The engine itself now lives in :mod:`kg_utils.viz3d` and takes the
+    kind→Z-level mapping as a constructor argument, so this asserts the wiring
+    rather than a module constant: the same guarantee, one indirection further
+    out.
+    """
+    pytest.importorskip("numpy")
+    from pycode_kg.layout3d import FunnelLayout
+
+    layout = FunnelLayout()
+    assert layout.zlevels == theme.KIND_ZLEVEL
+    assert layout.level_sizes == theme.LEVEL_NODE_SIZE
+
+
+def test_unknown_kinds_land_on_the_symbol_level() -> None:
+    """A kind the palette doesn't know renders where ``resolve_kind`` puts it.
+
+    The shared engine defaults unrecognised kinds to level 0, which for a code
+    graph would drop them into the *module* layer. The theme already collapses
+    unknown kinds to ``symbol``, so the layout must agree.
+    """
+    pytest.importorskip("numpy")
+    from pycode_kg.layout3d import FunnelLayout
+
+    assert FunnelLayout().default_level == theme.KIND_ZLEVEL[theme.UNKNOWN_KIND]
+
+
+def test_layout3d_reexports_the_shared_engine() -> None:
+    """The shim's whole job is that existing imports keep working."""
     pytest.importorskip("numpy")
     from pycode_kg import layout3d
 
-    assert layout3d._KIND_ZLEVEL == theme.KIND_ZLEVEL
-    assert layout3d._LEVEL_NODE_SIZE == theme.LEVEL_NODE_SIZE
+    for name in (
+        "AlliumLayout",
+        "FunnelLayout",
+        "Layout3D",
+        "LayoutEdge",
+        "LayoutNode",
+        "fibonacci_annulus",
+        "fibonacci_sphere",
+    ):
+        assert hasattr(layout3d, name), f"layout3d no longer exports {name}"

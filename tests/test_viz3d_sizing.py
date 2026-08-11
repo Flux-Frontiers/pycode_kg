@@ -17,11 +17,35 @@ import pytest
 pytest.importorskip("pyvista")
 pytest.importorskip("PyQt5")
 
+import numpy as np  # noqa: E402
+
 from pycode_kg import theme  # noqa: E402
+from pycode_kg.layout3d import AlliumLayout, LayoutEdge, LayoutNode  # noqa: E402
 from pycode_kg.viz3d import CENTRALITY_SCALE_RANGE, KIND_SIZE  # noqa: E402
 
-# AlliumLayout: head radius is ``base_head_radius + sqrt(n_children) * 0.4``.
-SMALL_HEAD_RADIUS = 2.0 + (4**0.5) * 0.4  # a 4-child module — the tight case
+
+def _head_radius(n_children: int) -> float:
+    """Measure the real allium head radius for an *n_children* module.
+
+    Measured from the layout rather than restated as a literal.  The formula
+    lives in :mod:`kg_utils.viz3d` now, so a coefficient change there must move
+    this budget with it — a hardcoded copy would keep passing while quietly
+    describing a head that no longer exists.
+
+    :param n_children: Number of direct children on the module.
+    :return: Distance from the stem apex to a child, in world units.
+    """
+    root = LayoutNode("mod", "module", "mod")
+    kids = [LayoutNode(f"fn:{i}", "function", str(i)) for i in range(n_children)]
+    edges = [LayoutEdge("mod", "CONTAINS", k.id) for k in kids]
+
+    layout = AlliumLayout()
+    pos = layout.compute([root, *kids], edges)
+    apex = np.array([pos["mod"][0], pos["mod"][1], layout.stem_height])
+    return float(np.linalg.norm(pos["fn:0"] - apex))
+
+
+SMALL_HEAD_RADIUS = _head_radius(4)  # a 4-child module — the tight case
 
 
 def test_scale_range_is_a_multiplier_around_unity() -> None:

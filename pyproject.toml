@@ -122,7 +122,11 @@ dependencies = [
     # `[viz]` stays off: kg_utils.viz imports pyvis lazily, so it would force
     # pyvis into every bare install when it belongs in this project's own `viz`
     # extra.
-    "kgmodule-utils[semantic]>=0.10.0",
+    # `[viz3d]` is the shared 3-D layout engine behind `pycode_kg.layout3d`.
+    # Its only dependency is numpy, which `[semantic]` already pulls, so it adds
+    # nothing to the install — it just declares what layout3d actually imports.
+    # Unlike `[viz]`, there is no pyvis to leak into a bare install.
+    "kgmodule-utils[semantic,viz3d]>=0.11.0",
 ]
 
 [project.optional-dependencies]

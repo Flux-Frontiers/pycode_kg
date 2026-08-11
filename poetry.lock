@@ -1504,18 +1504,18 @@ referencing = ">=0.31.0"
 
 [[package]]
 name = "kgmodule-utils"
-version = "0.10.0"
+version = "0.11.0"
 description = "Shared types, graph store, semantic index, and pipeline base for the KGModule SDK"
 optional = false
 python-versions = "<3.14,>=3.12"
 groups = ["main", "kg"]
 files = [
-    {file = "kgmodule_utils-0.10.0-py3-none-any.whl", hash = "sha256:765279f44cf754cf9256ddeab0eee4bb462f1028af3417eb321f7ef3ad1aa8a0"},
-    {file = "kgmodule_utils-0.10.0.tar.gz", hash = "sha256:b06a36c4674d2c308a776c6246f0519d99804fbd32e1901cd02fa240449baf24"},
+    {file = "kgmodule_utils-0.11.0-py3-none-any.whl", hash = "sha256:a3ccef8d29667591e64f8593cfc60d0c187c65de6bfd5dca02526b82459de3b6"},
+    {file = "kgmodule_utils-0.11.0.tar.gz", hash = "sha256:a0de0555fcdadfe6b9fa51ad535832f68c607bc147549155748fb515433c1c7e"},
 ]
 
 [package.dependencies]
-numpy = {version = ">=1.24.0", optional = true, markers = "extra == \"semantic\""}
+numpy = {version = ">=1.24.0", optional = true, markers = "extra == \"semantic\" or extra == \"viz3d\""}
 rich = {version = ">=13.0.0,<15.0.0", optional = true, markers = "extra == \"semantic\""}
 sentence-transformers = {version = ">=5.4.1", optional = true, markers = "extra == \"semantic\""}
 sqlite-vec = {version = "0.1.9", optional = true, markers = "extra == \"semantic\""}
@@ -1529,6 +1529,7 @@ sqlite-vec = ["sqlite-vec (==0.1.9)"]
 synthesis = ["httpx (>=0.27.0)", "openai (>=1.30.0)", "pillow (>=10.0.0)"]
 synthesis-mflux = ["httpx (>=0.27.0)", "mflux (>=0.9.0)", "openai (>=1.30.0)", "pillow (>=10.0.0)"]
 viz = ["pyvis (>=0.3.2)"]
+viz3d = ["numpy (>=1.24.0)"]
 
 [[package]]
 name = "kiwisolver"
@@ -5126,4 +5127,4 @@ viz3d = ["PyQt5", "markdown", "param", "pyvista", "pyvistaqt", "trame-vtk"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12,<3.14"
-content-hash = "2df5f06fc25c085720869ee6bf3c4be400a0ade8a3d69b6ea33cef4b2e1384e0"
+content-hash = "411610819796321957efbdefa4e536b7ee5a44b15690120831cb93b92b5514d1"
