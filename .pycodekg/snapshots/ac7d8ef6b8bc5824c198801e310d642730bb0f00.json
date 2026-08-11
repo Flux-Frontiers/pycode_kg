@@ -1,33 +1,33 @@
 {
-  "key": "302d901c5908bfb7d6fd7e890999a546a82ed5eb",
-  "branch": "chore/kg-group",
-  "timestamp": "2026-08-03T19:58:10.801615+00:00",
-  "version": "0.21.3",
+  "key": "ac7d8ef6b8bc5824c198801e310d642730bb0f00",
+  "branch": "feat/viz3d-shared",
+  "timestamp": "2026-08-11T23:07:27.109829+00:00",
+  "version": "0.21.4",
   "metrics": {
     "db_path": ".pycodekg/graph.sqlite",
-    "total_nodes": 6403,
-    "meaningful_nodes": 391,
-    "total_edges": 6025,
+    "total_nodes": 6221,
+    "meaningful_nodes": 377,
+    "total_edges": 5858,
     "node_counts": {
-      "class": 34,
-      "function": 148,
-      "method": 153,
+      "class": 30,
+      "function": 145,
+      "method": 146,
       "module": 56,
-      "symbol": 6012
+      "symbol": 5844
     },
     "edge_counts": {
-      "ATTR_ACCESS": 2070,
-      "CALLS": 2221,
-      "CONTAINS": 335,
-      "IMPORTS": 445,
-      "INHERITS": 12,
-      "RESOLVES_TO": 942
+      "ATTR_ACCESS": 2007,
+      "CALLS": 2172,
+      "CONTAINS": 321,
+      "IMPORTS": 449,
+      "INHERITS": 10,
+      "RESOLVES_TO": 899
     },
     "module_count": 56,
-    "class_count": 34,
-    "function_count": 148,
-    "method_count": 153,
-    "docstring_coverage": 0.9279999999999999,
+    "class_count": 30,
+    "function_count": 145,
+    "method_count": 146,
+    "docstring_coverage": 0.9259999999999999,
     "snapshot_count": 141,
     "critical_issues": 4,
     "complexity_median": 4,
@@ -66,7 +66,7 @@
       "src/pycode_kg/graph_html.py": 31,
       "src/pycode_kg/index.py": 1,
       "src/pycode_kg/kg.py": 42,
-      "src/pycode_kg/layout3d.py": 187,
+      "src/pycode_kg/layout3d.py": 12,
       "src/pycode_kg/mcp_server.py": 493,
       "src/pycode_kg/module/__init__.py": 2,
       "src/pycode_kg/module/base.py": 8,
@@ -160,9 +160,9 @@
   ],
   "vs_previous": null,
   "vs_baseline": {
-    "nodes": 1422,
-    "edges": 1094,
-    "coverage_delta": -0.038000000000000034,
+    "nodes": 1240,
+    "edges": 927,
+    "coverage_delta": -0.040000000000000036,
     "critical_issues_delta": 3
   }
 }

@@ -40,6 +40,28 @@ Note: older entries preserve the API names used at that release (for example com
 
 ### Changed
 
+- **`pycode_kg.layout3d` is now a thin binding over `kg_utils.viz3d`** (476 → 84
+  lines). The 3-D layout engine — `Layout3D`, `LayoutNode`, `LayoutEdge`,
+  `AlliumLayout`, `FunnelLayout`, and the Fibonacci point distributions — moved
+  to `kgmodule-utils` 0.11.0, where every KG module can reach it. GutenbergKG
+  was already importing it from here and paying a full `pycode-kg` dependency
+  for five symbols unrelated to parsing Python.
+  - **No behaviour change and no import change.** Every name is re-exported, so
+    `from pycode_kg.layout3d import ...` keeps working.
+  - What stays here is the code-specific part: `FunnelLayout` is now a subclass
+    that supplies `zlevels`, `level_sizes`, and `default_level` from
+    `pycode_kg.theme`. The shared engine defaults unknown kinds to level 0,
+    which for a code graph would drop them into the *module* layer, so the
+    subclass pins them to the symbol level — matching `theme.resolve_kind()`,
+    which collapses unrecognised kinds to `symbol`.
+  - `kgmodule-utils` requirement raised to `[semantic,viz3d]>=0.11.0`. The
+    `viz3d` extra is numpy only, which `semantic` already pulls, so this adds
+    nothing to the install; it just declares what `layout3d` imports.
+- `test_viz3d_sizing` now **measures** the allium head radius from
+  `AlliumLayout` instead of restating `base_head_radius + sqrt(n) * 0.4` as a
+  literal. The formula lives upstream now, and a hardcoded copy would keep
+  passing while describing a head that no longer exists.
+
 ### Removed
 
 ### Fixed
