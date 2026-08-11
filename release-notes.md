@@ -1,46 +1,59 @@
-# Release Notes — v0.21.4
+# Release Notes — v0.22.0
 
-> Released: 2026-08-03
+> Released: 2026-08-11
 
-A dependency-hygiene release with no behavioural change. PyCodeKG once again requests
-`kgmodule-utils[semantic]` rather than re-declaring that extra's contents by hand, which
-removes a set of duplicate version pins that had to be kept in step with upstream
-manually. Nothing about how the graph is built or queried has changed, and a default
-install still carries neither `lancedb` nor `pyvis`.
+The 3-D layout engine moves out of PyCodeKG and into `kgmodule-utils`, where every KG
+module can reach it, and CI gains a job that tests the artifact users actually install
+rather than the source tree it was built from. Neither change touches the graph format,
+the CLI surface, or the MCP tool API, and every name that lived in `pycode_kg.layout3d`
+still imports from exactly where it did before.
 
 ## What changed
 
-**The `[semantic]` extra is back.** 0.21.3 dropped it for a good reason: it was the last
-thing dragging `lancedb` into a clean install, long after the retired backend stopped
-being reachable from any code path. Removing it meant re-declaring six of that extra's
-members directly, so this project and kgmodule-utils each carried their own copy of the
-same constraint — the kind of duplication that stays correct only until someone forgets
-to update one side. kgmodule-utils 0.10.0 moves `lancedb` into a dedicated `[lancedb]`
-extra, so `[semantic]` can be requested again without it, and the hand-maintained copies
-go away.
+**`layout3d` is now a thin binding over the shared engine.** The module went from 476
+lines to 84. `Layout3D`, `LayoutNode`, `LayoutEdge`, `AlliumLayout`, `FunnelLayout` and
+the Fibonacci point distributions now live in `kgmodule-utils` 0.11.0. The move was
+overdue: GutenbergKG had been importing them from here and paying for a full `pycode-kg`
+dependency to get five symbols that have nothing to do with parsing Python. What stays
+behind is the genuinely code-specific part — `FunnelLayout` is a subclass supplying
+`zlevels`, `level_sizes` and `default_level` from `pycode_kg.theme`, because the shared
+engine drops unknown kinds to level 0, which in a code graph would put them in the
+*module* layer instead of the symbol layer.
 
-**Two direct pins removed.** `transformers` is now inherited from `[semantic]`, which
-declares the identical `>=5.5.0,<6` range established in 0.21.0 — nothing under `src/`
-imports it directly, so the local entry was a second copy that could only drift.
-`safetensors` is gone outright: `transformers` already requires `safetensors>=0.8.0`, so
-the old `>=0.5.0` floor could never participate in resolution at all.
+**CI now verifies the built wheel.** `lint`, `type-check` and `test` all run against
+`src/` via `pythonpath`, which makes them structurally incapable of noticing a broken
+artifact: a module the CLI imports can be absent from the wheel, or a dependency can be
+declared in a form PyPI strips from wheel metadata, and every one of those jobs still
+passes. The new job builds the wheel, installs it into a clean virtualenv with no source
+tree in sight, and loads every console-script entry point. This was added fleet-wide
+after a sibling project shipped to PyPI with green CI and a console script that died on
+import.
 
-**`torch` stays declared directly, deliberately.** It looks like the same kind of
-duplicate, but it isn't. The `[tool.poetry.dependencies]` block routes Linux `torch` to
-the CPU-only wheel index, and that enrichment applies only to a dependency this project
-declares itself. Inheriting `torch` from the extra would silently restore the ~3.4 GB
-CUDA wheel on Linux installs and CI.
+**Maintainer tooling moved into an optional Poetry group.** `.mcp.json` serves a `dockg`
+MCP server from `.venv/bin/dockg`, so that CLI has to exist in this repo's environment —
+but nothing under `src/` imports `doc_kg`, and a real dependency would follow the wheel
+out to every consumer. As a `[tool.poetry.group.kg]` group it is locked and installable
+yet never written into wheel metadata; the built wheel's 42 `Requires-Dist` entries
+contain no `doc-kg`.
+
+**Dependencies refreshed.** Fifty locked packages moved, all inside their declared
+constraints, with `setuptools` 83 → 84 the only major. Five transitive packages —
+`gitpython`, `cachetools`, `gitdb`, `smmap` and `decorator` — left the lock entirely
+when Streamlit 1.61 and IPython 9.16 stopped requiring them. Nothing in
+`[project.dependencies]` changed.
 
 ## Upgrading
 
-Nothing to do. There is no migration, no rebuild, and no configuration change — the graph
-format, CLI surface and MCP tool API are all untouched, and existing `.pycodekg/` indices
-are unaffected.
+Nothing to do, and nothing to rebuild. Existing `.pycodekg/` indices are unaffected, and
+`from pycode_kg.layout3d import ...` keeps working unchanged — every name is re-exported.
+The one new requirement is `kgmodule-utils[semantic,viz3d]>=0.11.0`, and the `viz3d`
+extra it adds is numpy only, which `semantic` already pulls, so a bare install grows by
+nothing.
 
-Developers working from a clone should run `poetry install --all-extras` to pick up the
-refreshed lock. One caveat worth knowing: a bare `poetry install --sync` will strip the
-`dev`, `viz` and `viz3d` extras from an existing environment, because `--sync` treats any
-extra you don't explicitly name as unwanted.
+Working from a clone, `poetry install --extras dev --extras viz` is worth preferring over
+a bare `poetry install`. The visualisation tests guard themselves with
+`pytest.importorskip("pyvis")`, so without the `viz` extra they skip silently rather than
+fail, and an environment that has pyvis but a stale IPython will skip them too.
 
 ---
 

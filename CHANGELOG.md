@@ -11,6 +11,16 @@ Note: older entries preserve the API names used at that release (for example com
 
 ### Added
 
+### Changed
+
+### Removed
+
+### Fixed
+
+## [0.22.0] - 2026-08-11
+
+### Added
+
 - **CI job that verifies the built wheel, not just the source tree.** `lint`,
   `type-check` and `test` all run against `src/` via `pythonpath`, which makes
   them structurally unable to notice a broken artifact: a module the CLI imports
@@ -61,8 +71,16 @@ Note: older entries preserve the API names used at that release (for example com
   `AlliumLayout` instead of restating `base_head_radius + sqrt(n) * 0.4` as a
   literal. The formula lives upstream now, and a hardcoded copy would keep
   passing while describing a head that no longer exists.
+- **Dependency refresh (`poetry update`).** 50 locked packages moved, all within
+  their declared constraints; `setuptools` 83 → 84 is the only major. Nothing in
+  `[project.dependencies]` changed, so installs are unaffected.
 
 ### Removed
+
+- `gitpython`, `cachetools`, `gitdb`, `smmap` and `decorator` are no longer in
+  the lock. All five were transitive — none is declared here and none is
+  imported by `src/` — and they dropped out when Streamlit 1.61 and IPython
+  9.16 stopped requiring them.
 
 ### Fixed
 
