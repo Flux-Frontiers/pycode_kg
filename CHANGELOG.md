@@ -13,9 +13,44 @@ Note: older entries preserve the API names used at that release (for example com
 
 ### Changed
 
+- **Dev tooling moved from the `dev` extra to an optional Poetry `dev` group.**
+  pytest, ruff, ty, pdoc, pre-commit, pytest-cov and detect-secrets no longer
+  appear in published wheel metadata — they were never meant to be
+  `pip install pycode-kg[dev]`-able by consumers. Same shape as the existing
+  `kg` group: locked and installable, never published, and a bare
+  `poetry install` stays core-runtime-only.
+
+  ```bash
+  poetry install --with dev   # replaces: poetry install --extras dev
+  ```
+
+  CI's three install steps and the INSTALLATION.md developer flow are updated
+  to match. pip-only setups can no longer install dev tooling (`pip install
+  -e ".[dev]"` is gone) — development now goes through Poetry.
+- **The `all` extra is now exactly `viz` + `viz3d`.** Dev tools are out (see
+  above), and the list is documented as a deliberate hand-copy: Poetry rejects
+  the drift-proof self-referential form (`pycode-kg[viz,viz3d]` — "listed as a
+  dependency of itself"), and repeating `kgmodule-utils[viz3d-render]` across
+  two extras breaks resolution, which is why bare `pyvista` stands in for that
+  extra's payload.
+
 ### Removed
 
 ### Fixed
+
+- **starlette could lock at two versions and silently corrupt the venv.**
+  streamlit (viz extra) caps starlette at `<1.4.0` while mcp and sse-starlette
+  float to any 1.x, so the lock carried both 1.3.1 and 1.6.0 with no
+  distinguishing markers — and an install could unpack both wheels over the
+  same `starlette/` directory, splicing `applications.py` into a file matching
+  neither wheel's RECORD hash. The damage surfaced far from the cause: a
+  `SyntaxError` inside starlette while importing `mcp.server.fastmcp`, failing
+  five MCP tests and aborting collection of `test_mcp_cold_start.py`. A direct
+  `starlette>=0.49.1,<1.4.0` constraint keeps resolution single-valued across
+  every extras combination; the lock now carries exactly one starlette entry
+  (1.3.1, the only version `pycodekg-mcp` is tested against). Worst case is
+  now a loud resolver conflict at lock time instead of a spliced install. Lift
+  the ceiling alongside the mcp-2 port or a streamlit cap raise.
 
 ## [0.22.0] - 2026-08-11
 

@@ -1,34 +1,34 @@
 {
-  "key": "78753627a05ff4e511033b0627289ea504a7b75b",
-  "branch": "main",
-  "timestamp": "2026-07-29T19:21:48.771358+00:00",
-  "version": "0.21.1",
+  "key": "f25f3bb629a0489d71d804d74f582b7725985c0e",
+  "branch": "claude/dev-group-starlette-pin",
+  "timestamp": "2026-08-13T23:04:57.127197+00:00",
+  "version": "0.22.0",
   "metrics": {
     "db_path": ".pycodekg/graph.sqlite",
-    "total_nodes": 6403,
-    "meaningful_nodes": 391,
-    "total_edges": 6025,
+    "total_nodes": 6181,
+    "meaningful_nodes": 383,
+    "total_edges": 5828,
     "node_counts": {
-      "class": 34,
-      "function": 148,
-      "method": 153,
-      "module": 56,
-      "symbol": 6012
+      "class": 30,
+      "function": 150,
+      "method": 146,
+      "module": 57,
+      "symbol": 5798
     },
     "edge_counts": {
-      "ATTR_ACCESS": 2070,
-      "CALLS": 2221,
-      "CONTAINS": 335,
-      "IMPORTS": 445,
-      "INHERITS": 12,
-      "RESOLVES_TO": 942
+      "ATTR_ACCESS": 1965,
+      "CALLS": 2177,
+      "CONTAINS": 326,
+      "IMPORTS": 452,
+      "INHERITS": 10,
+      "RESOLVES_TO": 898
     },
-    "module_count": 56,
-    "class_count": 34,
-    "function_count": 148,
-    "method_count": 153,
-    "docstring_coverage": 0.9279999999999999,
-    "snapshot_count": 132,
+    "module_count": 57,
+    "class_count": 30,
+    "function_count": 150,
+    "method_count": 146,
+    "docstring_coverage": 0.924,
+    "snapshot_count": 143,
     "critical_issues": 4,
     "complexity_median": 4,
     "module_node_counts": {
@@ -66,7 +66,7 @@
       "src/pycode_kg/graph_html.py": 31,
       "src/pycode_kg/index.py": 1,
       "src/pycode_kg/kg.py": 42,
-      "src/pycode_kg/layout3d.py": 187,
+      "src/pycode_kg/layout3d.py": 12,
       "src/pycode_kg/mcp_server.py": 493,
       "src/pycode_kg/module/__init__.py": 2,
       "src/pycode_kg/module/base.py": 8,
@@ -75,12 +75,13 @@
       "src/pycode_kg/pycodekg.py": 139,
       "src/pycode_kg/pycodekg_query.py": 1,
       "src/pycode_kg/pycodekg_snippet_packer.py": 1,
-      "src/pycode_kg/pycodekg_thorough_analysis.py": 964,
+      "src/pycode_kg/pycodekg_thorough_analysis.py": 894,
       "src/pycode_kg/pycodekg_viz.py": 1,
       "src/pycode_kg/pycodekg_viz3d.py": 1,
       "src/pycode_kg/ranking/__init__.py": 1,
       "src/pycode_kg/ranking/cli_rank.py": 46,
       "src/pycode_kg/ranking/coderank.py": 255,
+      "src/pycode_kg/render.py": 20,
       "src/pycode_kg/snapshots.py": 163,
       "src/pycode_kg/store.py": 1,
       "src/pycode_kg/theme.py": 31,
@@ -101,6 +102,12 @@
       "name": "fn:src/pycode_kg/ranking/coderank.py:compute_coderank",
       "callers": 7,
       "callees": 2,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/pycode_kg/pycodekg_thorough_analysis.py:PyCodeKGAnalyzer.to_markdown",
+      "callers": 6,
+      "callees": 28,
       "risk_level": "low"
     },
     {
@@ -144,25 +151,19 @@
       "callers": 4,
       "callees": 1,
       "risk_level": "low"
-    },
-    {
-      "name": "cls:src/pycode_kg/pycodekg_thorough_analysis.py:FunctionMetrics",
-      "callers": 4,
-      "callees": 0,
-      "risk_level": "low"
     }
   ],
   "issues": [
-    "[WARN] 1 orphaned functions found (`Snippet`) -- consider archiving or documenting",
+    "[WARN] 31 orphaned functions found (`main`, `visit_AsyncFunctionDef`, `visit_FunctionDef`, `main`, `visit_Assign`, `rerank_hybrid`, `analyze`, `visit_Attribute`, `KGModule`, `visit_Call`, `with_alpha`, `visit_ClassDef`, `edge_kinds`, `visit_Module`, `_analyze_coderank_section`, `_resolve_kind`, `_line_range`, `_post_build_hook`, `graph`, `Snippet`, `_compute_delta`, `rel_color`, `meaningful_node_kinds`, `_kind_priority`, `color_for`, `shape_for`, `make_extractor`, `node_kinds`, `_post_build_hook`, `analyze`, `make_extractor`) -- consider archiving or documenting",
     "[WARN] 1 functions with high fan-out -- potential orchestrators or god objects",
     "[WARN] `viz3d.py` has 51 functions/methods/classes -- consider splitting into focused submodules",
-    "[WARN] `pycodekg_thorough_analysis.py` has 36 functions/methods/classes -- consider splitting into focused submodules"
+    "[WARN] `pycodekg_thorough_analysis.py` has 40 functions/methods/classes -- consider splitting into focused submodules"
   ],
   "vs_previous": null,
   "vs_baseline": {
-    "nodes": 1422,
-    "edges": 1094,
-    "coverage_delta": -0.038000000000000034,
+    "nodes": 1200,
+    "edges": 897,
+    "coverage_delta": -0.041999999999999926,
     "critical_issues_delta": 3
   }
 }
