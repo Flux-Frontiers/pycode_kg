@@ -126,7 +126,7 @@ dependencies = [
     # Its only dependency is numpy, which `[semantic]` already pulls, so it adds
     # nothing to the install — it just declares what layout3d actually imports.
     # Unlike `[viz]`, there is no pyvis to leak into a bare install.
-    "kgmodule-utils[semantic,viz3d]>=0.12.0",
+    "kgmodule-utils[semantic,viz3d]>=0.12.1",
 ]
 
 [project.optional-dependencies]
@@ -137,7 +137,7 @@ dev = [
     "pre-commit>=4.5.1",
     "pytest>=9.0.3",
     "pytest-cov>=5.0.0",
-    "ruff>=0.4.0",
+    "ruff>=0.4.0,<0.16",
 ]
 viz = [
     "plotly>=5.14.0",
@@ -148,7 +148,11 @@ viz3d = [
     "markdown>=3.6",
     "param>=2.0.0",
     "PyQt5>=5.15.0",
-    "pyvista>=0.44.0",
+    # pyvista comes from the SDK, which is what needs it: tree_mesh, leaf_glyphs
+    # and smooth_paths live there. The main dependency above stays on plain
+    # [viz3d] (numpy only) so the nine repos that take pycode-kg do not acquire
+    # VTK for a layout import; rendering stays opt-in, here.
+    "kgmodule-utils[viz3d-render]>=0.12.1",
     "pyvistaqt>=0.11.0",
     "trame-vtk>=2.0.0",
 ]
@@ -173,7 +177,7 @@ all = [
     "pyvista>=0.44.0",
     "pyvistaqt>=0.11.0",
     "pyvis>=0.3.2",
-    "ruff>=0.4.0",
+    "ruff>=0.4.0,<0.16",
     "streamlit>=1.56.0",
     "trame-vtk>=2.0.0",
     "ty>=0.0.41",
