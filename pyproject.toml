@@ -7,7 +7,6 @@
 #
 # Quick install (pip)
 # -------------------
-#   pip install -e ".[dev]"             core + dev tools (pytest, ruff, ty, etc.)
 #   pip install -e ".[viz]"             core + Streamlit/Plotly/PyVis visualizer
 #   pip install -e ".[viz3d]"           core + PyVista 3D visualizer
 #   pip install -e ".[all]"             everything above
@@ -15,17 +14,19 @@
 #
 # Quick install (poetry)
 # ----------------------
-#   poetry install --all-extras         everything
-#   poetry install --extras "dev"       core + dev tools only
+#   poetry install --with dev --all-extras   everything
+#   poetry install --with dev           core + dev tools (pytest, ruff, ty, etc.)
 #   poetry install --extras "viz"       core + Streamlit/Plotly visualizer only
 #   poetry install --extras "viz3d"     core + 3D visualizer only
 #   poetry install                      core runtime only
 #
+# Dev tooling lives in the Poetry `dev` group, not an extra, so it stays out
+# of published wheel metadata. pip-only setups can't install it — use poetry
+# for development.
+#
 # First-time setup
 # ----------------
-#   python -m venv .venv
-#   source .venv/bin/activate       # Windows: .venv\Scripts\activate
-#   pip install -e ".[dev]"
+#   poetry install --with dev
 #
 # Run tests
 # ---------
@@ -102,6 +103,16 @@ dependencies = [
     "pandas>=2.0.0",
     "rich>=14.3.3,<15",
     "sentence-transformers>=5.4.1",
+    # Upper-bounded to keep resolution single-valued across extras: mcp and
+    # sse-starlette float to any 1.x, but streamlit (viz extra) caps starlette
+    # at <1.4.0. Without this ceiling a bare install resolves 1.6.0 while
+    # --extras viz resolves 1.3.1, poetry locks BOTH with no distinguishing
+    # markers, and an install can unpack the two wheels over the same
+    # starlette/ directory — splicing applications.py into a file matching
+    # neither RECORD hash and surfacing as a SyntaxError importing
+    # mcp.server.fastmcp. 1.3.1 is also the only version pycodekg-mcp is
+    # tested against. Floor matches sse-starlette's own requirement.
+    "starlette>=0.49.1,<1.4.0",
     # Core, not optional: kg.py hard-codes vector_backend="sqlite-vec", so every
     # build/query path goes through kg_utils.vector_backend.SqliteVecBackend,
     # which imports sqlite_vec at connect time. Exact pin — sqlite-vec is pre-1.0
@@ -130,15 +141,6 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = [
-    "detect-secrets>=1.5.0",
-    "ty>=0.0.41",
-    "pdoc>=14.0.0",
-    "pre-commit>=4.5.1",
-    "pytest>=9.0.3",
-    "pytest-cov>=5.0.0",
-    "ruff>=0.4.0,<0.16",
-]
 viz = [
     "plotly>=5.14.0",
     "pyvis>=0.3.2",
@@ -164,23 +166,23 @@ viz3d = [
 # doc-kg and pycode-kg each depend on the other. Install them by hand:
 #   pip install doc-kg pycode-kg         # both on PyPI
 #   pip install agent-kg kg-rag          # both on PyPI as of 2026-07-29
+# Union of the user-facing extras: keep this the exact sum of `viz` + `viz3d`
+# above, edited in the same commit as either. Two poetry resolver limits force
+# the hand-copy shape: a self-referential "pycode-kg[viz,viz3d]" is rejected
+# ("listed as a dependency of itself"), and repeating kgmodule-utils[viz3d-render]
+# here collides with the viz3d entry ("<empty>" constraint), so bare pyvista
+# stands in for it — pyvista>=0.44.0 is that extra's entire payload.
+# Dev tooling is deliberately absent: it lives in the Poetry dev group below.
 all = [
-    "detect-secrets>=1.5.0",
     "markdown>=3.6",
     "param>=2.0.0",
-    "pdoc>=14.0.0",
     "plotly>=5.14.0",
-    "pre-commit>=4.5.1",
     "PyQt5>=5.15.0",
-    "pytest>=9.0.3",
-    "pytest-cov>=5.0.0",
+    "pyvis>=0.3.2",
     "pyvista>=0.44.0",
     "pyvistaqt>=0.11.0",
-    "pyvis>=0.3.2",
-    "ruff>=0.4.0,<0.16",
     "streamlit>=1.56.0",
     "trame-vtk>=2.0.0",
-    "ty>=0.0.41",
 ]
 
 # Maintainer tooling, not a dependency of this package. `.mcp.json` serves a
@@ -198,6 +200,24 @@ all = [
 # contents are per-repo and minimal, covering only what that repo actually
 # invokes. Safe to lock because doc-kg keeps its own pycode-kg in a group too, so
 # the published metadata on either side has no cycle for the resolver to chase.
+# Dev tooling. A group rather than an extra so pytest/ruff/ty/pre-commit stay
+# out of the published wheel metadata — `pip install pycode-kg[dev]` was never
+# meant to be a thing consumers do. Optional to preserve the contract that a
+# bare `poetry install` is core runtime only (same shape as `kg` below).
+#
+#   poetry install --with dev
+[tool.poetry.group.dev]
+optional = true
+
+[tool.poetry.group.dev.dependencies]
+detect-secrets = ">=1.5.0"
+pdoc = ">=14.0.0"
+pre-commit = ">=4.5.1"
+pytest = ">=9.0.3"
+pytest-cov = ">=5.0.0"
+ruff = ">=0.4.0,<0.16"
+ty = ">=0.0.41"
+
 [tool.poetry.group.kg]
 optional = true
 
