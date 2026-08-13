@@ -126,7 +126,7 @@ dependencies = [
     # Its only dependency is numpy, which `[semantic]` already pulls, so it adds
     # nothing to the install — it just declares what layout3d actually imports.
     # Unlike `[viz]`, there is no pyvis to leak into a bare install.
-    "kgmodule-utils[semantic,viz3d]>=0.11.0",
+    "kgmodule-utils[semantic,viz3d]>=0.12.0",
 ]
 
 [project.optional-dependencies]
