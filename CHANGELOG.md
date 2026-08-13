@@ -11,6 +11,15 @@ Note: older entries preserve the API names used at that release (for example com
 
 ### Added
 
+- **`pycode_kg.render` — shared Markdown rendering primitives.** Every surface
+  that emits Markdown (MCP tools, Click commands, the thorough-analysis
+  report) builds GitHub-flavored tables by hand, and hand-rolled separator
+  rows drift — column counts stop matching headers, alignment differs between
+  the CLI and MCP rendering of the same data. `md_table()` builds the table
+  once, with per-column alignment. The thorough-analysis report adopts it in
+  the upcoming analyzer rework; MCP and CLI surfaces migrate as they're
+  touched.
+
 ### Changed
 
 - **Dev tooling moved from the `dev` extra to an optional Poetry `dev` group.**
