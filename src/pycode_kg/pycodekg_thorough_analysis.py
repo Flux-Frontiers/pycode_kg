@@ -24,12 +24,16 @@ Usage:
 """
 
 import datetime
+import importlib
+import inspect
 import json
 import logging
 import os
 import platform
+import re
 import subprocess
 import time
+import tomllib
 from collections import defaultdict
 from collections.abc import Callable
 from dataclasses import asdict, dataclass
@@ -39,6 +43,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
+from pycode_kg.render import md_table
 from pycode_kg.snapshots import SnapshotManager
 
 # Setup logging
@@ -109,6 +114,226 @@ class CallChain:
     total_callers: int
 
 
+# ── Markdown rendering helpers ───────────────────────────────────────────────
+
+_EDGE_RELS = ("CALLS", "CONTAINS", "IMPORTS", "ATTR_ACCESS", "INHERITS")
+
+
+def _sym(name: str, kind: str) -> str:
+    """Render a symbol as inline code, with call parens only for callables.
+
+    :param name: Symbol name or qualname.
+    :param kind: Node kind (``function``, ``method``, ``class``, ...).
+    :return: Backticked name, suffixed with ``()`` for functions and methods.
+    """
+    return f"`{name}()`" if kind in ("function", "method") else f"`{name}`"
+
+
+def _bar(pct: float) -> str:
+    """Render a coverage percentage as a severity tag.
+
+    :param pct: Coverage percentage in the range 0-100.
+    :return: ``[OK]`` at 80+, ``[WARN]`` at 50+, otherwise ``[LOW]``.
+    """
+    return "[OK]" if pct >= 80 else "[WARN]" if pct >= 50 else "[LOW]"
+
+
+def _snapshot_row(index: int, snap: dict) -> tuple:
+    """Flatten one snapshot record into a Snapshot History table row.
+
+    :param index: 1-based row number.
+    :param snap: Snapshot dict with ``timestamp``, ``branch``, ``version``,
+        ``metrics``, and an optional ``deltas.vs_previous`` block.
+    :return: Tuple of pre-formatted cells matching the history table columns.
+    """
+    m = snap.get("metrics", {})
+    cov_raw = m.get("docstring_coverage")
+    delta = (snap.get("deltas") or {}).get("vs_previous") or {}
+    dn, de, dc = delta.get("nodes"), delta.get("edges"), delta.get("coverage_delta")
+    return (
+        index,
+        snap.get("timestamp", "")[:19].replace("T", " "),
+        snap.get("branch", "?"),
+        snap.get("version", "?"),
+        m.get("total_nodes", "?"),
+        m.get("total_edges", "?"),
+        f"{cov_raw * 100:.1f}%" if cov_raw is not None else "?",
+        f"{dn:+d}" if dn is not None else "—",
+        f"{de:+d}" if de is not None else "—",
+        f"{dc * 100:+.1f}%" if dc is not None else "—",
+    )
+
+
+# ── Orphan-detection exclusion helpers ───────────────────────────────────────
+#
+# The exhaustive orphan scan (Phase 4) sees only edges inside the indexed
+# repo, so anything invoked by an external framework — ast.NodeVisitor
+# dispatch, the kg_utils pipeline, console scripts, a __main__ guard — has
+# zero visible callers.  These helpers identify those populations statically;
+# none of them import code from the *target* repo (the analyzer runs against
+# arbitrary repositories, so importing their modules would execute arbitrary
+# code and usually fail on missing dependencies anyway).
+
+_PROPERTY_DECORATOR_RE = re.compile(
+    r"@(?:functools\.)?(?:cached_)?property\b|@\w[\w.]*\.(?:setter|getter|deleter)\b"
+)
+
+# Builtin container/str method names.  The graph's RESOLVES_TO pass matches
+# attribute calls by their last segment, so ``visited.update(...)`` (a set
+# method) can resolve to any repo function that happens to be named
+# ``update``.  A dotted sym: stub ending in one of these names is almost
+# certainly a builtin method, not a repo call — chain tracing skips them.
+_BUILTIN_METHOD_NAMES = frozenset(
+    {
+        "add",
+        "append",
+        "clear",
+        "copy",
+        "count",
+        "discard",
+        "extend",
+        "format",
+        "get",
+        "index",
+        "insert",
+        "items",
+        "join",
+        "keys",
+        "pop",
+        "popitem",
+        "remove",
+        "replace",
+        "setdefault",
+        "sort",
+        "split",
+        "strip",
+        "update",
+        "values",
+        "write",
+    }
+)
+_MAIN_GUARD_RE = re.compile(r"^if\s+__name__\s*==\s*[\"']__main__[\"']\s*:", re.MULTILINE)
+
+# Fallback if kg_utils is not importable in the analyzer's own environment.
+_PROTOCOL_ATTRS_FALLBACK = frozenset(
+    {
+        "analyze",
+        "build",
+        "coverage_metric",
+        "edge_kinds",
+        "extract",
+        "kind",
+        "make_extractor",
+        "meaningful_node_kinds",
+        "node_kinds",
+        "pack",
+        "query",
+        "stats",
+        "_post_build_hook",
+    }
+)
+_protocol_attrs_cache: frozenset[str] | None = None
+
+
+def _protocol_attr_names() -> frozenset[str]:
+    """Attribute names of the framework base classes the KG SDK dispatches on.
+
+    A method overriding one of these on a class with an external base is
+    invoked by the framework (``kg_utils`` pipeline/extractor machinery), not
+    by in-repo call sites, so it must not be flagged as an orphan.  The names
+    are introspected from the analyzer's *own* installed ``kg_utils`` — never
+    from the target repo — and fall back to a static list if unavailable.
+
+    :return: Frozen set of non-dunder attribute names across the SDK bases.
+    """
+    global _protocol_attrs_cache
+    if _protocol_attrs_cache is not None:
+        return _protocol_attrs_cache
+
+    names: set[str] = set(_PROTOCOL_ATTRS_FALLBACK)
+    for module_name in ("kg_utils.module", "kg_utils.extractor", "kg_utils.pipeline"):
+        try:
+            mod = importlib.import_module(module_name)
+        except ImportError:  # pragma: no cover - kg_utils is a hard dependency
+            continue
+        for _, cls in inspect.getmembers(mod, inspect.isclass):
+            if cls.__module__.startswith("kg_utils"):
+                names.update(n for n in vars(cls) if not n.startswith("__"))
+    _protocol_attrs_cache = frozenset(names)
+    return _protocol_attrs_cache
+
+
+def _console_script_targets(pyproject_path: Path) -> set[tuple[str, str]]:
+    """Parse ``[project.scripts]`` into ``(dotted_module, function)`` pairs.
+
+    Console-script targets are invoked by the generated entry-point shims, so
+    they have zero in-repo callers by design.
+
+    :param pyproject_path: Path to the target repo's ``pyproject.toml``.
+    :return: Set of ``(dotted_module, attr)`` pairs; empty on any parse issue.
+    """
+    try:
+        data = tomllib.loads(pyproject_path.read_text(encoding="utf-8"))
+    except (OSError, tomllib.TOMLDecodeError):
+        return set()
+    scripts = data.get("project", {}).get("scripts", {})
+    targets: set[tuple[str, str]] = set()
+    for spec in scripts.values():
+        if isinstance(spec, str) and ":" in spec:
+            module, _, attr = spec.partition(":")
+            targets.add((module.strip(), attr.strip().split(".")[0]))
+    return targets
+
+
+def _main_guard_block(source: str) -> str:
+    """Return module source from the ``if __name__ == "__main__":`` guard on.
+
+    The guard idiomatically closes the module, so everything after it is a
+    good-enough approximation of the guarded block for name matching.
+
+    :param source: Full module source text.
+    :return: Source text from the guard line to EOF, or ``""`` if no guard.
+    """
+    m = _MAIN_GUARD_RE.search(source)
+    return source[m.start() :] if m else ""
+
+
+def _has_property_decorator(source_lines: list[str], def_lineno: int) -> bool:
+    """Check whether the ``def`` at *def_lineno* carries a property decorator.
+
+    Scans upward from the line above the ``def`` while decorator lines are
+    found, matching ``@property``, ``@cached_property`` (bare or via
+    ``functools``), and ``@<name>.setter/getter/deleter``.
+
+    :param source_lines: Module source split into lines.
+    :param def_lineno: 1-based line number of the ``def`` statement.
+    :return: True when a property-family decorator precedes the definition.
+    """
+    i = def_lineno - 2  # 0-based index of the line above the def
+    while i >= 0:
+        stripped = source_lines[i].strip()
+        if not stripped.startswith("@"):
+            break
+        if _PROPERTY_DECORATOR_RE.match(stripped):
+            return True
+        i -= 1
+    return False
+
+
+def _dotted_module(module_path: str) -> str:
+    """Convert a repo-relative module path to its dotted import path.
+
+    ``src/pycode_kg/mcp_server.py`` → ``pycode_kg.mcp_server``.  Only the
+    conventional ``src/`` layout prefix is stripped; other roots pass through.
+
+    :param module_path: Repo-relative path to a ``.py`` file.
+    :return: Dotted module path.
+    """
+    path = module_path.removesuffix(".py")
+    path = path.removeprefix("src/")
+    return path.replace("/", ".")
+
+
 class PyCodeKGAnalyzer:
     """Thorough repository analyzer using PyCodeKG graph.
 
@@ -146,6 +371,10 @@ class PyCodeKGAnalyzer:
         self.function_metrics: dict[str, FunctionMetrics] = {}
         self.module_metrics: dict[str, ModuleMetrics] = {}
         self.orphaned_functions: list[FunctionMetrics] = []
+        self.test_covered_orphans: list[FunctionMetrics] = []  # prod-orphaned, test-covered
+        self._source_cache: dict[str, str | None] = {}  # module_path → source text
+        self._orphan_scan_total: int = 0  # definitions the orphan scan examined
+        self.grade_components: list[dict] = []  # populated by _compute_quality_grade
         self.high_fanout_functions: list[FunctionMetrics] = []
         self.critical_paths: list[CallChain] = []
         self.circular_deps: list[tuple[str, str]] = []
@@ -457,79 +686,239 @@ class PyCodeKGAnalyzer:
             logger.warning(f"Fan-out analysis incomplete: {e}")
             self.console.print(f"[yellow]WARN[/yellow] Fan-out analysis incomplete: {e}")
 
-    def _is_special_entry_point(self, node: dict) -> bool:
-        """Check if a function is a special entry point that should be excluded from orphan detection.
+    def _module_source(self, module_path: str) -> str | None:
+        """Read (and cache) the source of a repo-relative module path.
 
-        Special entry points are intentional zero-callers that serve as:
-        - Protocol methods (__init__, __str__, __exit__, __enter__, etc.)
-        - Property methods (@property decorator, accessed as attributes)
-        - MCP tool functions decorated with @mcp.tool() in mcp_server.py
-        - CLI command handlers decorated with @click.command or @cli.command
+        :param module_path: Repo-relative path as stored on graph nodes.
+        :return: Source text, or None when the file cannot be read.
+        """
+        if module_path not in self._source_cache:
+            text: str | None = None
+            repo_root = getattr(self.kg, "repo_root", None)
+            if repo_root:
+                try:
+                    text = (Path(repo_root) / module_path).read_text(encoding="utf-8")
+                except OSError:
+                    text = None
+            self._source_cache[module_path] = text
+        return self._source_cache[module_path]
 
-        These functions have zero internal callers because they're invoked by
-        external frameworks (MCP protocol, Click CLI, Python runtime), not by
-        regular code. Flagging them as orphans is a false positive.
+    def _tests_corpus(self) -> str:
+        """Concatenate the target repo's ``tests/`` sources for name matching.
 
-        :param node: Node dictionary with keys: name, module, kind
-        :return: True if this node should be excluded from orphan detection
+        The graph indexes production directories only (``include_dirs``), so a
+        helper called solely from tests has zero visible callers.  Matching
+        orphan names against the test sources separates "dead everywhere" from
+        "prod-orphaned but test-covered".
+
+        :return: All test-file text joined together; ``""`` if no tests dir.
+        """
+        repo_root = getattr(self.kg, "repo_root", None)
+        if not repo_root:
+            return ""
+        tests_dir = Path(repo_root) / "tests"
+        if not tests_dir.is_dir():
+            return ""
+        chunks: list[str] = []
+        for path in sorted(tests_dir.rglob("*.py")):
+            try:
+                chunks.append(path.read_text(encoding="utf-8"))
+            except OSError:
+                continue
+        return "\n".join(chunks)
+
+    def _build_orphan_context(self) -> dict:
+        """Precompute the graph context the orphan exclusions need.
+
+        One pass over the edges table instead of per-node queries:
+
+        - ``class_of``: method node id → containing class node id
+        - ``external_bases``: class id → base names (transitive through
+          internal parents) that resolve to nothing inside the graph —
+          i.e. framework classes like ``ast.NodeVisitor`` or the kg_utils SDK
+        - ``inherited_classes``: class ids with at least one incoming INHERITS
+          edge, following sym: stubs through RESOLVES_TO
+        - ``script_targets``: ``(dotted_module, function)`` pairs declared in
+          ``[project.scripts]``
+
+        :return: Context dict consumed by :meth:`_is_special_entry_point`.
+        """
+        con = self.kg.store.con
+        contains = con.execute(
+            "SELECT src, dst FROM edges WHERE rel = 'CONTAINS' AND src LIKE 'cls:%'"
+        ).fetchall()
+        inherits = con.execute("SELECT src, dst FROM edges WHERE rel = 'INHERITS'").fetchall()
+        resolves = con.execute(
+            "SELECT src, dst FROM edges WHERE rel = 'RESOLVES_TO' AND src LIKE 'sym:%'"
+        ).fetchall()
+
+        class_of = {dst: src for src, dst in contains}
+        resolved: dict[str, list[str]] = defaultdict(list)
+        for src, dst in resolves:
+            if not dst.startswith("sym:"):
+                resolved[src].append(dst)
+
+        inherited_classes: set[str] = set()
+        direct_external: dict[str, set[str]] = defaultdict(set)
+        internal_parents: dict[str, set[str]] = defaultdict(set)
+        for child, parent in inherits:
+            targets = [parent] if not parent.startswith("sym:") else resolved.get(parent, [])
+            if targets:
+                inherited_classes.update(targets)
+                internal_parents[child].update(targets)
+            else:
+                # sym: stub with no internal resolution — an external base
+                direct_external[child].add(parent.removeprefix("sym:"))
+
+        def _transitive_external(cls_id: str) -> set[str]:
+            """Collect external base names reachable via internal parents."""
+            seen: set[str] = set()
+            queue = [cls_id]
+            out: set[str] = set()
+            while queue:
+                cur = queue.pop()
+                if cur in seen:
+                    continue
+                seen.add(cur)
+                out.update(direct_external.get(cur, set()))
+                queue.extend(internal_parents.get(cur, set()))
+            return out
+
+        external_bases = {
+            cls_id: _transitive_external(cls_id)
+            for cls_id in set(direct_external) | set(internal_parents)
+        }
+
+        script_targets: set[tuple[str, str]] = set()
+        repo_root = getattr(self.kg, "repo_root", None)
+        if repo_root:
+            script_targets = _console_script_targets(Path(repo_root) / "pyproject.toml")
+
+        return {
+            "class_of": class_of,
+            "external_bases": external_bases,
+            "inherited_classes": inherited_classes,
+            "script_targets": script_targets,
+        }
+
+    def _is_special_entry_point(self, node: dict, ctx: dict) -> bool:
+        """Check if a definition is framework-dispatched and thus never orphaned.
+
+        Special entry points are intentional zero-callers:
+
+        - Dunder methods (``__init__``, ``__exit__``, …) — Python runtime
+        - Property-family methods — accessed as attributes, not calls
+        - MCP tools in ``mcp_server.py`` — dispatched by the MCP router
+        - Click handlers in CLI modules — dispatched by Click
+        - ``visit_*`` on ``ast.NodeVisitor`` subclasses — ``getattr`` dispatch
+        - Overrides of SDK protocol methods on classes with external bases —
+          invoked by the kg_utils pipeline
+        - Classes with incoming INHERITS edges — used as bases
+        - ``[project.scripts]`` targets and functions called from a module's
+          ``if __name__ == "__main__":`` guard
+
+        :param node: Dict with node_id, name, kind, module_path, lineno.
+        :param ctx: Precomputed context from :meth:`_build_orphan_context`.
+        :return: True if this node should be excluded from orphan detection.
         """
         name = node.get("name", "")
+        kind = node.get("kind", "")
         module = node.get("module_path", "")
+        node_id = node.get("node_id", "")
 
-        # ===== PROTOCOL METHODS =====
-        # Special methods like __init__, __str__, __exit__, __enter__, etc.
-        # are invoked by Python's runtime machinery, not explicit code calls.
+        # Dunder methods: invoked by Python's runtime machinery.
         if name.startswith("__") and name.endswith("__"):
             return True
 
-        # ===== PROPERTY METHODS =====
-        # Methods decorated with @property are accessed as attributes (snapshot.key),
-        # not called as functions. The call graph only captures func() invocations,
-        # so properties appear to have zero callers even when used extensively.
-        # Known properties in the codebase:
-        property_names = {"key"}  # Snapshot.key (accessed in snapshots.py: 3+ places)
-        if name in property_names:
-            return True
-
-        # ===== MCP TOOL FUNCTIONS =====
-        # Functions in mcp_server.py decorated with @mcp.tool() are dispatched
-        # by the MCP protocol router, not by explicit Python call sites.
+        # MCP tools: dispatched by the MCP protocol router.
         if "mcp_server" in module:
             return True
 
-        # ===== CLI COMMAND HANDLERS =====
-        # Functions in cli modules that serve as command entry points.
-        # These are decorated with @click.command or @cli.command and are
-        # dispatched by Click's CLI router when users invoke the tool.
+        # Click handlers: dispatched by Click's CLI router.
         if "/cli/" in module or module.endswith("cli.py"):
             return True
+
+        # Classes used as bases: INHERITS is usage, even with zero CALLS.
+        if kind == "class" and node_id in ctx["inherited_classes"]:
+            return True
+
+        if kind == "method":
+            cls_id = ctx["class_of"].get(node_id)
+            ext = ctx["external_bases"].get(cls_id, set()) if cls_id else set()
+
+            # ast.NodeVisitor dispatch: visit() finds visit_* via getattr, so
+            # no CALLS edge ever exists.  Matched on the base name to survive
+            # both `ast.NodeVisitor` and a bare `NodeVisitor` import.
+            if ext and (name.startswith("visit_") or name == "generic_visit"):
+                if any(base.rsplit(".", 1)[-1] == "NodeVisitor" for base in ext):
+                    return True
+
+            # SDK protocol overrides: the kg_utils pipeline calls these on the
+            # base-class interface, outside the indexed graph.
+            if ext and name in _protocol_attr_names():
+                return True
+
+            # Property-family decorators: accessed as attributes, not calls.
+            source = self._module_source(module)
+            lineno = node.get("lineno")
+            if source and lineno:
+                if _has_property_decorator(source.splitlines(), lineno):
+                    return True
+
+        if kind == "function":
+            # Console-script targets from [project.scripts].
+            if (_dotted_module(module), name) in ctx["script_targets"]:
+                return True
+
+            # Functions invoked from the module's __main__ guard: the call is
+            # at module scope, which produces no CALLS edge.
+            source = self._module_source(module)
+            if source:
+                guard = _main_guard_block(source)
+                if guard and re.search(rf"\b{re.escape(name)}\s*\(", guard):
+                    return True
 
         return False
 
     def _analyze_dependencies(self) -> None:
-        """Phase 4: Analyze module-level dependencies.
+        """Phase 4: Detect orphaned definitions (zero callers).
 
-        Detects orphaned functions (zero callers), import cycles,
-        and tight coupling patterns. Excludes special entry points (protocol
-        methods and CLI commands) which have zero callers by design.
+        Scans **every** function, method, and class node in the graph rather
+        than a semantic sample.  A semantic seed query only surfaces nodes whose
+        docstrings read like dead code, which systematically misses genuinely
+        unreferenced modules — the exact population this phase exists to find.
+
+        A node is orphaned when it has no CALLS callers *and* no ATTR_ACCESS
+        callers, and is not a framework-dispatched entry point (see
+        ``_is_special_entry_point``).  Orphans whose name appears in the
+        repo's ``tests/`` sources are reported separately as "test-covered" —
+        they are unused in production code but exercised by tests, which
+        usually marks public API consumed by downstream packages rather than
+        dead code.
         """
 
         try:
-            # Query for potential orphaned code
-            result = self.kg.query(
-                "unused dead code deprecated helper utility internal",
-                k=15,
-                hop=0,
-                rels=("CONTAINS",),
-            )
+            ctx = self._build_orphan_context()
+            rows = self.kg.store.con.execute(
+                """
+                SELECT id, name, kind, module_path, lineno, end_lineno
+                FROM nodes
+                WHERE kind IN ('function', 'method', 'class')
+                  AND id NOT LIKE 'sym:%'
+                ORDER BY module_path, name
+                """
+            ).fetchall()
 
-            for node in result.nodes:
-                if node.get("kind") not in ["function", "method", "class"]:
-                    continue
-
-                node_id = node.get("id")
-                if not node_id:
-                    continue
+            self._orphan_scan_total = len(rows)
+            candidates: list[FunctionMetrics] = []
+            for node_id, name, kind, module_path, lineno, end_lineno in rows:
+                node = {
+                    "node_id": node_id,
+                    "name": name,
+                    "kind": kind,
+                    "module_path": module_path,
+                    "lineno": lineno,
+                }
 
                 try:
                     caller_list = self.kg.callers(node_id, rel="CALLS")
@@ -544,35 +933,44 @@ class PyCodeKGAnalyzer:
                     except (AttributeError, ValueError, RuntimeError):
                         attr_list = []
 
-                    # Functions with zero callers are flagged as orphaned,
-                    # UNLESS they're special entry points (skip these).
-                    if len(caller_list) == 0 and len(attr_list) == 0:
-                        # Exclude protocol methods and CLI entry points
-                        if self._is_special_entry_point(node):
-                            logger.debug(
-                                f"Skipping {node.get('name')} — "
-                                f"special entry point (framework-driven)"
-                            )
-                            continue
+                    if caller_list or attr_list:
+                        continue
 
-                        metrics = FunctionMetrics(
+                    # Exclude framework-dispatched entry points
+                    if self._is_special_entry_point(node, ctx):
+                        logger.debug(f"Skipping {name} — special entry point (framework-driven)")
+                        continue
+
+                    candidates.append(
+                        FunctionMetrics(
                             node_id=node_id,
-                            name=node.get("name", "unknown"),
-                            module=node.get("module_path", "unknown"),
-                            kind=node.get("kind", "unknown"),
+                            name=name or "unknown",
+                            module=module_path or "unknown",
+                            kind=kind or "unknown",
                             fan_in=0,
                             fan_out=0,
-                            lines=max(
-                                0,
-                                (node.get("end_lineno") or 0) - (node.get("lineno") or 0),
-                            ),
+                            lines=max(0, (end_lineno or 0) - (lineno or 0)),
                         )
-                        self.orphaned_functions.append(metrics)
+                    )
 
                 except (AttributeError, ValueError, RuntimeError) as e:
                     logger.debug(f"Could not check callers for {node_id}: {e}")
 
-            self._phase_result = f"{len(self.orphaned_functions)} orphaned functions"
+            # Split: names appearing in tests/ are prod-orphaned but exercised;
+            # only orphans with no callers *anywhere* count as dead code.
+            tests_text = self._tests_corpus()
+            for f in candidates:
+                if tests_text and re.search(rf"\b{re.escape(f.name)}\b", tests_text):
+                    self.test_covered_orphans.append(f)
+                else:
+                    self.orphaned_functions.append(f)
+
+            self.orphaned_functions.sort(key=lambda f: f.lines, reverse=True)
+            self.test_covered_orphans.sort(key=lambda f: f.lines, reverse=True)
+            self._phase_result = (
+                f"{len(self.orphaned_functions)} dead, "
+                f"{len(self.test_covered_orphans)} test-covered orphans"
+            )
 
         except (AttributeError, ValueError, RuntimeError) as e:
             logger.warning(f"Dependency analysis incomplete: {e}")
@@ -725,8 +1123,10 @@ class PyCodeKGAnalyzer:
                 try:
                     callers = self.kg.callers(func.node_id, rel="CALLS")
 
-                    # Trace forward from func through real CALLS edges.
-                    chain_names = [func.name]
+                    # Trace forward from func through real CALLS edges.  Steps
+                    # are module-qualified so a cross-module hop is visible as
+                    # such instead of reading like a same-file call.
+                    chain_names = [f"{Path(func.module).name}:{func.name}"]
                     chain_modules = [func.module]
                     seen_ids: set[str] = {func.node_id}
                     current_id = func.node_id
@@ -738,6 +1138,17 @@ class PyCodeKGAnalyzer:
                             dst_id = edge["dst"]
                             # Resolve sym: stubs via RESOLVES_TO.
                             if dst_id.startswith("sym:"):
+                                sym_name = dst_id.removeprefix("sym:")
+                                # ``visited.update`` / ``chunks.append`` style
+                                # attr calls resolve by last segment, so a repo
+                                # function named ``update`` captures every dict
+                                # and set mutation in the codebase.  Don't
+                                # follow builtin-method lookalikes.
+                                if (
+                                    "." in sym_name
+                                    and sym_name.rsplit(".", 1)[-1] in _BUILTIN_METHOD_NAMES
+                                ):
+                                    continue
                                 resolved = self.kg.store.con.execute(
                                     "SELECT dst FROM edges"
                                     " WHERE src = ? AND rel = 'RESOLVES_TO' LIMIT 1",
@@ -754,15 +1165,21 @@ class PyCodeKGAnalyzer:
                                 current_id = dst_id
                                 break
                         if callee:
-                            chain_names.append(callee.get("name", "?"))
-                            chain_modules.append(callee.get("module_path", ""))
+                            callee_module = callee.get("module_path", "")
+                            chain_names.append(
+                                f"{Path(callee_module).name}:{callee.get('name', '?')}"
+                            )
+                            chain_modules.append(callee_module)
                         else:
                             break
 
                     # Prepend top caller to give the chain context.
                     if callers:
                         caller_module = callers[0].get("module_path", "")
-                        chain_names = [callers[0].get("name", "?"), *chain_names]
+                        chain_names = [
+                            f"{Path(caller_module).name}:{callers[0].get('name', '?')}",
+                            *chain_names,
+                        ]
                         chain_modules = [caller_module, *chain_modules]
 
                     crosses_module = len(set(chain_modules)) > 1
@@ -1457,10 +1874,20 @@ class PyCodeKGAnalyzer:
 
         # Issues
         if len(self.orphaned_functions) > 0:
-            names = ", ".join(f"`{f.name}`" for f in self.orphaned_functions)
+            shown = self.orphaned_functions[:8]
+            names = ", ".join(f"`{f.module.rsplit('/', 1)[-1]}:{f.name}`" for f in shown)
+            more = len(self.orphaned_functions) - len(shown)
+            suffix = f" and {more} more" if more > 0 else ""
             self.issues.append(
-                f"[WARN] {len(self.orphaned_functions)} orphaned functions found "
-                f"({names}) -- consider archiving or documenting"
+                f"[WARN] {len(self.orphaned_functions)} dead-code candidates found "
+                f"({names}{suffix}) -- no callers in code or tests; verify against "
+                "downstream consumers, then remove or archive"
+            )
+        if len(self.test_covered_orphans) > 0:
+            self.issues.append(
+                f"[INFO] {len(self.test_covered_orphans)} definitions are unused in "
+                "production code but exercised by tests -- likely public API for "
+                "downstream packages; not counted against the quality grade"
             )
 
         if len(self.high_fanout_functions) > 0:
@@ -1517,49 +1944,69 @@ class PyCodeKGAnalyzer:
     def _compute_quality_grade(self) -> tuple[float, str, str]:
         """Compute an overall quality score, letter grade, and label.
 
-        Scoring (100 points total):
-        - Docstring coverage (0–40 pts): ≥80% → 40, ≥50% → 20, else 0
-        - Orphaned functions (0–25 pts): 0 → 25, 1–2 → 15, 3–5 → 5, else 0
-        - High fan-out functions (0–20 pts): 0 → 20, 1–2 → 12, else 4
-        - Circular dependencies (0–15 pts): 0 → 15, 1 → 8, else 0
+        Every component is a continuous curve rather than a step function, so
+        crossing a single threshold can no longer move the grade a full
+        letter, and dead code is measured as a *rate* so the score does not
+        punish repository growth.  Scoring (100 points total):
+
+        - Docstring coverage (0–40 pts): linear from 0% to full marks at 90%
+        - Dead-code candidates (0–25 pts): linear from 0% of scanned
+          definitions (25 pts) to ≥5% (0 pts); test-covered orphans are
+          excluded — they are usually public API
+        - High fan-out functions (0–20 pts): 4 pts lost per orchestrator
+        - Circular dependencies (0–15 pts): 5 pts lost per cycle
+
+        The per-component breakdown is stored on :attr:`grade_components` and
+        rendered in the Executive Summary, so a grade change is always
+        explainable from the report alone.
 
         :return: Tuple of (score 0–100, letter grade A–F, label string)
         """
-        score = 0.0
+        # Docstring coverage: full marks at 90%+, linear below.
+        pct = self.docstring_coverage.get("coverage_pct", 0) if self.docstring_coverage else 0
+        doc_pts = 40.0 * min(pct, 90.0) / 90.0
 
-        # Docstring coverage
-        cov = self.docstring_coverage
-        if cov:
-            pct = cov.get("coverage_pct", 0)
-            if pct >= 80:
-                score += 40
-            elif pct >= 50:
-                score += 20
+        # Dead code: rate against everything the orphan scan looked at.
+        n_dead = len(self.orphaned_functions)
+        scanned = max(self._orphan_scan_total, 1)
+        dead_rate = n_dead / scanned
+        dead_pts = 25.0 * max(0.0, 1.0 - dead_rate / 0.05)
 
-        # Orphaned functions
-        n_orphaned = len(self.orphaned_functions)
-        if n_orphaned == 0:
-            score += 25
-        elif n_orphaned <= 2:
-            score += 15
-        elif n_orphaned <= 5:
-            score += 5
-
-        # High fan-out functions
+        # High fan-out orchestrators: linear penalty per finding.
         n_fanout = len(self.high_fanout_functions)
-        if n_fanout == 0:
-            score += 20
-        elif n_fanout <= 2:
-            score += 12
-        else:
-            score += 4
+        fanout_pts = max(0.0, 20.0 - 4.0 * n_fanout)
 
-        # Circular dependencies
+        # Circular dependencies: linear penalty per cycle.
         n_circular = len(self.circular_deps)
-        if n_circular == 0:
-            score += 15
-        elif n_circular == 1:
-            score += 8
+        circular_pts = max(0.0, 15.0 - 5.0 * n_circular)
+
+        self.grade_components = [
+            {
+                "name": "Docstring coverage",
+                "points": doc_pts,
+                "max": 40,
+                "basis": f"{pct}% documented (full marks at 90%)",
+            },
+            {
+                "name": "Dead code",
+                "points": dead_pts,
+                "max": 25,
+                "basis": f"{n_dead} candidates / {scanned} definitions scanned ({dead_rate:.1%}; zero points at 5%)",
+            },
+            {
+                "name": "High fan-out",
+                "points": fanout_pts,
+                "max": 20,
+                "basis": f"{n_fanout} orchestrator(s); −4 pts each",
+            },
+            {
+                "name": "Circular dependencies",
+                "points": circular_pts,
+                "max": 15,
+                "basis": f"{n_circular} cycle(s); −5 pts each",
+            },
+        ]
+        score = doc_pts + dead_pts + fanout_pts + circular_pts
 
         if score >= 90:
             grade, label = "A", "Excellent"
@@ -1601,8 +2048,8 @@ class PyCodeKGAnalyzer:
                 else ""
             )
             immediate.append(
-                f"**Remove or archive orphaned functions** — {names}{suffix} have zero callers "
-                "and add maintenance burden"
+                f"**Triage dead-code candidates** — {names}{suffix} have zero callers in "
+                "code and tests; confirm no downstream package consumes them, then remove"
             )
 
         if self.high_fanout_functions:
@@ -1816,402 +2263,19 @@ class PyCodeKGAnalyzer:
         )
 
     def _write_report(self, report_path: str, elapsed_seconds: float = 0.0) -> None:
-        """Generate comprehensive markdown report with tables and analysis.
+        """Render the analysis and write it to a Markdown file.
+
+        Rendering lives entirely in :meth:`to_markdown` — this method only
+        supplies run provenance and performs the write.
 
         :param report_path: Path to write the markdown report to
         :param elapsed_seconds: Total analysis duration in seconds
         """
-        report_date = datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S UTC")
-        stats = self.stats
-        repo_name = self.kg.repo_root.name
-        quality_score, quality_grade, quality_label = self._compute_quality_grade()
-        grade_emoji = {"A": "[A]", "B": "[B]", "C": "[C]", "D": "[D]", "F": "[F]"}.get(
-            quality_grade, "[ ]"
+        markdown = self.to_markdown(
+            metadata=self._get_report_metadata(elapsed_seconds=elapsed_seconds),
+            elapsed_seconds=elapsed_seconds,
         )
-
-        metadata_block = self._get_report_metadata(elapsed_seconds=elapsed_seconds)
-
-        # Build comprehensive report
-        report = (
-            metadata_block
-            + f"""# {repo_name} Analysis
-
-**Generated:** {report_date}
-
----
-
-## Executive Summary
-
-This report provides a comprehensive architectural analysis of the **{repo_name}** repository using PyCodeKG's knowledge graph. The analysis covers complexity hotspots, module coupling, key call chains, and code quality signals to guide refactoring and architecture decisions.
-
-| Overall Quality | Grade | Score |
-|----------------|-------|-------|
-| {grade_emoji} **{quality_label}** | **{quality_grade}** | {quality_score:.0f} / 100 |
-
----
-
-## Baseline Metrics
-
-| Metric | Value |
-|--------|-------|
-| **Total Nodes** | {stats.get("total_nodes", "N/A")} |
-| **Total Edges** | {stats.get("total_edges", "N/A")} |
-| **Modules** | {len(self.module_metrics)} (of {stats.get("node_counts", {}).get("module", "?")} total) |
-| **Functions** | {stats.get("node_counts", {}).get("function", "N/A")} |
-| **Classes** | {stats.get("node_counts", {}).get("class", "N/A")} |
-| **Methods** | {stats.get("node_counts", {}).get("method", "N/A")} |
-
-### Edge Distribution
-
-| Relationship Type | Count |
-|-------------------|-------|
-| CALLS | {stats.get("edge_counts", {}).get("CALLS", 0)} |
-| CONTAINS | {stats.get("edge_counts", {}).get("CONTAINS", 0)} |
-| IMPORTS | {stats.get("edge_counts", {}).get("IMPORTS", 0)} |
-| ATTR_ACCESS | {stats.get("edge_counts", {}).get("ATTR_ACCESS", 0)} |
-| INHERITS | {stats.get("edge_counts", {}).get("INHERITS", 0)} |
-
----
-
-## Fan-In Ranking
-
-Most-called functions are potential bottlenecks or core functionality. These functions are heavily depended upon across the codebase.
-
-| # | Function | Module | Callers |
-|---|----------|--------|---------|
-"""
-        )
-
-        for i, metrics in enumerate(
-            sorted(self.function_metrics.values(), key=lambda m: m.fan_in, reverse=True)[:15],
-            1,
-        ):
-            report += f"| {i} | `{metrics.name}()` | {metrics.module} | **{metrics.fan_in}** |\n"
-
-        report += """
-
-**Insight:** Functions with high fan-in are either core APIs or bottlenecks. Review these for:
-- Thread safety and performance
-- Clear documentation and contracts
-- Potential for breaking changes
-
----
-
-## High Fan-Out Functions (Orchestrators)
-
-Functions that call many others may indicate complex orchestration logic or poor separation of concerns.
-
-"""
-
-        if self.high_fanout_functions:
-            report += """| # | Function | Module | Calls | Type |
-|---|----------|--------|-------|------|
-"""
-            for i, func in enumerate(
-                sorted(self.high_fanout_functions, key=lambda f: f.fan_out, reverse=True)[:10],
-                1,
-            ):
-                func_type = "Orchestrator" if func.fan_out > 50 else "Coordinator"
-                report += (
-                    f"| {i} | `{func.name}()` | {func.module} | "
-                    f"**{func.fan_out}** | {func_type} |\n"
-                )
-            report += "\n"
-        else:
-            report += "No extreme high fan-out functions detected. Well-balanced architecture.\n\n"
-
-        report += """---
-
-## Module Architecture
-
-Top modules by dependency coupling and cohesion (showing up to 10 with activity).
-Cohesion = incoming / (incoming + outgoing + 1); higher = more internally focused.
-
-"""
-
-        if self.module_metrics:
-            report += """| Module | Functions | Classes | Incoming | Outgoing | Cohesion |
-|--------|-----------|---------|----------|----------|----------|
-"""
-            for module, module_metric in sorted(
-                self.module_metrics.items(),
-                key=lambda x: x[1].functions + x[1].classes + x[1].methods,
-                reverse=True,
-            )[:10]:
-                report += (
-                    f"| `{module}` | {module_metric.functions} | {module_metric.classes} | "
-                    f"{len(module_metric.incoming_deps)} | {len(module_metric.outgoing_deps)} | "
-                    f"{module_metric.cohesion_score:.2f} |\n"
-                )
-            report += "\n"
-
-        report += """---
-
-## Key Call Chains
-
-Deepest call chains in the codebase.
-
-"""
-
-        if self.critical_paths:
-            for i, chain in enumerate(self.critical_paths[:5], 1):
-                chain_str = " → ".join(chain.chain)
-                report += f"**Chain {i}** (depth: {chain.depth})\n\n```\n{chain_str}\n```\n\n"
-        else:
-            report += "No deep call chains detected.\n\n"
-
-        report += """---
-
-## Public API Surface
-
-Identified public APIs (module-level functions with high usage).
-
-"""
-
-        if self.public_apis:
-            report += """| Function | Module | Fan-In | Type |
-|----------|--------|--------|------|
-"""
-            for api in sorted(self.public_apis, key=lambda a: a.fan_in, reverse=True)[:10]:
-                report += f"| `{api.name}()` | {api.module} | {api.fan_in} | {api.kind} |\n"
-        else:
-            report += "No public APIs identified.\n\n"
-
-        # --- Docstring Coverage section ---
-        cov = self.docstring_coverage
-        if cov:
-            overall_pct = cov["coverage_pct"]
-            pct_bar = "[OK]" if overall_pct >= 80 else "[WARN]" if overall_pct >= 50 else "[LOW]"
-            report += """---
-
-## Docstring Coverage
-
-Docstring coverage directly determines semantic retrieval quality. Nodes without
-docstrings embed only structured identifiers (`KIND/NAME/QUALNAME/MODULE`), where
-keyword search is as effective as vector embeddings. The semantic model earns its
-value only when a docstring is present.
-
-| Kind | Documented | Total | Coverage |
-|------|-----------|-------|----------|
-"""
-            for kind in ("function", "method", "class", "module"):
-                if kind in cov["by_kind"]:
-                    k = cov["by_kind"][kind]
-                    kind_pct = (k["with_doc"] / k["total"] * 100) if k["total"] else 0.0
-                    kind_bar = "[OK]" if kind_pct >= 80 else "[WARN]" if kind_pct >= 50 else "[LOW]"
-                    report += (
-                        f"| `{kind}` | {k['with_doc']} | {k['total']} | "
-                        f"{kind_bar} {kind_pct:.1f}% |\n"
-                    )
-            report += (
-                f"| **total** | **{cov['with_doc']}** | **{cov['total']}** | "
-                f"**{pct_bar} {overall_pct:.1f}%** |\n\n"
-            )
-
-            if overall_pct < 80:
-                undocumented = cov["total"] - cov["with_doc"]
-                report += (
-                    f"> **Recommendation:** {undocumented} nodes lack docstrings. "
-                    "Prioritize documenting high-fan-in functions and public API surface "
-                    "first — these have the highest impact on query accuracy.\n\n"
-                )
-        else:
-            report += "---\n\n## Docstring Coverage\n\nCoverage data not available.\n\n"
-
-        # --- Structural Importance Ranking section (module-level) ---
-        report += "---\n\n## Structural Importance Ranking (SIR)\n\n"
-        if self.centrality_modules:
-            report += (
-                "Weighted PageRank aggregated by module — reveals architectural spine. "
-                "Cross-module edges boosted 1.5×; private symbols penalized 0.85×. "
-                "Node-level detail: `pycodekg centrality --top 25`\n\n"
-            )
-            report += "| Rank | Score | Members | Module |\n"
-            report += "|------|-------|---------|--------|\n"
-            for m in self.centrality_modules[:15]:
-                report += (
-                    f"| {m['rank']} | {m['score']:.6f} | {m['member_count']} "
-                    f"| `{m['module_path']}` |\n"
-                )
-            report += "\n"
-        else:
-            report += "Centrality data not available.\n\n"
-
-        issues_text = (
-            "\n".join(f"- {issue}" for issue in self.issues)
-            if self.issues
-            else "- No major issues detected"
-        )
-        strengths_text = (
-            "\n".join(f"- {strength}" for strength in self.strengths)
-            if self.strengths
-            else "- Continue monitoring code quality"
-        )
-
-        report += f"""
-
----
-
-## Code Quality Issues
-
-{issues_text}
-
----
-
-## Architectural Strengths
-
-{strengths_text}
-
----
-
-## Recommendations
-
-{self._build_recommendations()}
-
----
-
-## Inheritance Hierarchy
-
-"""
-        inh = self.inheritance_analysis
-        if inh and inh.get("total_inherits_edges", 0) > 0:
-            report += (
-                f"**{inh['total_inherits_edges']}** INHERITS edges across "
-                f"**{len(inh['classes'])}** classes. "
-                f"Max depth: **{inh['max_depth']}**.\n\n"
-            )
-            report += "| Class | Module | Depth | Parents | Children |\n"
-            report += "|-------|--------|-------|---------|----------|\n"
-            for cls in inh["classes"][:20]:
-                report += (
-                    f"| `{cls['name']}` | {cls['module']} "
-                    f"| {cls['depth']} | {cls['parent_count']} | {cls['child_count']} |\n"
-                )
-            if inh.get("multiple_inheritance"):
-                report += (
-                    f"\n### Multiple Inheritance ({len(inh['multiple_inheritance'])} classes)\n\n"
-                )
-                for mi in inh["multiple_inheritance"]:
-                    bases = ", ".join(f"`{b}`" for b in mi["bases"])
-                    report += f"- `{mi['class']}` ({mi['module']}) inherits from {bases}\n"
-            if inh.get("diamonds"):
-                report += f"\n### Diamond Patterns ({len(inh['diamonds'])} detected)\n\n"
-                for d in inh["diamonds"]:
-                    common = ", ".join(f"`{a}`" for a in d["common_ancestors"])
-                    report += f"- `{d['class']}` ({d['module']}) — common ancestor(s): {common}\n"
-        else:
-            report += "No inheritance edges (no class hierarchies).\n"
-
-        # --- Snapshot History section ---
-        report += "\n\n---\n\n## Snapshot History\n\n"
-        if self.snapshot_history:
-            report += (
-                "Recent snapshots in reverse chronological order. "
-                "Δ columns show change vs. the immediately preceding snapshot.\n\n"
-            )
-            report += (
-                "| # | Timestamp | Branch | Version | Nodes | Edges | Coverage"
-                " | Δ Nodes | Δ Edges | Δ Coverage |\n"
-            )
-            report += (
-                "|---|-----------|--------|---------|-------|-------|----------"
-                "|---------|---------|------------|\n"
-            )
-            for i, snap in enumerate(self.snapshot_history, 1):
-                ts = snap.get("timestamp", "")[:19].replace("T", " ")
-                branch = snap.get("branch", "?")
-                version = snap.get("version", "?")
-                m = snap.get("metrics", {})
-                nodes = m.get("total_nodes", "?")
-                edges = m.get("total_edges", "?")
-                cov_raw = m.get("docstring_coverage", None)
-                cov_str = f"{cov_raw * 100:.1f}%" if cov_raw is not None else "?"
-
-                delta = (snap.get("deltas") or {}).get("vs_previous") or {}
-                dn = delta.get("nodes")
-                de = delta.get("edges")
-                dc = delta.get("coverage_delta")
-                dn_str = f"{dn:+d}" if dn is not None else "—"
-                de_str = f"{de:+d}" if de is not None else "—"
-                dc_str = f"{dc * 100:+.1f}%" if dc is not None else "—"
-
-                report += (
-                    f"| {i} | {ts} | {branch} | {version} | {nodes} | {edges}"
-                    f" | {cov_str} | {dn_str} | {de_str} | {dc_str} |\n"
-                )
-        else:
-            report += "No snapshots found. Run `pycodekg snapshot save <version>` to capture one.\n"
-
-        report += """
-
----
-
-## Appendix: Orphaned Code
-
-Functions with zero callers (potential dead code):
-
-"""
-
-        if self.orphaned_functions:
-            report += """| Function | Module | Lines |
-|----------|--------|-------|
-"""
-            for func in sorted(self.orphaned_functions, key=lambda f: f.lines, reverse=True)[:15]:
-                report += f"| `{func.name}()` | {func.module} | {func.lines} |\n"
-        else:
-            report += "No orphaned functions detected.\n"
-
-        # --- CodeRank Top Nodes section (Option D) ---
-        report += "---\n\n## CodeRank -- Global Structural Importance\n\n"
-        if self.coderank_top_nodes:
-            report += (
-                "Weighted PageRank over CALLS + IMPORTS + INHERITS edges "
-                "(test paths excluded). Scores are normalized to sum to 1.0. "
-                "This ranking seeds Phase 2 fan-in discovery and Phase 15 concern queries.\n\n"
-            )
-            report += "| Rank | Score | Kind | Name | Module |\n"
-            report += "|------|-------|------|------|--------|\n"
-            for i, n in enumerate(self.coderank_top_nodes[:20], 1):
-                report += (
-                    f"| {i} | {n['score']:.6f} | {n['kind']} "
-                    f"| `{n['qualname'] or n['name']}` | {n['module_path']} |\n"
-                )
-            report += "\n"
-        else:
-            report += "CodeRank data not available.\n\n"
-
-        # --- Concern-based Hybrid Ranking section (Option D) ---
-        report += "---\n\n## Concern-Based Hybrid Ranking\n\n"
-        if self.concern_analysis:
-            report += (
-                "Top structurally-dominant nodes per architectural concern "
-                "(0.60 × semantic + 0.25 × CodeRank + 0.15 × graph proximity).\n\n"
-            )
-            for entry in self.concern_analysis:
-                concern = entry["concern"]
-                report += f"### {concern.title()}\n\n"
-                report += "| Rank | Score | Kind | Name | Module |\n"
-                report += "|------|-------|------|------|--------|\n"
-                for n in entry["top_nodes"]:
-                    report += (
-                        f"| {n['rank']} | {n['score']} | {n['kind']} "
-                        f"| `{n['name']}` | {n['module']} |\n"
-                    )
-                report += "\n"
-        else:
-            report += "Concern analysis not available.\n\n"
-
-        elapsed_str = (
-            f"{elapsed_seconds:.1f}s" if elapsed_seconds < 60 else f"{elapsed_seconds / 60:.1f}m"
-        )
-        report += f"""
-
----
-
-*Report generated by PyCodeKG Thorough Analysis Tool — analysis completed in {elapsed_str}*
-"""
-
-        Path(report_path).write_text(report)
+        Path(report_path).write_text(markdown)
         self.console.print(f"[OK] Report written to {report_path}")
 
     def _compile_results(self) -> dict:
@@ -2235,13 +2299,21 @@ Functions with zero callers (potential dead code):
             for k, v in self.module_metrics.items()
             if v.total_fan_in > 0 or len(v.outgoing_deps) > 0
         }
+        quality_score, quality_grade, quality_label = self._compute_quality_grade()
         return {
             "timestamp": datetime.datetime.now(datetime.UTC).isoformat(),
             "statistics": self.stats,
+            "quality": {
+                "score": quality_score,
+                "grade": quality_grade,
+                "label": quality_label,
+                "components": self.grade_components,
+            },
             "docstring_coverage": self.docstring_coverage,
             "function_metrics": {k: asdict(v) for k, v in sorted_fn},
             "module_metrics": {k: asdict(v) for k, v in active_modules.items()},
             "orphaned_functions": [asdict(f) for f in self.orphaned_functions],
+            "test_covered_orphans": [asdict(f) for f in self.test_covered_orphans],
             "high_fanout_functions": [asdict(f) for f in self.high_fanout_functions],
             "critical_paths": [asdict(c) for c in self.critical_paths],
             "public_apis": [asdict(a) for a in self.public_apis],
@@ -2270,335 +2342,540 @@ Functions with zero callers (potential dead code):
             "concern_analysis": self.concern_analysis,
         }
 
-    def to_markdown(self) -> str:
+    def to_markdown(self, *, metadata: str = "", elapsed_seconds: float | None = None) -> str:
         """
-        Render the analysis results as a Markdown context document.
+        Render the full analysis as a Markdown document.
 
-        Similar to `SnippetPack.to_markdown()`, this produces a structured
-        Markdown document with sections for each analysis phase:
-        baseline metrics, complexity hotspots, high fan-out functions,
-        module architecture, critical paths, public APIs, docstring coverage,
-        issues, and strengths.
+        This is the single renderer behind every output surface: the CLI report
+        file (via :meth:`_write_report`), the ``analyze_repo()`` MCP tool, and
+        :meth:`PyCodeKG.analyze`.  One implementation is deliberate — the report
+        and the MCP tool previously rendered the same data through two separate
+        bodies, and they drifted (classes leaked into the fan-in table on one
+        path but not the other) with nothing to catch it.
 
-        The output is optimized for LLM ingestion with clear headers, tables,
-        and organized sections.
-
+        :param metadata: Optional run-provenance blockquote to prepend (version,
+            commit, platform).  Omitted when empty.
+        :param elapsed_seconds: Analysis duration.  When given, a timing footer
+            is appended; when ``None`` the footer is omitted.
         :return: Markdown-formatted string representing the full analysis.
         """
-        out: list[str] = []
         stats = self.stats
-
-        out.append("# PyCodeKG Repository Analysis\n")
-        out.append(f"**Generated:** {datetime.datetime.now(datetime.UTC).isoformat()}  \n")
-        out.append("\n---\n")
-
-        # Baseline Metrics
-        out.append("## Baseline Metrics\n")
-        out.append("| Metric | Value |")
-        out.append("|--------|-------|")
-        out.append(f"| Total Nodes | {stats.get('total_nodes', 'N/A')} |")
-        out.append(f"| Total Edges | {stats.get('total_edges', 'N/A')} |")
-        total_modules = stats.get("node_counts", {}).get("module", "?")
-        out.append(f"| Modules | {len(self.module_metrics)} (of {total_modules} total) |")
-        out.append(f"| Functions | {stats.get('node_counts', {}).get('function', 'N/A')} |")
-        out.append(f"| Classes | {stats.get('node_counts', {}).get('class', 'N/A')} |")
-        out.append(f"| Methods | {stats.get('node_counts', {}).get('method', 'N/A')} |")
-        out.append("")
-
-        out.append("### Edge Distribution")
-        out.append("| Relationship | Count |")
-        out.append("|---|---|")
-        for rel in ("CALLS", "CONTAINS", "IMPORTS", "ATTR_ACCESS", "INHERITS"):
-            count = stats.get("edge_counts", {}).get(rel, 0)
-            out.append(f"| {rel} | {count} |")
-        out.append("")
-
-        # Fan-In Ranking
-        out.append("## Fan-In Ranking\n")
-        if self.function_metrics:
-            out.append(
-                "Most-called functions and methods "
-                "(classes omitted — instantiation counts are not architectural signals).\n"
-            )
-            out.append("| # | Kind | Function | Module | Callers |")
-            out.append("|---|---|---|---|---|")
-            ranked_fan_in = [
-                m
-                for m in sorted(
-                    self.function_metrics.values(), key=lambda m: m.fan_in, reverse=True
-                )
-                if m.kind != "class"
-            ][:15]
-            for i, metrics in enumerate(ranked_fan_in, 1):
-                out.append(
-                    f"| {i} | {metrics.kind} | `{metrics.name}()` | {metrics.module} | {metrics.fan_in} |"
-                )
-        else:
-            out.append("No high fan-in functions identified.\n")
-        out.append("")
-
-        # High Fan-Out Functions
-        out.append("## High Fan-Out Functions (Orchestrators)\n")
-        if self.high_fanout_functions:
-            out.append(
-                "Functions that call many others may indicate complex orchestration logic.\n"
-            )
-            out.append("| # | Function | Module | Calls | Type |")
-            out.append("|---|---|---|---|---|")
-            for i, func in enumerate(
-                sorted(self.high_fanout_functions, key=lambda f: f.fan_out, reverse=True)[:10],
-                1,
-            ):
-                func_type = "Orchestrator" if func.fan_out > 50 else "Coordinator"
-                out.append(
-                    f"| {i} | `{func.name}()` | {func.module} | {func.fan_out} | {func_type} |"
-                )
-        else:
-            out.append("No high fan-out functions detected. Well-balanced architecture.\n")
-        out.append("")
-
-        # Module Architecture
-        out.append("## Module Architecture\n")
-        out.append(
-            "Cohesion = incoming / (incoming + outgoing + 1); higher = more internally focused.\n"
+        repo_name = Path(self.kg.repo_root).name
+        quality_score, quality_grade, quality_label = self._compute_quality_grade()
+        grade_tag = {"A": "[A]", "B": "[B]", "C": "[C]", "D": "[D]", "F": "[F]"}.get(
+            quality_grade, "[ ]"
         )
+        generated = datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S UTC")
+
+        out: list[str] = []
+        if metadata:
+            out += [metadata.rstrip("\n"), ""]
+
+        def rule() -> None:
+            out.extend(["", "---", ""])
+
+        out += [f"# {repo_name} Analysis", "", f"**Generated:** {generated}"]
+        rule()
+
+        # ── Executive Summary ────────────────────────────────────────────────
+        out += [
+            "## Executive Summary",
+            "",
+            f"This report provides a comprehensive architectural analysis of the "
+            f"**{repo_name}** repository using PyCodeKG's knowledge graph. The analysis "
+            "covers complexity hotspots, module coupling, key call chains, and code "
+            "quality signals to guide refactoring and architecture decisions.",
+            "",
+        ]
+        out += md_table(
+            ["Overall Quality", "Grade", "Score"],
+            [
+                (
+                    f"{grade_tag} **{quality_label}**",
+                    f"**{quality_grade}**",
+                    f"{quality_score:.1f} / 100",
+                )
+            ],
+        )
+        if self.grade_components:
+            out += [
+                "",
+                "Score components:",
+                "",
+            ]
+            out += md_table(
+                ["Component", "Points", "Max", "Basis"],
+                [
+                    (c["name"], f"{c['points']:.1f}", c["max"], c["basis"])
+                    for c in self.grade_components
+                ],
+                aligns="lrrl",
+            )
+        rule()
+
+        # ── Baseline Metrics ─────────────────────────────────────────────────
+        node_counts = stats.get("node_counts", {})
+        out += ["## Baseline Metrics", ""]
+        out += md_table(
+            ["Metric", "Value"],
+            [
+                ("**Total Nodes**", stats.get("total_nodes", "N/A")),
+                ("**Total Edges**", stats.get("total_edges", "N/A")),
+                (
+                    "**Modules**",
+                    f"{len(self.module_metrics)} (of {node_counts.get('module', '?')} total)",
+                ),
+                ("**Functions**", node_counts.get("function", "N/A")),
+                ("**Classes**", node_counts.get("class", "N/A")),
+                ("**Methods**", node_counts.get("method", "N/A")),
+            ],
+        )
+        out += ["", "### Edge Distribution", ""]
+        edge_counts = stats.get("edge_counts", {})
+        out += md_table(
+            ["Relationship Type", "Count"],
+            [(rel, edge_counts.get(rel, 0)) for rel in _EDGE_RELS],
+            aligns="lr",
+        )
+        rule()
+
+        # ── Fan-In Ranking ───────────────────────────────────────────────────
+        # Classes are excluded deliberately: their "callers" are instantiation
+        # sites, which measure how often the type is constructed, not how central
+        # the definition is.  Mixing them into a callable fan-in ranking makes a
+        # frequently-constructed dataclass outrank the real hot paths.
+        out += [
+            "## Fan-In Ranking",
+            "",
+            "Most-called functions and methods — potential bottlenecks or core "
+            "functionality.  Classes are omitted: instantiation counts are not "
+            "architectural fan-in.",
+            "",
+        ]
+        all_fan_in = [
+            m
+            for m in sorted(self.function_metrics.values(), key=lambda m: m.fan_in, reverse=True)
+            if m.kind != "class"
+        ]
+        ranked_fan_in = all_fan_in[:15]
+        if len(all_fan_in) > len(ranked_fan_in):
+            out[-2] += f"  Top {len(ranked_fan_in)} of {len(all_fan_in)} shown."
+        if ranked_fan_in:
+            out += md_table(
+                ["#", "Kind", "Function", "Module", "Callers"],
+                [
+                    (i, m.kind, _sym(m.name, m.kind), m.module, f"**{m.fan_in}**")
+                    for i, m in enumerate(ranked_fan_in, 1)
+                ],
+                aligns="rllr",
+            )
+            out += [
+                "",
+                "**Insight:** Functions with high fan-in are either core APIs or "
+                "bottlenecks. Review these for:",
+                "",
+                "- Thread safety and performance",
+                "- Clear documentation and contracts",
+                "- Potential for breaking changes",
+            ]
+        else:
+            out.append("No high fan-in functions identified.")
+        rule()
+
+        # ── High Fan-Out ─────────────────────────────────────────────────────
+        out += [
+            "## High Fan-Out Functions (Orchestrators)",
+            "",
+            "Functions that call many others may indicate complex orchestration "
+            "logic or poor separation of concerns.",
+            "",
+        ]
+        if self.high_fanout_functions:
+            top_fanout = sorted(self.high_fanout_functions, key=lambda f: f.fan_out, reverse=True)
+            out += md_table(
+                ["#", "Function", "Module", "Calls", "Type"],
+                [
+                    (
+                        i,
+                        _sym(f.name, f.kind),
+                        f.module,
+                        f"**{f.fan_out}**",
+                        "Orchestrator" if f.fan_out > 50 else "Coordinator",
+                    )
+                    for i, f in enumerate(top_fanout[:10], 1)
+                ],
+                aligns="rllrl",
+            )
+        else:
+            out.append("No extreme high fan-out functions detected. Well-balanced architecture.")
+        rule()
+
+        # ── Module Architecture ──────────────────────────────────────────────
+        out += ["## Module Architecture", ""]
         if self.module_metrics:
             total_modules = len(self.module_metrics)
             cap = min(10, total_modules)
-            out.append(
-                f"Top modules by dependency coupling and cohesion (showing {cap} of {total_modules} total).\n"
-            )
-            out.append("| Module | Functions | Classes | Incoming | Outgoing | Cohesion |")
-            out.append("|---|---|---|---|---|---|")
-            for module, module_metric in sorted(
+            out += [
+                f"Top modules by dependency coupling and cohesion "
+                f"(showing {cap} of {total_modules} with activity).",
+                "Cohesion = incoming / (incoming + outgoing + 1); higher = more "
+                "internally focused.  Modules with no in-repo callers are "
+                "externally driven (MCP router, CLI, GUI event loop) — their "
+                "0.00 cohesion is expected, not a coupling problem.",
+                "",
+            ]
+            ranked_modules = sorted(
                 self.module_metrics.items(),
-                key=lambda x: x[1].functions + x[1].classes + x[1].methods,
+                key=lambda kv: kv[1].functions + kv[1].classes + kv[1].methods,
                 reverse=True,
-            )[:cap]:
-                out.append(
-                    f"| `{module}` | {module_metric.functions} | {module_metric.classes} | "
-                    f"{len(module_metric.incoming_deps)} | {len(module_metric.outgoing_deps)} | "
-                    f"{module_metric.cohesion_score:.2f} |"
-                )
+            )[:cap]
+            out += md_table(
+                ["Module", "Functions", "Classes", "Incoming", "Outgoing", "Cohesion", "Note"],
+                [
+                    (
+                        f"`{module}`",
+                        mm.functions,
+                        mm.classes,
+                        len(mm.incoming_deps),
+                        len(mm.outgoing_deps),
+                        f"{mm.cohesion_score:.2f}",
+                        "externally driven" if not mm.incoming_deps else "",
+                    )
+                    for module, mm in ranked_modules
+                ],
+                aligns="lrrrrrl",
+            )
         else:
-            out.append("No module metrics available.\n")
-        out.append("")
+            out.append("No module metrics available.")
+        rule()
 
-        # Key Call Chains
-        out.append("## Key Call Chains\n")
+        # ── Key Call Chains ──────────────────────────────────────────────────
+        out += ["## Key Call Chains", ""]
         if self.critical_paths:
-            out.append("Deepest call chains in the codebase.\n")
+            out += ["Deepest call chains in the codebase.", ""]
             for i, chain in enumerate(self.critical_paths[:5], 1):
-                chain_str = " → ".join(chain.chain)
-                out.append(f"**Chain {i}** (depth: {chain.depth})\n")
-                out.append(f"```\n{chain_str}\n```\n")
+                out += [
+                    f"**Chain {i}** (depth: {chain.depth})",
+                    "",
+                    "```",
+                    " → ".join(chain.chain),
+                    "```",
+                    "",
+                ]
+            out.pop()
         else:
-            out.append("No deep call chains detected.\n")
-        out.append("")
+            out.append("No deep call chains detected.")
+        rule()
 
-        # Public API Surface
-        out.append("## Public API Surface\n")
+        # ── Public API Surface ───────────────────────────────────────────────
+        out += ["## Public API Surface", ""]
         if self.public_apis:
-            out.append("| Function | Module | Fan-In |")
-            out.append("|---|---|---|")
-            for api in sorted(self.public_apis, key=lambda a: a.fan_in, reverse=True)[:10]:
-                out.append(f"| `{api.name}()` | {api.module} | {api.fan_in} |")
+            top_apis = sorted(self.public_apis, key=lambda a: a.fan_in, reverse=True)[:10]
+            shown = (
+                f"  Top {len(top_apis)} of {len(self.public_apis)} shown."
+                if len(self.public_apis) > len(top_apis)
+                else ""
+            )
+            out += [
+                "Definitions re-exported from an `__init__.py` or otherwise "
+                f"reachable as public entry points, ranked by fan-in.{shown}",
+                "",
+            ]
+            out += md_table(
+                ["Name", "Module", "Fan-In", "Kind"],
+                [(_sym(a.name, a.kind), a.module, a.fan_in, a.kind) for a in top_apis],
+                aligns="llrl",
+            )
         else:
-            out.append("No public APIs identified.\n")
-        out.append("")
+            out.append("No public APIs identified.")
+        rule()
 
-        # Docstring Coverage
-        out.append("## Docstring Coverage\n")
+        # ── Docstring Coverage ───────────────────────────────────────────────
+        out += [
+            "## Docstring Coverage",
+            "",
+            "Docstring coverage directly determines semantic retrieval quality. Nodes "
+            "without docstrings embed only structured identifiers "
+            "(`KIND/NAME/QUALNAME/MODULE`), where keyword search is as effective as "
+            "vector embeddings. The semantic model earns its value only when a "
+            "docstring is present.",
+            "",
+        ]
         cov = self.docstring_coverage
         if cov:
             overall_pct = cov["coverage_pct"]
-            pct_bar = "[OK]" if overall_pct >= 80 else "[WARN]" if overall_pct >= 50 else "[LOW]"
-            out.append("| Kind | Documented | Total | Coverage |")
-            out.append("|---|---|---|---|")
+            cov_rows = []
             for kind in ("function", "method", "class", "module"):
                 if kind in cov["by_kind"]:
                     k = cov["by_kind"][kind]
                     kind_pct = (k["with_doc"] / k["total"] * 100) if k["total"] else 0.0
-                    kind_bar = "[OK]" if kind_pct >= 80 else "[WARN]" if kind_pct >= 50 else "[LOW]"
-                    out.append(
-                        f"| `{kind}` | {k['with_doc']} | {k['total']} | {kind_bar} {kind_pct:.1f}% |"
+                    cov_rows.append(
+                        (
+                            f"`{kind}`",
+                            k["with_doc"],
+                            k["total"],
+                            f"{_bar(kind_pct)} {kind_pct:.1f}%",
+                        )
                     )
-            out.append(
-                f"| **total** | **{cov['with_doc']}** | **{cov['total']}** | "
-                f"**{pct_bar} {overall_pct:.1f}%** |"
+            cov_rows.append(
+                (
+                    "**total**",
+                    f"**{cov['with_doc']}**",
+                    f"**{cov['total']}**",
+                    f"**{_bar(overall_pct)} {overall_pct:.1f}%**",
+                )
             )
+            out += md_table(["Kind", "Documented", "Total", "Coverage"], cov_rows, aligns="lrrl")
+            if overall_pct < 80:
+                undocumented = cov["total"] - cov["with_doc"]
+                out += [
+                    "",
+                    f"> **Recommendation:** {undocumented} nodes lack docstrings. "
+                    "Prioritize documenting high-fan-in functions and public API "
+                    "surface first — these have the highest impact on query accuracy.",
+                ]
         else:
-            out.append("Coverage data not available.\n")
-        out.append("")
+            out.append("Coverage data not available.")
+        rule()
 
-        # Structural Importance Ranking (module-level)
-        out.append("## Structural Importance Ranking (SIR)\n")
+        # ── Structural Importance Ranking ────────────────────────────────────
+        out += ["## Structural Importance Ranking (SIR)", ""]
         if self.centrality_modules:
-            out.append(
+            out += [
                 "Weighted PageRank aggregated by module — reveals architectural spine. "
                 "Cross-module edges boosted 1.5×; private symbols penalized 0.85×. "
-                "Node-level detail: `pycodekg centrality --top 25`\n"
+                "Node-level detail: `pycodekg centrality --top 25`",
+                "",
+            ]
+            out += md_table(
+                ["Rank", "Score", "Members", "Module"],
+                [
+                    (m["rank"], f"{m['score']:.6f}", m["member_count"], f"`{m['module_path']}`")
+                    for m in self.centrality_modules[:15]
+                ],
+                aligns="rrrl",
             )
-            out.append("| Rank | Score | Members | Module |")
-            out.append("|------|-------|---------|--------|")
-            for m in self.centrality_modules[:15]:
-                out.append(
-                    f"| {m['rank']} | {m['score']:.6f} | {m['member_count']} "
-                    f"| `{m['module_path']}` |"
-                )
         else:
-            out.append("Centrality data not available.\n")
-        out.append("")
+            out.append("Centrality data not available.")
+        rule()
 
-        # Issues
-        out.append("## Code Quality Issues\n")
-        if self.issues:
-            for issue in self.issues:
-                out.append(f"- {issue}")
-        else:
-            out.append("- No major issues detected")
-        out.append("")
+        # ── Issues / Strengths / Recommendations ─────────────────────────────
+        out += ["## Code Quality Issues", ""]
+        out += [f"- {issue}" for issue in self.issues] or ["- No major issues detected"]
+        rule()
 
-        # Strengths
-        out.append("## Architectural Strengths\n")
-        if self.strengths:
-            for strength in self.strengths:
-                out.append(f"- {strength}")
-        else:
-            out.append("- Continue monitoring code quality")
-        out.append("")
+        out += ["## Architectural Strengths", ""]
+        out += [f"- {s}" for s in self.strengths] or ["- Continue monitoring code quality"]
+        rule()
 
-        # Inheritance Hierarchy
+        out += ["## Recommendations", "", self._build_recommendations().strip()]
+        rule()
+
+        # ── Inheritance Hierarchy ────────────────────────────────────────────
+        out += ["## Inheritance Hierarchy", ""]
         inh = self.inheritance_analysis
-        out.append("## Inheritance Hierarchy\n")
         if inh and inh.get("total_inherits_edges", 0) > 0:
-            out.append(
+            out += [
                 f"**{inh['total_inherits_edges']}** INHERITS edges across "
-                f"**{len(inh['classes'])}** classes. "
-                f"Max depth: **{inh['max_depth']}**.\n"
+                f"**{len(inh['classes'])}** classes. Max depth: **{inh['max_depth']}**.",
+                "",
+            ]
+            out += md_table(
+                ["Class", "Module", "Depth", "Parents", "Children"],
+                [
+                    (
+                        f"`{cls['name']}`",
+                        cls["module"],
+                        cls["depth"],
+                        cls["parent_count"],
+                        cls["child_count"],
+                    )
+                    for cls in inh["classes"][:20]
+                ],
+                aligns="llrrr",
             )
-            out.append("| Class | Module | Depth | Parents | Children |")
-            out.append("|-------|--------|-------|---------|----------|")
-            for cls in inh["classes"][:20]:
-                out.append(
-                    f"| `{cls['name']}` | {cls['module']} "
-                    f"| {cls['depth']} | {cls['parent_count']} | {cls['child_count']} |"
-                )
-            out.append("")
             if inh.get("multiple_inheritance"):
-                out.append(
-                    f"### Multiple Inheritance ({len(inh['multiple_inheritance'])} classes)\n"
-                )
+                out += [
+                    "",
+                    f"### Multiple Inheritance ({len(inh['multiple_inheritance'])} classes)",
+                    "",
+                ]
                 for mi in inh["multiple_inheritance"]:
                     bases = ", ".join(f"`{b}`" for b in mi["bases"])
                     out.append(f"- `{mi['class']}` ({mi['module']}) inherits from {bases}")
-                out.append("")
             if inh.get("diamonds"):
-                out.append(f"### Diamond Patterns ({len(inh['diamonds'])} detected)\n")
+                out += ["", f"### Diamond Patterns ({len(inh['diamonds'])} detected)", ""]
                 for d in inh["diamonds"]:
                     common = ", ".join(f"`{a}`" for a in d["common_ancestors"])
                     out.append(f"- `{d['class']}` ({d['module']}) — common ancestor(s): {common}")
-                out.append("")
         else:
-            out.append("No inheritance edges (no class hierarchies in this codebase).\n")
-        out.append("")
+            out.append("No inheritance edges (no class hierarchies).")
+        rule()
 
-        # Snapshot History
-        out.append("## Snapshot History\n")
+        # ── Snapshot History ─────────────────────────────────────────────────
+        out += ["## Snapshot History", ""]
         if self.snapshot_history:
-            out.append(
-                "Recent snapshots (reverse chronological). "
-                "Δ columns show change vs. the immediately preceding snapshot.\n"
-            )
-            out.append(
-                "| # | Timestamp | Branch | Version | Nodes | Edges | Coverage"
-                " | Δ Nodes | Δ Edges | Δ Coverage |"
-            )
-            out.append(
-                "|---|-----------|--------|---------|-------|-------|----------"
-                "|---------|---------|------------|"
-            )
-            for i, snap in enumerate(self.snapshot_history, 1):
-                ts = snap.get("timestamp", "")[:19].replace("T", " ")
-                branch = snap.get("branch", "?")
-                version = snap.get("version", "?")
-                m = snap.get("metrics", {})
-                nodes = m.get("total_nodes", "?")
-                edges = m.get("total_edges", "?")
-                cov_raw = m.get("docstring_coverage", None)
-                cov_str = f"{cov_raw * 100:.1f}%" if cov_raw is not None else "?"
 
-                delta = (snap.get("deltas") or {}).get("vs_previous") or {}
-                dn = delta.get("nodes")
-                de = delta.get("edges")
-                dc = delta.get("coverage_delta")
-                dn_str = f"{dn:+d}" if dn is not None else "—"
-                de_str = f"{de:+d}" if de is not None else "—"
-                dc_str = f"{dc * 100:+.1f}%" if dc is not None else "—"
-
-                out.append(
-                    f"| {i} | {ts} | {branch} | {version} | {nodes} | {edges}"
-                    f" | {cov_str} | {dn_str} | {de_str} | {dc_str} |"
+            def _unchanged(snap: dict) -> bool:
+                """A snapshot whose Δ vs. the previous one is all zeros."""
+                delta = (snap.get("deltas") or {}).get("vs_previous")
+                if not delta:
+                    return False  # no baseline — always show
+                return (
+                    delta.get("nodes") == 0
+                    and delta.get("edges") == 0
+                    and not delta.get("coverage_delta")
                 )
-        else:
-            out.append(
-                "No snapshots found. Run `pycodekg snapshot save <version>` to capture one.\n"
-            )
-        out.append("")
 
-        # Orphaned Functions
-        out.append("## Orphaned Code\n")
+            # Keep the most recent snapshot (current state) and every row that
+            # actually changed; collapse runs of +0/+0/+0.0% rows to a note.
+            rows = [
+                (i, snap)
+                for i, snap in enumerate(self.snapshot_history, 1)
+                if i == 1 or not _unchanged(snap)
+            ]
+            elided = len(self.snapshot_history) - len(rows)
+            note = f"  {elided} unchanged snapshot(s) elided." if elided else ""
+            out += [
+                "Recent snapshots in reverse chronological order. Δ columns show "
+                f"change vs. the immediately preceding snapshot.{note}",
+                "",
+            ]
+            out += md_table(
+                [
+                    "#",
+                    "Timestamp",
+                    "Branch",
+                    "Version",
+                    "Nodes",
+                    "Edges",
+                    "Coverage",
+                    "Δ Nodes",
+                    "Δ Edges",
+                    "Δ Coverage",
+                ],
+                [_snapshot_row(i, snap) for i, snap in rows],
+                aligns="rlllrrrrrr",
+            )
+        else:
+            out.append("No snapshots found. Run `pycodekg snapshot save <version>` to capture one.")
+        rule()
+
+        # ── Orphaned Code ────────────────────────────────────────────────────
+        out += ["## Orphaned Code", ""]
         if self.orphaned_functions:
-            out.append("Functions with zero callers (potential dead code).\n")
-            out.append("| Function | Module | Lines |")
-            out.append("|---|---|---|")
-            for func in sorted(self.orphaned_functions, key=lambda f: f.lines, reverse=True)[:15]:
-                out.append(f"| `{func.name}()` | {func.module} | {func.lines} |")
+            top_orphans = self.orphaned_functions[:15]
+            shown = (
+                f"  Top {len(top_orphans)} of {len(self.orphaned_functions)} by size shown."
+                if len(self.orphaned_functions) > len(top_orphans)
+                else ""
+            )
+            out += [
+                f"{len(self.orphaned_functions)} definitions have no callers in code "
+                "or tests (dead-code candidates).  Framework-dispatched entry points — "
+                "dunder/protocol methods, properties, Click commands, MCP tools, "
+                "`ast.NodeVisitor` dispatch, SDK protocol overrides, console scripts, "
+                f"`__main__` guards — are already excluded.{shown}",
+                "",
+            ]
+            out += md_table(
+                ["Name", "Kind", "Module", "Lines"],
+                [(_sym(f.name, f.kind), f.kind, f.module, f.lines) for f in top_orphans],
+                aligns="lllr",
+            )
         else:
-            out.append("No orphaned functions detected.\n")
-        out.append("")
+            out.append("No dead-code candidates detected.")
+        if self.test_covered_orphans:
+            top_tested = self.test_covered_orphans[:15]
+            shown = (
+                f"  Top {len(top_tested)} of {len(self.test_covered_orphans)} by size shown."
+                if len(self.test_covered_orphans) > len(top_tested)
+                else ""
+            )
+            out += [
+                "",
+                f"{len(self.test_covered_orphans)} further definitions are unused in "
+                "production code but exercised by tests — likely public API consumed "
+                "by downstream packages.  Not counted against the quality grade; "
+                f"review for intentional export.{shown}",
+                "",
+            ]
+            out += md_table(
+                ["Name", "Kind", "Module", "Lines"],
+                [(_sym(f.name, f.kind), f.kind, f.module, f.lines) for f in top_tested],
+                aligns="lllr",
+            )
+        rule()
 
-        # CodeRank Top Nodes (Option D)
-        out.append("## CodeRank -- Global Structural Importance\n")
+        # ── CodeRank ─────────────────────────────────────────────────────────
+        out += ["## CodeRank — Global Structural Importance", ""]
         if self.coderank_top_nodes:
-            out.append(
-                "Weighted PageRank over CALLS + IMPORTS + INHERITS edges "
-                "(test paths excluded). Scores normalized to sum to 1.0.\n"
+            top_ranked = self.coderank_top_nodes[:20]
+            shown = (
+                f"  Top {len(top_ranked)} of {len(self.coderank_top_nodes)} shown."
+                if len(self.coderank_top_nodes) > len(top_ranked)
+                else ""
             )
-            out.append("| Rank | Score | Kind | Name | Module |")
-            out.append("|------|-------|------|------|--------|")
-            for i, n in enumerate(self.coderank_top_nodes[:20], 1):
-                out.append(
-                    f"| {i} | {n['score']:.6f} | {n['kind']} "
-                    f"| `{n['qualname'] or n['name']}` | {n['module_path']} |"
-                )
-        else:
-            out.append("CodeRank data not available.\n")
-        out.append("")
-
-        # Concern-based Hybrid Ranking (Option D)
-        out.append("## Concern-Based Hybrid Ranking\n")
-        if self.concern_analysis:
-            out.append(
-                "Top structurally-dominant nodes per architectural concern "
-                "(0.60 × semantic + 0.25 × CodeRank + 0.15 × graph proximity).\n"
-            )
-            for entry in self.concern_analysis:
-                concern = entry["concern"]
-                out.append(f"### {concern.title()}\n")
-                out.append("| Rank | Score | Kind | Name | Module |")
-                out.append("|------|-------|------|------|--------|")
-                for n in entry["top_nodes"]:
-                    out.append(
-                        f"| {n['rank']} | {n['score']} | {n['kind']} "
-                        f"| `{n['name']}` | {n['module']} |"
+            out += [
+                "Weighted PageRank over CALLS + IMPORTS + INHERITS edges (test paths "
+                "excluded). Scores are normalized to sum to 1.0. This ranking seeds "
+                f"fan-in discovery and the concern queries below.{shown}",
+                "",
+            ]
+            out += md_table(
+                ["Rank", "Score", "Kind", "Name", "Module"],
+                [
+                    (
+                        i,
+                        f"{n['score']:.6f}",
+                        n["kind"],
+                        _sym(n["qualname"] or n["name"], n["kind"]),
+                        n["module_path"],
                     )
-                out.append("")
+                    for i, n in enumerate(top_ranked, 1)
+                ],
+                aligns="rrlll",
+            )
         else:
-            out.append("Concern analysis not available.\n")
-        out.append("")
+            out.append("CodeRank data not available.")
+        rule()
 
-        return "\n".join(out)
+        # ── Concern-Based Hybrid Ranking ─────────────────────────────────────
+        out += ["## Concern-Based Hybrid Ranking", ""]
+        if self.concern_analysis:
+            out += [
+                "Top structurally-dominant nodes per architectural concern "
+                "(0.60 × semantic + 0.25 × CodeRank + 0.15 × graph proximity).",
+                "",
+            ]
+            for entry in self.concern_analysis:
+                out += [f"### {entry['concern'].title()}", ""]
+                out += md_table(
+                    ["Rank", "Score", "Kind", "Name", "Module"],
+                    [
+                        (n["rank"], n["score"], n["kind"], _sym(n["name"], n["kind"]), n["module"])
+                        for n in entry["top_nodes"]
+                    ],
+                    aligns="rrlll",
+                )
+                out.append("")
+            out.pop()
+        else:
+            out.append("Concern analysis not available.")
+
+        if elapsed_seconds is not None:
+            elapsed_str = (
+                f"{elapsed_seconds:.1f}s"
+                if elapsed_seconds < 60
+                else f"{elapsed_seconds / 60:.1f}m"
+            )
+            rule()
+            out.append(
+                f"*Report generated by PyCodeKG Thorough Analysis Tool — "
+                f"analysis completed in {elapsed_str}*"
+            )
+
+        return "\n".join(out) + "\n"
 
     def print_summary(self) -> None:
         """Print analysis summary to console."""

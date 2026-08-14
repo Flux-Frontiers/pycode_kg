@@ -22,6 +22,42 @@ Note: older entries preserve the API names used at that release (for example com
 
 ### Changed
 
+- **Thorough analysis: orphan detection is exhaustive *and* accurate.** Phase 4
+  now scans every function/method/class node via SQL instead of seeding from a
+  semantic query — the old sample only surfaced nodes whose docstrings *read*
+  like dead code. The exhaustive scan initially exploded the orphan count
+  (2 → 31 on this repo, grade B → C) because `_is_special_entry_point` missed
+  whole classes of framework dispatch. It now excludes: `visit_*` methods on
+  `ast.NodeVisitor` subclasses (getattr dispatch), overrides of the kg_utils
+  SDK protocol on classes with external bases (introspected from the
+  analyzer's own installed `kg_utils`), classes used only via INHERITS,
+  `[project.scripts]` targets, functions called from a module's
+  `if __name__ == "__main__":` guard, and property-family decorators
+  (replacing a hardcoded name list). Orphans whose names appear in `tests/`
+  are split into a separate "prod-orphaned but test-covered" table — usually
+  public API consumed downstream — and only true dead-code candidates count
+  against the grade. On this repo: 31 flagged → 4 dead + 6 test-covered, each
+  exclusion class pinned by a regression test.
+- **Thorough analysis: the quality grade is a continuous curve with a printed
+  breakdown.** Every component was a step function, so one boundary crossing
+  moved the grade a full letter (the B/82 → C/67 swing between two runs a day
+  apart). Now: docstrings linear to full marks at 90%, dead code as a *rate*
+  of definitions scanned (repo growth is not punished; zero points at 5%),
+  −4 pts per high-fan-out orchestrator, −5 per import cycle. The per-component
+  breakdown renders under the Executive Summary score and in the JSON export's
+  new `quality` block, so a grade change is explainable from the report alone.
+  One extra finding shifts the score by points, never a letter.
+- **Thorough analysis: report accuracy polish.** Chain tracing no longer
+  follows dotted `sym:` stubs ending in builtin container/str method names —
+  the graph's RESOLVES_TO pass matches attr calls by last segment, so
+  `visited.update(...)` resolved to the `update()` Click command and
+  fabricated the report's only "deep call chain" (the builder-side fix is
+  tracked in `analysis/analysis_improvement_plan_20260813.md`). Chain steps
+  are module-qualified. Modules with no in-repo callers are marked
+  "externally driven" instead of reading as worst-coupled. Unchanged snapshot
+  rows collapse to an elision note, and every truncated top-N table says
+  "Top N of M shown".
+
 - **Dev tooling moved from the `dev` extra to an optional Poetry `dev` group.**
   pytest, ruff, ty, pdoc, pre-commit, pytest-cov and detect-secrets no longer
   appear in published wheel metadata — they were never meant to be
