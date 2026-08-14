@@ -28,7 +28,6 @@ from pycode_kg.module.types import (
     SnippetPack,
 )
 from pycode_kg.pycodekg import DEFAULT_MODEL
-from pycode_kg.store import GraphStore
 
 # ---------------------------------------------------------------------------
 # Re-export result types for backwards compatibility
@@ -174,16 +173,10 @@ class PyCodeKG(KGModule):
         """
         return _PYCODEKG_KIND_PRIORITY.get(kind, 99)
 
-    def _post_build_hook(self, store: GraphStore) -> None:
-        """Resolve Python symbol stubs after writing nodes/edges.
-
-        Called by :meth:`~pycode_kg.module.base.KGModule.build_graph` after
-        ``store.write()``.  Links ``sym:`` import stubs to their definitions
-        via ``RESOLVES_TO`` edges.
-
-        :param store: The :class:`~pycode_kg.store.GraphStore` just written to.
-        """
-        store.resolve_symbols()
+    # _post_build_hook is inherited from module.base.KGModule, which runs
+    # resolve_symbols_pruned() — resolution plus builtin-method-lookalike
+    # pruning (see pycode_kg.resolution).  A local override existed here that
+    # merely duplicated the base behaviour; it is gone.
 
     # ------------------------------------------------------------------
     # Backwards-compatible CodeGraph property

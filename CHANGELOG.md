@@ -22,6 +22,44 @@ Note: older entries preserve the API names used at that release (for example com
 
 ### Changed
 
+- **Thorough analysis: orphan detection is exhaustive *and* accurate.** Phase 4
+  now scans every function/method/class node via SQL instead of seeding from a
+  semantic query — the old sample only surfaced nodes whose docstrings *read*
+  like dead code. The exhaustive scan initially exploded the orphan count
+  (2 → 31 on this repo, grade B → C) because `_is_special_entry_point` missed
+  whole classes of framework dispatch. It now excludes: `visit_*` methods on
+  `ast.NodeVisitor` subclasses (getattr dispatch), overrides of the kg_utils
+  SDK protocol on classes with external bases (introspected from the
+  analyzer's own installed `kg_utils`), classes used only via INHERITS,
+  `[project.scripts]` targets, functions called from a module's
+  `if __name__ == "__main__":` guard, property-family decorators
+  (replacing a hardcoded name list), and functions referenced by bare name in
+  their own module (callback/registry values like `resolve_kind=_resolve_kind`
+  produce no CALLS edge). Orphans whose names appear in `tests/`
+  are split into a separate "prod-orphaned but test-covered" table — usually
+  public API consumed downstream — and only true dead-code candidates count
+  against the grade. On this repo: 31 flagged → 4 dead + 6 test-covered, each
+  exclusion class pinned by a regression test.
+- **Thorough analysis: the quality grade is a continuous curve with a printed
+  breakdown.** Every component was a step function, so one boundary crossing
+  moved the grade a full letter (the B/82 → C/67 swing between two runs a day
+  apart). Now: docstrings linear to full marks at 90%, dead code as a *rate*
+  of definitions scanned (repo growth is not punished; zero points at 5%),
+  −4 pts per high-fan-out orchestrator, −5 per import cycle. The per-component
+  breakdown renders under the Executive Summary score and in the JSON export's
+  new `quality` block, so a grade change is explainable from the report alone.
+  One extra finding shifts the score by points, never a letter.
+- **Thorough analysis: report accuracy polish.** Chain tracing no longer
+  follows dotted `sym:` stubs ending in builtin container/str method names —
+  the graph's RESOLVES_TO pass matches attr calls by last segment, so
+  `visited.update(...)` resolved to the `update()` Click command and
+  fabricated the report's only "deep call chain" (the builder-side fix is
+  tracked in `analysis/analysis_improvement_plan_20260813.md`). Chain steps
+  are module-qualified. Modules with no in-repo callers are marked
+  "externally driven" instead of reading as worst-coupled. Unchanged snapshot
+  rows collapse to an elision note, and every truncated top-N table says
+  "Top N of M shown".
+
 - **Dev tooling moved from the `dev` extra to an optional Poetry `dev` group.**
   pytest, ruff, ty, pdoc, pre-commit, pytest-cov and detect-secrets no longer
   appear in published wheel metadata — they were never meant to be
@@ -43,10 +81,47 @@ Note: older entries preserve the API names used at that release (for example com
   two extras breaks resolution, which is why bare `pyvista` stands in for that
   extra's payload.
 
+- **Thorough analysis: fan-out counts repo-internal callees only.** Raw
+  CALLS-edge counts made every CLI command an "orchestrator": `cmd_init.init`
+  scored 43 because `click.echo`, `path.exists` and `dict.get` each counted
+  as a callee. Fan-out now counts direct `fn:`/`m:`/`cls:` targets plus
+  internally-resolved stubs, skipping builtin-method lookalikes — a linear
+  command with progress output is not an orchestrator, and `init` rightly
+  drops off the report.
+- **Report rendering moved to `pycode_kg.report`.** The ~550 lines of section
+  emitters (`render_markdown` plus the `_sym`/`_bar`/`_snapshot_row` helpers)
+  now live beside `pycode_kg.render`'s table primitives, duck-typed on the
+  analyzer's attributes. `PyCodeKGAnalyzer.to_markdown()` remains as a thin
+  delegation so `kg.analyze()` and the MCP `analyze_repo` tool keep their
+  API. The analyzer file drops from 3,037 to 2,464 lines and holds only
+  analysis phases; renderer and analyzer are testable independently.
+
 ### Removed
+
+- **`pycode_kg.analysis.hybrid_rank` deleted** (the two genuine dead-code
+  findings from the accurate orphan scan). Nothing imported it anywhere in
+  this repo or the fleet, its `db_path="pycodekg.sqlite"` default predates the
+  `.pycodekg/` layout, and `ranking/coderank.rank_query_hybrid` is the live
+  implementation of the same idea. Its nested `norm()` closure was also the
+  source of a phantom fan-in-4 "public API" entry via last-segment name
+  collision. The analyzer's `_analyze_coderank_section` no-op — documented as
+  "Phase 14" but never invoked (Phase 14 is `_analyze_centrality`) — is gone
+  too. The repo now scans clean: zero dead-code candidates, grade A/96.
 
 ### Fixed
 
+- **Symbol resolution no longer wires container mutations onto repo
+  functions.** The SDK's name-fallback resolution matches `sym:` stubs by
+  bare last segment, so every `visited.update(...)`-style dict/set/str method
+  call gained a RESOLVES_TO edge onto any repo function sharing the name —
+  the `update()` Click command had nine phantom callers, polluting fan-in,
+  CodeRank, and call chains. The new `pycode_kg.resolution` module prunes
+  dotted stubs ending in builtin method names right after resolution;
+  `resolve_symbols_pruned()` replaces `store.resolve_symbols()` at every
+  build site (both CLI pipelines and the KGModule post-build hook, whose
+  duplicate override in `kg.py` is removed). Receiver-aware resolution
+  upstream in kg_utils remains the durable fix. Rebuilt graph verified:
+  zero lookalike resolutions remain.
 - **starlette could lock at two versions and silently corrupt the venv.**
   streamlit (viz extra) caps starlette at `<1.4.0` while mcp and sse-starlette
   float to any 1.x, so the lock carried both 1.3.1 and 1.6.0 with no

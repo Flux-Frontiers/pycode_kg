@@ -30,6 +30,7 @@ from pycode_kg.index import (
     suppress_ingestion_logging,
 )
 from pycode_kg.module.extractor import EdgeSpec, NodeSpec, PyCodeKGExtractor
+from pycode_kg.resolution import resolve_symbols_pruned
 from pycode_kg.store import GraphStore
 
 
@@ -134,7 +135,7 @@ def _run_pipeline(
 
     store = GraphStore(db_path)
     store.write(node_specs, edge_specs, wipe=wipe)
-    resolved = store.resolve_symbols()
+    resolved = resolve_symbols_pruned(store)
     store.close()
 
     _step_result(
