@@ -878,6 +878,16 @@ class PyCodeKGAnalyzer:
                 if guard and re.search(rf"\b{re.escape(name)}\s*\(", guard):
                     return True
 
+                # Callback/registry references: passing a function by bare
+                # name (``resolve_kind=_resolve_kind``) creates no CALLS
+                # edge.  Any occurrence of the name beyond its own def line
+                # means the module references it.  Methods are not checked —
+                # their ``self.x`` references already produce ATTR_ACCESS
+                # edges.  Known blind spot: a dead function that only calls
+                # itself recursively is hidden by this rule.
+                if len(re.findall(rf"\b{re.escape(name)}\b", source)) > 1:
+                    return True
+
         return False
 
     def _analyze_dependencies(self) -> None:
@@ -1580,23 +1590,6 @@ class PyCodeKGAnalyzer:
         except (AttributeError, ValueError, RuntimeError, ImportError) as e:
             logger.warning(f"CodeRank computation incomplete: {e}")
             self.console.print(f"[yellow]WARN[/yellow] CodeRank incomplete: {e}")
-
-    # -------------------------------------------------------------------------
-    # Option D: Phase 14 — CodeRank top-nodes report section
-    # -------------------------------------------------------------------------
-
-    def _analyze_coderank_section(self) -> None:
-        """Phase 14: Prepare CodeRank top-nodes for the report.
-
-        ``self.coderank_top_nodes`` was already populated by ``_compute_coderank``
-        in Phase 1b.  This phase is a no-op if CodeRank failed; it exists so
-        the report-writing logic has a clear hook and the phase numbering stays
-        consistent.
-        """
-        if self.coderank_top_nodes:
-            self._phase_result = f"{len(self.coderank_top_nodes)} top nodes"
-        else:
-            self._phase_result = "skipped (no data)"
 
     # -------------------------------------------------------------------------
     # Option D: Phase 15 — Concern-based hybrid ranking

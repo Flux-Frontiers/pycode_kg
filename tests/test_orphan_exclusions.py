@@ -215,6 +215,28 @@ def test_property_method_is_excluded(analyzer, tmp_path) -> None:
     assert analyzer._is_special_entry_point(node, EMPTY_CTX)
 
 
+def test_callback_referenced_function_is_excluded(analyzer, tmp_path) -> None:
+    """Passing a function by bare name (resolve_kind=_fn) is a reference."""
+    mod = tmp_path / "src" / "p" / "html.py"
+    mod.parent.mkdir(parents=True)
+    mod.write_text("def _resolve_kind(node): ...\n\nSTYLE = dict(resolve_kind=_resolve_kind)\n")
+    node = _node(
+        node_id="fn:src/p/html.py:_resolve_kind",
+        name="_resolve_kind",
+        module_path="src/p/html.py",
+    )
+    assert analyzer._is_special_entry_point(node, EMPTY_CTX)
+
+
+def test_function_mentioned_only_at_def_site_stays_candidate(analyzer, tmp_path) -> None:
+    """A function whose name appears nowhere else in its module stays flagged."""
+    mod = tmp_path / "src" / "p" / "legacy.py"
+    mod.parent.mkdir(parents=True)
+    mod.write_text("def rerank(results): ...\n\ndef other(): ...\n")
+    node = _node(node_id="fn:src/p/legacy.py:rerank", name="rerank", module_path="src/p/legacy.py")
+    assert not analyzer._is_special_entry_point(node, EMPTY_CTX)
+
+
 # ── end-to-end against this repo's own graph ─────────────────────────────────
 
 
@@ -230,6 +252,8 @@ def test_repo_orphan_scan_has_no_framework_false_positives() -> None:
     assert not any(n.startswith("visit_") for n in dead)
     assert "KGModule" not in dead
     assert {"make_extractor", "_post_build_hook", "edge_kinds", "main"}.isdisjoint(dead)
+    # graph_html passes these as callback values — referenced, not dead
+    assert {"_resolve_kind", "_line_range"}.isdisjoint(dead)
     # with_alpha has dedicated tests: prod-orphaned but test-covered, not dead
     tested = {f.name for f in analyzer.test_covered_orphans}
     assert "with_alpha" not in dead

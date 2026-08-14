@@ -32,8 +32,10 @@ Note: older entries preserve the API names used at that release (for example com
   SDK protocol on classes with external bases (introspected from the
   analyzer's own installed `kg_utils`), classes used only via INHERITS,
   `[project.scripts]` targets, functions called from a module's
-  `if __name__ == "__main__":` guard, and property-family decorators
-  (replacing a hardcoded name list). Orphans whose names appear in `tests/`
+  `if __name__ == "__main__":` guard, property-family decorators
+  (replacing a hardcoded name list), and functions referenced by bare name in
+  their own module (callback/registry values like `resolve_kind=_resolve_kind`
+  produce no CALLS edge). Orphans whose names appear in `tests/`
   are split into a separate "prod-orphaned but test-covered" table — usually
   public API consumed downstream — and only true dead-code candidates count
   against the grade. On this repo: 31 flagged → 4 dead + 6 test-covered, each
@@ -80,6 +82,16 @@ Note: older entries preserve the API names used at that release (for example com
   extra's payload.
 
 ### Removed
+
+- **`pycode_kg.analysis.hybrid_rank` deleted** (the two genuine dead-code
+  findings from the accurate orphan scan). Nothing imported it anywhere in
+  this repo or the fleet, its `db_path="pycodekg.sqlite"` default predates the
+  `.pycodekg/` layout, and `ranking/coderank.rank_query_hybrid` is the live
+  implementation of the same idea. Its nested `norm()` closure was also the
+  source of a phantom fan-in-4 "public API" entry via last-segment name
+  collision. The analyzer's `_analyze_coderank_section` no-op — documented as
+  "Phase 14" but never invoked (Phase 14 is `_analyze_centrality`) — is gone
+  too. The repo now scans clean: zero dead-code candidates, grade A/96.
 
 ### Fixed
 
