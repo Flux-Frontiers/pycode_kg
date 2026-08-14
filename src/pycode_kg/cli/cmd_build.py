@@ -25,6 +25,7 @@ from pycode_kg.index import (
 )
 from pycode_kg.module.extractor import EdgeSpec, NodeSpec, PyCodeKGExtractor
 from pycode_kg.pycodekg import DEFAULT_MODEL
+from pycode_kg.resolution import resolve_symbols_pruned
 from pycode_kg.store import GraphStore
 
 
@@ -70,7 +71,7 @@ def build_sqlite(
 
     store = GraphStore(db_path)
     store.write(node_specs, edge_specs, wipe=wipe)
-    resolved = store.resolve_symbols()
+    resolved = resolve_symbols_pruned(store)
     store.close()
 
     print(f"OK: nodes={len(node_specs)} edges={len(edge_specs)} resolved={resolved} db={db_path}")

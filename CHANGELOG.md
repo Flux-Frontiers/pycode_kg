@@ -81,6 +81,21 @@ Note: older entries preserve the API names used at that release (for example com
   two extras breaks resolution, which is why bare `pyvista` stands in for that
   extra's payload.
 
+- **Thorough analysis: fan-out counts repo-internal callees only.** Raw
+  CALLS-edge counts made every CLI command an "orchestrator": `cmd_init.init`
+  scored 43 because `click.echo`, `path.exists` and `dict.get` each counted
+  as a callee. Fan-out now counts direct `fn:`/`m:`/`cls:` targets plus
+  internally-resolved stubs, skipping builtin-method lookalikes — a linear
+  command with progress output is not an orchestrator, and `init` rightly
+  drops off the report.
+- **Report rendering moved to `pycode_kg.report`.** The ~550 lines of section
+  emitters (`render_markdown` plus the `_sym`/`_bar`/`_snapshot_row` helpers)
+  now live beside `pycode_kg.render`'s table primitives, duck-typed on the
+  analyzer's attributes. `PyCodeKGAnalyzer.to_markdown()` remains as a thin
+  delegation so `kg.analyze()` and the MCP `analyze_repo` tool keep their
+  API. The analyzer file drops from 3,037 to 2,464 lines and holds only
+  analysis phases; renderer and analyzer are testable independently.
+
 ### Removed
 
 - **`pycode_kg.analysis.hybrid_rank` deleted** (the two genuine dead-code
@@ -95,6 +110,18 @@ Note: older entries preserve the API names used at that release (for example com
 
 ### Fixed
 
+- **Symbol resolution no longer wires container mutations onto repo
+  functions.** The SDK's name-fallback resolution matches `sym:` stubs by
+  bare last segment, so every `visited.update(...)`-style dict/set/str method
+  call gained a RESOLVES_TO edge onto any repo function sharing the name —
+  the `update()` Click command had nine phantom callers, polluting fan-in,
+  CodeRank, and call chains. The new `pycode_kg.resolution` module prunes
+  dotted stubs ending in builtin method names right after resolution;
+  `resolve_symbols_pruned()` replaces `store.resolve_symbols()` at every
+  build site (both CLI pipelines and the KGModule post-build hook, whose
+  duplicate override in `kg.py` is removed). Receiver-aware resolution
+  upstream in kg_utils remains the durable fix. Rebuilt graph verified:
+  zero lookalike resolutions remain.
 - **starlette could lock at two versions and silently corrupt the venv.**
   streamlit (viz extra) caps starlette at `<1.4.0` while mcp and sse-starlette
   float to any 1.x, so the lock carried both 1.3.1 and 1.6.0 with no

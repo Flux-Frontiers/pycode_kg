@@ -2,7 +2,17 @@
 
 **Source report:** `analysis/pycode_kg_analysis_20260813.md` (commit 85f65a2, grade C / 67)
 **Prior run:** 2026-08-12 (commit 7d505d1, grade B / 82)
-**Status:** plan only — no changes made.
+
+**Status (2026-08-14, PR #27):** Phases 1–3 done. 4.1 done (2 deletions, 2 were
+a new exclusion class). 4.2 resolved by fixing the *metric* instead — fan-out
+now counts repo-internal callees only, and `init()` (a linear CLI script whose
+"43 calls" were mostly `click.echo`/stdlib) rightly drops off; the code split
+was declined as refactoring-what-isn't-broken. The builder-side RESOLVES_TO
+backlog item is mitigated in-product: `pycode_kg.resolution` prunes
+builtin-method lookalike resolutions at every build site (receiver-aware
+resolution upstream in kg_utils remains open). 4.3 done: rendering lives in
+`pycode_kg.report.render_markdown` (analyzer 3,037 → 2,464 lines). 4.4 (viz3d
+split) deferred by decision. Grade after all fixes: **A / 100**.
 
 ---
 

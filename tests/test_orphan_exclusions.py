@@ -237,6 +237,45 @@ def test_function_mentioned_only_at_def_site_stays_candidate(analyzer, tmp_path)
     assert not analyzer._is_special_entry_point(node, EMPTY_CTX)
 
 
+# ── internal fan-out counting ────────────────────────────────────────────────
+
+
+def _edges_kg(edges: list[tuple[str, str, str]]):
+    """Stub KG exposing a real in-memory edges table."""
+    import sqlite3
+
+    con = sqlite3.connect(":memory:")
+    con.execute("CREATE TABLE edges (src TEXT, dst TEXT, rel TEXT)")
+    con.executemany("INSERT INTO edges VALUES (?, ?, ?)", edges)
+    return SimpleNamespace(store=SimpleNamespace(con=con), repo_root="")
+
+
+def test_internal_fan_out_counts_repo_callees_only() -> None:
+    """click.echo / path.exists / dict.get syms do not count as orchestration."""
+    kg = _edges_kg(
+        [
+            ("fn:a.py:init", "fn:a.py:_step_one", "CALLS"),  # direct internal
+            ("fn:a.py:init", "sym:click.echo", "CALLS"),  # external, unresolved
+            ("fn:a.py:init", "sym:hook_path.exists", "CALLS"),  # external, unresolved
+            ("fn:a.py:init", "sym:helper", "CALLS"),  # resolves internally
+            ("sym:helper", "fn:b.py:helper", "RESOLVES_TO"),
+            ("fn:a.py:init", "sym:visited.update", "CALLS"),  # builtin lookalike
+            ("sym:visited.update", "fn:c.py:update", "RESOLVES_TO"),  # bad edge
+        ]
+    )
+    analyzer = PyCodeKGAnalyzer(kg=kg)
+    counts = analyzer._internal_fan_out_counts()
+    # _step_one + resolved helper; echo/exists external, visited.update skipped
+    assert counts["fn:a.py:init"] == 2
+
+
+def test_internal_fan_out_deduplicates_targets() -> None:
+    """Calling the same internal function five times is fan-out 1."""
+    kg = _edges_kg([("fn:a.py:f", "fn:a.py:g", "CALLS")] * 5)
+    analyzer = PyCodeKGAnalyzer(kg=kg)
+    assert analyzer._internal_fan_out_counts()["fn:a.py:f"] == 1
+
+
 # ── end-to-end against this repo's own graph ─────────────────────────────────
 
 
