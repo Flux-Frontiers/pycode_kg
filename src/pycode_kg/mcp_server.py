@@ -133,6 +133,8 @@ Per-project config for Claude Code and Kilo Code (``.mcp.json``)::
     }
 
 Author: Eric G. Suchanek, PhD
+
+License: Elastic 2.0
 """
 
 from __future__ import annotations

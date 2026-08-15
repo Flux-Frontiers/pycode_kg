@@ -4,6 +4,10 @@ cmd_architecture.py
 Click subcommand for generating coherent architecture descriptions:
 
   architecture  — analyze codebase architecture, emit Markdown or JSON descriptions
+
+Author: Eric G. Suchanek, PhD
+
+License: Elastic 2.0
 """
 
 from __future__ import annotations

@@ -5,6 +5,10 @@ Usage::
 
     python -m pycode_kg --help
     python -m pycode_kg --version
+
+Author: Eric G. Suchanek, PhD
+
+License: Elastic 2.0
 """
 
 import importlib.metadata

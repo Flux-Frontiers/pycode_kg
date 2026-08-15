@@ -11,6 +11,10 @@ own constants.
 The palette is the one from the 2-D explorer, which is the alignment target the
 3-D viewer's comment always claimed.  ``private_function`` is carried over from
 the 3-D viewer, which is the only renderer that distinguishes it.
+
+Author: Eric G. Suchanek, PhD
+
+License: Elastic 2.0
 """
 
 from __future__ import annotations

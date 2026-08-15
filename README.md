@@ -162,8 +162,6 @@ src/pycode_kg/
 ├── store.py                         # SQLite persistence + canonical edges
 ├── index.py                         # sqlite-vec semantic index
 ├── pycodekg.py                      # Public façade
-├── pycodekg_query.py                # Hybrid query
-├── pycodekg_snippet_packer.py       # Source-grounded packs
 ├── pycodekg_thorough_analysis.py    # `analyze` engine
 ├── architecture.py                  # `architecture` description generator
 ├── ranking/                         # PageRank, bridge centrality, framework nodes

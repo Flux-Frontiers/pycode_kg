@@ -33,6 +33,10 @@ Usage — building a new domain KG::
 
 The existing Python-backed :class:`~pycode_kg.kg.PyCodeKG` is a concrete
 implementation of :class:`KGModule` using :class:`PyCodeKGExtractor`.
+
+Author: Eric G. Suchanek, PhD
+
+License: Elastic 2.0
 """
 
 from pycode_kg.module.base import KGModule

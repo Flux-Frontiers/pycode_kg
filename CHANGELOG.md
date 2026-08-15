@@ -9,6 +9,48 @@ Note: older entries preserve the API names used at that release (for example com
 
 ## [Unreleased]
 
+### Changed
+
+- **Every module docstring now carries `Author:` and `License: Elastic 2.0`.**
+  Three files had the licence line and twelve had the author line; the rest
+  had neither. Per-file notices matter for this codebase specifically, because
+  files travel: `layout3d`'s primitives and the organic tree engine were both
+  promoted out of KG repos into `kgmodule-utils`, and a file that arrives
+  somewhere new without its licence line arrives with no terms attached.
+  Placement follows `snapshots.py` — author, blank line, licence, at the foot
+  of the docstring. Eight single-line docstrings were promoted to the
+  multi-line form to hold the block; nothing else in the diff is code.
+
+  `Last Revision:` was deliberately **not** propagated. It is a
+  hand-maintained mirror of `git log -1`, wrong the moment anyone edits
+  without updating it — the existing ones were already stale enough that the
+  release workflow carries a step to repair them. Existing occurrences are
+  left alone.
+- **`visitor.py` has a module docstring.** It was 413 lines of PASS-3
+  data-flow extraction with no module-level explanation at all, despite
+  ranking seventh by structural importance — and with no docstring there was
+  nowhere to put the header either. Records what the pass emits, why property
+  accesses are pre-scanned into `CALLS` edges, and that `REL_DEPENDS_ON` is an
+  unused placeholder.
+
+### Removed
+
+- **Four tombstone modules deleted** — `pycodekg_query.py`,
+  `pycodekg_snippet_packer.py`, `pycodekg_viz.py` and `pycodekg_viz3d.py`.
+  Each had been reduced to a single comment redirecting to its CLI
+  replacement (`pycodekg query`, `pack`, `viz`, `viz3d`), and nothing in the
+  codebase imported any of them. A one-line signpost that no code follows is
+  worse than no file: it still shows up in the module list, in the graph, and
+  in the architecture docs. Their entries in `README.md` and
+  `assets/architecture_description.md` go with them.
+- **The LanceDB/sqlite-vec backend-parity test is gone**, along with its
+  single-use `_HashEmbedder`. It was a retirement guard from the sqlite-vec
+  migration, and since pycode_kg no longer requests
+  `kgmodule-utils[semantic]`, lancedb is absent from every default install —
+  so it had degraded into a permanent skip that asserted nothing. The suite
+  now runs with no skips at all. Coverage of the `lancedb_dir` attribute and
+  stats key is unaffected; those tests never needed lancedb installed.
+
 ## [0.22.1] - 2026-08-14
 
 ### Added

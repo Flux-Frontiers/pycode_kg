@@ -1,3 +1,31 @@
+"""
+Data-flow AST visitor — PASS 3 of the PyCodeKG extractor.
+
+Where the structural passes in :mod:`pycode_kg.pycodekg` record what a file
+*declares*, :class:`PyCodeKGVisitor` records what its code *does*: which names
+are read, which are written, and which attributes are touched.  It walks one
+source file, tracking scope from module through class to function, and emits
+``CONTAINS``, ``CALLS``, ``READS``, ``WRITES`` and ``ATTR_ACCESS`` edges into a
+per-file registry that :class:`~pycode_kg.graph.CodeGraph` merges.
+
+Two details are worth knowing before reading the code:
+
+- **Properties become calls.** ``obj.attr`` is an attribute access in the AST
+  even when ``attr`` is a ``@property``, which would understate the call graph.
+  :meth:`PyCodeKGVisitor._prescan_properties` walks the module tree first so
+  those accesses can be emitted as ``CALLS`` instead.
+- **Every edge carries evidence.** Edges record the source file and the AST
+  node that produced them, so a relationship in the graph can always be traced
+  back to the line that justifies it.
+
+``REL_DEPENDS_ON`` is declared but unused — a placeholder for control-flow
+edges that no pass emits yet.
+
+Author: Eric G. Suchanek, PhD
+
+License: Elastic 2.0
+"""
+
 import ast
 
 from pycode_kg.utils import node_id

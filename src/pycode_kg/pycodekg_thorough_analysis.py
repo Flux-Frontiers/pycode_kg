@@ -21,6 +21,10 @@ Operational behavior:
 
 Usage:
     python pycodekg_thorough_analysis.py /path/to/repo /path/to/db .pycodekg/vectors.sqlite
+
+Author: Eric G. Suchanek, PhD
+
+License: Elastic 2.0
 """
 
 import datetime
