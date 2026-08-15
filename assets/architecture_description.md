@@ -170,8 +170,8 @@ Built with Click. Entry point: `pycodekg` / `src/pycode_kg/cli/main.py`.
 | Consumer | File(s) | Purpose |
 |----------|---------|---------|
 | **MCP Server** | `mcp_server.py` | 17+ MCP tools for AI agents (Claude Desktop, Cursor, Continue). Transports: `stdio` (default) / `sse`. Entry point: `pycodekg mcp --repo .` |
-| **Streamlit Web App** | `pycodekg_viz.py`, `app.py` | Interactive graph explorer with hybrid and structural views. Launch: `pycodekg viz` |
-| **3D Visualizer** | `viz3d.py`, `pycodekg_viz3d.py`, `layout3d.py` | PyVista/PyQt5 3D graph; layer-cake and allium layouts. Launch: `pycodekg viz3d` |
+| **Streamlit Web App** | `app.py` | Interactive graph explorer with hybrid and structural views. Launch: `pycodekg viz` |
+| **3D Visualizer** | `viz3d.py`, `layout3d.py` | PyVista/PyQt5 3D graph; layer-cake and allium layouts. Launch: `pycodekg viz3d` |
 
 ---
 
@@ -203,13 +203,9 @@ src/pycode_kg/
 ├── config.py            # Config loading (include/exclude dirs, pyproject.toml)
 ├── utils.py             # Shared utilities
 ├── mcp_server.py        # Output: MCP server (17+ tools)
-├── pycodekg_viz.py      # Output: Streamlit app
 ├── app.py               # Output: Streamlit app entry
 ├── viz3d.py             # Output: 3D visualizer core
-├── pycodekg_viz3d.py    # Output: 3D visualizer CLI wrapper
 ├── layout3d.py          # Output: 3D layout algorithms (LayerCake, Allium, etc.)
-├── pycodekg_query.py    # Query helpers (reranking, scoring)
-├── pycodekg_snippet_packer.py  # Snippet extraction / pack formatting
 ├── pycodekg_thorough_analysis.py  # Deep analysis pipeline
 └── cli/                 # CLI layer (Click commands)
     ├── main.py

@@ -8,6 +8,8 @@ Wraps extract_repo() with a clean object interface.
 No I/O, no persistence, no embeddings.
 
 Author: Eric G. Suchanek, PhD
+
+License: Elastic 2.0
 """
 
 from __future__ import annotations

@@ -8,6 +8,10 @@ testable independently.  Tables come from :func:`pycode_kg.render.md_table`.
 
 ``render_markdown(analyzer)`` is duck-typed on the analyzer's attributes —
 it imports nothing from the analyzer module, so there is no import cycle.
+
+Author: Eric G. Suchanek, PhD
+
+License: Elastic 2.0
 """
 
 from __future__ import annotations

@@ -8,6 +8,8 @@ NodeSpec and EdgeSpec are imported from kg_utils.specs and re-exported here.
 PyCodeKGExtractor is the Python-AST-backed implementation.
 
 Author: Eric G. Suchanek, PhD
+
+License: Elastic 2.0
 """
 
 from __future__ import annotations

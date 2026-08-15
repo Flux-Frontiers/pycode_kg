@@ -12,6 +12,8 @@ Pick any node to open a modeless docstring popup; the picked node is
 highlighted in pink and the camera zooms in, exactly as in repo_vis.
 
 Author: Eric G. Suchanek, PhD
+
+License: Elastic 2.0
 """
 
 from __future__ import annotations

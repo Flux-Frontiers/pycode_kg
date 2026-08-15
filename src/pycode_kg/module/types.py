@@ -1,4 +1,9 @@
-"""pycode_kg/module/types.py — Re-exports from kg_utils for backward compat."""
+"""pycode_kg/module/types.py — Re-exports from kg_utils for backward compat.
+
+Author: Eric G. Suchanek, PhD
+
+License: Elastic 2.0
+"""
 
 from dataclasses import dataclass
 

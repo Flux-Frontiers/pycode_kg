@@ -6,6 +6,10 @@ CLI command for initializing PyCodeKG in a repository:
   init — download model, build graph, install hooks, capture snapshot
 
   Author: Eric G. Suchanek, PhD
+
+Author: Eric G. Suchanek, PhD
+
+License: Elastic 2.0
 """
 
 from __future__ import annotations

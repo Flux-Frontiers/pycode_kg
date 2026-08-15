@@ -30,6 +30,10 @@ Low-level primitives (v0 contract, locked)::
 KGModule SDK (build new domain KGs)::
 
     from pycode_kg import KGModule, KGExtractor, PyCodeKGExtractor, NodeSpec, EdgeSpec
+
+Author: Eric G. Suchanek, PhD
+
+License: Elastic 2.0
 """
 
 __version__ = "0.22.1"

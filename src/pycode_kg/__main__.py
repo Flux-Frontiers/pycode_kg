@@ -3,6 +3,10 @@
 Dispatcher for python -m pycode_kg <command> [args...]
 
 Routes to Click group-based CLI.
+
+Author: Eric G. Suchanek, PhD
+
+License: Elastic 2.0
 """
 
 from pycode_kg.cli.main import cli

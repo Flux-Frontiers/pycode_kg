@@ -12,6 +12,8 @@ Also re-exports the result types (BuildStats, QueryResult, Snippet,
 SnippetPack) from module.types for backwards API compatibility.
 
 Author: Eric G. Suchanek, PhD
+
+License: Elastic 2.0
 """
 
 from __future__ import annotations

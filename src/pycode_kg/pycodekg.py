@@ -24,6 +24,8 @@ vector databases and semantic search happens downstream.
 
 Author: Eric G. Suchanek, PhD
 Last Revision: 2026-08-11 19:32:52
+
+License: Elastic 2.0
 """
 
 from __future__ import annotations
