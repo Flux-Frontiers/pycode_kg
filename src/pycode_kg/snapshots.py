@@ -35,7 +35,7 @@ Usage
 >>> prev = mgr.get_previous(tree_hash)
 
 Author: Eric G. Suchanek, PhD
-Last Revision: 2026-08-03
+Last Revision: 2026-08-11
 
 License: Elastic 2.0
 """

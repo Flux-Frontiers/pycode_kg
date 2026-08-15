@@ -9,6 +9,8 @@ Note: older entries preserve the API names used at that release (for example com
 
 ## [Unreleased]
 
+## [0.22.1] - 2026-08-14
+
 ### Added
 
 - **`pycode_kg.render` — shared Markdown rendering primitives.** Every surface
