@@ -47,21 +47,21 @@ Always use these first — they're faster and source-grounded:
 ### CLI Commands (Build & Explore Locally)
 Build or interact with the knowledge graph from the command line.
 
-Each command is available as a `pycodekg <subcommand>` **or** a dedicated `pycodekg-<name>` script — both forms are equivalent:
+Every capability is a subcommand of the single `pycodekg` entry point:
 
-| Subcommand / Script alias | Purpose |
-|---------------------------|---------|
-| `init` / `pycodekg-init` | One-command setup: download model, build graph, install hooks, snapshot |
-| `build-sqlite` / `pycodekg-build-sqlite` | Extract AST-based knowledge graph → SQLite |
-| `build-index` / `pycodekg-build-index` | Build semantic vector index for NL queries |
-| `build` / `pycodekg-build` | SQLite + sqlite-vec index in one step |
-| `query` / `pycodekg-query` | Run hybrid query over the graph |
-| `pack` / `pycodekg-pack` | Generate source-grounded snippet packs |
-| `viz` / `pycodekg-viz` | Launch Streamlit interactive visualizer |
-| `viz3d` / `pycodekg-viz3d` | Launch 3D PyVista/PyQt5 visualizer |
-| `analyze` / `pycodekg-analyze` | Run thorough codebase analysis |
-| `mcp` / `pycodekg-mcp` | Start MCP server for Codex/Cursor/Continue |
-| `install-hooks` / `pycodekg-install-hooks` | Install pre-commit git hook for automatic snapshots |
+| Subcommand | Purpose |
+|------------|---------|
+| `init` | One-command setup: download model, build graph, install hooks, snapshot |
+| `build-sqlite` | Extract AST-based knowledge graph → SQLite |
+| `build-index` | Build semantic vector index for NL queries |
+| `build` | SQLite + sqlite-vec index in one step |
+| `query` | Run hybrid query over the graph |
+| `pack` | Generate source-grounded snippet packs |
+| `viz` | Launch Streamlit interactive visualizer |
+| `viz3d` | Launch 3D PyVista/PyQt5 visualizer |
+| `analyze` | Run thorough codebase analysis |
+| `mcp` | Start MCP server for Codex/Cursor/Continue |
+| `install-hooks` | Install pre-commit git hook for automatic snapshots |
 
 ### Quick Examples
 
@@ -74,8 +74,8 @@ pycodekg build-sqlite --repo /path/to/repo
 pycodekg build-index
 
 # Or with individual script aliases (useful in Poetry projects / Makefiles)
-pycodekg-build-sqlite --repo /path/to/repo
-pycodekg-build-index
+pycodekg build-sqlite --repo /path/to/repo
+pycodekg build-index
 
 # Build with only specific directories (CLI flags)
 pycodekg build --repo . --include-dir src --include-dir lib

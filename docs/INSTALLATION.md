@@ -108,24 +108,24 @@ poetry run pytest
 
 ## CLI Reference
 
-All commands are available as `pycodekg <subcommand>` or a dedicated `pycodekg-<name>` script. Both forms are equivalent.
+Every capability is a subcommand of the single `pycodekg` entry point.
 
-| Script alias | Equivalent subcommand |
-|---|---|
-| `pycodekg-init` | `pycodekg init` |
-| `pycodekg-build-sqlite` | `pycodekg build-sqlite` |
-| `pycodekg-build-index` | `pycodekg build-index` |
-| `pycodekg-build` | `pycodekg build` |
-| `pycodekg-query` | `pycodekg query` |
-| `pycodekg-pack` | `pycodekg pack` |
-| `pycodekg-analyze` | `pycodekg analyze` |
-| `pycodekg-architecture` | `pycodekg architecture` |
-| `pycodekg-viz` | `pycodekg viz` |
-| `pycodekg-viz3d` | `pycodekg viz3d` |
-| `pycodekg-viz-timeline` | `pycodekg viz-timeline` |
-| `pycodekg-mcp` | `pycodekg mcp` |
-| `pycodekg-download-model` | `pycodekg download-model` |
-| `pycodekg-install-hooks` | `pycodekg install-hooks` |
+| Command |
+|---|
+| `pycodekg init` |
+| `pycodekg build-sqlite` |
+| `pycodekg build-index` |
+| `pycodekg build` |
+| `pycodekg query` |
+| `pycodekg pack` |
+| `pycodekg analyze` |
+| `pycodekg architecture` |
+| `pycodekg viz` |
+| `pycodekg viz3d` |
+| `pycodekg viz-timeline` |
+| `pycodekg mcp` |
+| `pycodekg download-model` |
+| `pycodekg install-hooks` |
 
 ```bash
 pycodekg --help
@@ -151,7 +151,7 @@ pycodekg build-sqlite --repo /path/to/repo [--wipe]
 pycodekg build-index [--model BAAI/bge-small-en-v1.5] [--wipe]
 
 # 3. Pre-download the embedding model (offline / CI)
-pycodekg-download-model --repo .
+pycodekg download-model --repo .
 ```
 
 ### Verify the build

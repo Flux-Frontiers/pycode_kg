@@ -99,16 +99,16 @@ CLI ENTRY POINTS
 
 Primary interface: pycodekg (the main Click CLI). Each subcommand is also available as a standalone script alias.
 
-pycodekg build-sqlite (alias: pycodekg-build-sqlite): AST extraction to SQLite.
-pycodekg build-index (alias: pycodekg-build-index): SQLite to sqlite-vec embeddings.
-pycodekg build (alias: pycodekg-build): Full pipeline (SQLite + sqlite-vec), always wipes existing data.
-pycodekg update (alias: pycodekg-update): Incremental upsert pipeline (SQLite + sqlite-vec), no wipe.
-pycodekg query (alias: pycodekg-query): Hybrid query, text output.
-pycodekg pack (alias: pycodekg-pack): Hybrid query + snippet pack.
-pycodekg viz (alias: pycodekg-viz): Launch Streamlit 2D visualizer.
-pycodekg viz3d (alias: pycodekg-viz3d): Launch 3D PyVista visualizer.
-pycodekg analyze (alias: pycodekg-analyze): Thorough architectural analysis.
-pycodekg mcp (alias: pycodekg-mcp): Start MCP server.
+pycodekg build-sqlite: AST extraction to SQLite.
+pycodekg build-index: SQLite to sqlite-vec embeddings.
+pycodekg build: Full pipeline (SQLite + sqlite-vec), always wipes existing data.
+pycodekg update: Incremental upsert pipeline (SQLite + sqlite-vec), no wipe.
+pycodekg query: Hybrid query, text output.
+pycodekg pack: Hybrid query + snippet pack.
+pycodekg viz: Launch Streamlit 2D visualizer.
+pycodekg viz3d: Launch 3D PyVista visualizer.
+pycodekg analyze: Thorough architectural analysis.
+pycodekg mcp: Start MCP server.
 
 All subcommands live in src/pycode_kg/cli/. Shared options (repo path, db path, exclude dirs) live in cli/options.py.
 

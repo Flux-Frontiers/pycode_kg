@@ -157,10 +157,8 @@ viz3d = [
     "kgmodule-utils[viz3d-render]>=0.12.1",
     "pyvistaqt>=0.11.0",
     "trame-vtk>=2.0.0",
-    # Looking Glass quilts. 0.4.0 is the floor for two reasons: it supplies
-    # depth_report(), which this package used to hand-roll, and it widened
-    # requires-python to <3.14 to match this project — which is what retires
-    # the `; python_version < '3.13'` marker every consumer used to need.
+    # Looking Glass quilts. 0.4.0 supplies depth_report() and widened
+    # requires-python to <3.14, which retires the old marker gate.
     "quiltwright>=0.4.0",
 ]
 
@@ -191,21 +189,6 @@ all = [
     "trame-vtk>=2.0.0",
 ]
 
-# Maintainer tooling, not a dependency of this package. `.mcp.json` serves a
-# `dockg` MCP server from `.venv/bin/dockg`, so the CLI has to be in this repo's
-# environment — but nothing under src/ imports doc_kg, and declaring it as a real
-# dependency would put it in the published wheel for every consumer.
-#
-# A Poetry group is the right shape: it is locked and installable but never
-# written into wheel metadata, so `pip install pycode-kg` is unaffected.
-#
-#   poetry install --with kg      # gets the dockg CLI into .venv/bin
-#   poetry install                # default — the group is optional, skipped
-#
-# `kg` is the fleet-wide name for this group so there is one command to remember;
-# contents are per-repo and minimal, covering only what that repo actually
-# invokes. Safe to lock because doc-kg keeps its own pycode-kg in a group too, so
-# the published metadata on either side has no cycle for the resolver to chase.
 # Dev tooling. A group rather than an extra so pytest/ruff/ty/pre-commit stay
 # out of the published wheel metadata — `pip install pycode-kg[dev]` was never
 # meant to be a thing consumers do. Optional to preserve the contract that a
@@ -224,6 +207,21 @@ pytest-cov = ">=5.0.0"
 ruff = ">=0.4.0,<0.16"
 ty = ">=0.0.41"
 
+# Maintainer tooling, not a dependency of this package. `.mcp.json` serves a
+# `dockg` MCP server from `.venv/bin/dockg`, so the CLI has to be in this repo's
+# environment — but nothing under src/ imports doc_kg, and declaring it as a real
+# dependency would put it in the published wheel for every consumer.
+#
+# A Poetry group is the right shape: it is locked and installable but never
+# written into wheel metadata, so `pip install pycode-kg` is unaffected.
+#
+#   poetry install --with kg      # gets the dockg CLI into .venv/bin
+#   poetry install                # default — the group is optional, skipped
+#
+# `kg` is the fleet-wide name for this group so there is one command to remember;
+# contents are per-repo and minimal, covering only what that repo actually
+# invokes. Safe to lock because doc-kg keeps its own pycode-kg in a group too, so
+# the published metadata on either side has no cycle for the resolver to chase.
 [tool.poetry.group.kg]
 optional = true
 
@@ -235,23 +233,12 @@ Homepage = "https://github.com/Flux-Frontiers/pycode_kg"
 Repository = "https://github.com/Flux-Frontiers/pycode_kg"
 
 [project.scripts]
-pycodekg                = "pycode_kg.cli.main:cli"
-pycodekg-analyze        = "pycode_kg.cli.cmd_analyze:analyze"
-pycodekg-architecture   = "pycode_kg.cli.cmd_architecture:architecture"
-pycodekg-build          = "pycode_kg.cli.cmd_build_full:build"
-pycodekg-build-index    = "pycode_kg.cli.cmd_build:build_index"
-pycodekg-build-sqlite   = "pycode_kg.cli.cmd_build:build_sqlite"
-pycodekg-centrality     = "pycode_kg.cli.cmd_centrality:cmd_centrality"
-pycodekg-download-model = "pycode_kg.cli.cmd_model:download_model"
-pycodekg-init           = "pycode_kg.cli.cmd_init:init"
-pycodekg-install-hooks  = "pycode_kg.cli.cmd_hooks:install_hooks"
-pycodekg-mcp            = "pycode_kg.mcp_server:main"
-pycodekg-pack           = "pycode_kg.cli.cmd_query:pack"
-pycodekg-query          = "pycode_kg.cli.cmd_query:query"
-pycodekg-update         = "pycode_kg.cli.cmd_build_full:update"
-pycodekg-viz            = "pycode_kg.cli.cmd_viz:viz"
-pycodekg-viz-timeline   = "pycode_kg.cli.cmd_viz:viz_timeline"
-pycodekg-viz3d          = "pycode_kg.cli.cmd_viz:viz3d"
+# The convenience aliases (`pycodekg-analyze`, `pycodekg-build`, ...) went in
+# 0.23.0: nothing invoked them. `pycodekg-mcp` stays -- the documented Claude
+# Desktop and Copilot configs put that path in users' config files, so dropping
+# it would break their MCP server on upgrade.
+pycodekg     = "pycode_kg.cli.main:cli"
+pycodekg-mcp = "pycode_kg.mcp_server:main"
 
 # ---------------------------------------------------------------------------
 # Tool configuration

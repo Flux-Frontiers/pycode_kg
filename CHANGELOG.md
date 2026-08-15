@@ -9,6 +9,34 @@ Note: older entries preserve the API names used at that release (for example com
 
 ## [Unreleased]
 
+### Added
+
+- **`docs/SISTER_PROJECTS.md`** — the KGRAG family in one place, all nine
+  graphs plus the shared foundations (`kgmodule-utils`, `quiltwright`). The
+  README carried a five-item list that had gone stale: GutenbergKG, MemoryKG,
+  TSCodeKG and KGRAG itself were missing, and the FTreeKG link pointed at a
+  repo name that no longer resolves. The README now links here instead.
+
+### Changed
+
+- **README covers the organic tree and Looking Glass output**, with a short
+  section on what the trunk, limbs and leaves each report.
+
+### Removed
+
+- **The per-subcommand console scripts.** `pycodekg-analyze`,
+  `pycodekg-build`, `pycodekg-query` and twelve more are gone; use
+  `pycodekg <subcommand>`, which every doc already showed. Nothing invoked
+  them — not CI, not the docs' own examples, not `.mcp.json`, which calls
+  `.venv/bin/pycodekg` with `args: ["mcp", ...]`. They bought a saved space
+  while making every new command ask whether it needed an alias, a question
+  that had already drifted: four commands never got one.
+
+  **`pycodekg-mcp` stays.** The documented Claude Desktop and Copilot setups
+  put that path into users' config files, so removing it would break their
+  MCP server on upgrade with a "command not found" that looks like a broken
+  install.
+
 ### Changed
 
 - **The depth budget comes from `quiltwright.depth_report` instead of a local

@@ -14,7 +14,7 @@
 
 **PyCodeKG turns a Python codebase into a deterministic, queryable knowledge graph — and uses it to produce architectural analyses you can act on, with or without an LLM in the loop.**
 
-It walks the AST of every module, class, function, and method in your repo, extracts the typed relationships that actually hold the code together (`CONTAINS`, `CALLS`, `IMPORTS`, `INHERITS`, `RESOLVES_TO`), and stores the result in SQLite. A sqlite-vec vector index sits alongside the graph so that *"authentication flow"* and *"verify_jwt"* both find the right place to start exploring. From there you can rank functions by structural importance, trace fan-in across import aliases, detect circular imports and dead code, render the call graph in 3D, snapshot metrics for diffing across releases, or hand the whole thing to Claude over MCP.
+It walks the AST of every module, class, function, and method in your repo, extracts the typed relationships that actually hold the code together (`CONTAINS`, `CALLS`, `IMPORTS`, `INHERITS`, `RESOLVES_TO`), and stores the result in SQLite. A sqlite-vec vector index sits alongside the graph so that *"authentication flow"* and *"verify_jwt"* both find the right place to start exploring. From there you can rank functions by structural importance, trace fan-in across import aliases, detect circular imports and dead code, render the call graph in 3D, grow the repo as a tree you can put on a holographic display, snapshot metrics for diffing across releases, or hand the whole thing to Claude over MCP.
 
 The original motivation was simple: **produce thorough, defensible analyses of Python codebases that don't depend on inference**. Every result is computed from the AST and the graph — no model is asked to guess. When an LLM is present, it consumes the *same* grounded output as a structured context pack, and the hallucinations that plague "embed-the-repo" tools largely disappear.
 
@@ -26,15 +26,11 @@ Everything runs on your laptop. No cloud APIs, no quotas, no source code leaving
 
 ## Sister projects
 
-PyCodeKG is part of a growing family of knowledge-graph systems that share the same hybrid semantic-plus-structural design — each one applies it to a different kind of corpus:
-
-- **[DocKG](https://github.com/Flux-Frontiers/doc_kg)** — Markdown and prose. Indexes PyCodeKG's own documentation, so the docs you're reading are themselves a queryable graph.
-- **[MetaboKG](https://github.com/Flux-Frontiers/metabo_kg)** — metabolic pathway data (KEGG, SBML, BioPAX), with FBA / ODE simulation on top of the graph.
-- **[DiaryKG](https://github.com/Flux-Frontiers/diary_kg)** — personal journals and diary corpora; semantic search and graph traversal over a writer's body of work.
-- **[FTreeKG](https://github.com/Flux-Frontiers/FTreeKG)** — filesystem trees as a queryable graph of directories, files, and contents.
-- **[AgentKG](https://github.com/Flux-Frontiers/agent_kg)** — conversational memory as a knowledge graph: turns, decisions, commitments, preferences, and the relationships between them.
-
-Together they form **KGRAG**, a federated retrieval layer where one query can span code, documentation, journals, filesystems, agent memory, and domain data simultaneously.
+PyCodeKG is one of nine knowledge graphs sharing the same hybrid
+semantic-plus-structural design — code, prose, journals, filesystems, agent
+memory, metabolic pathways — federated by **[KGRAG](https://github.com/Flux-Frontiers/KGRAG)**
+so a single query can span all of them. The full list is in
+[docs/SISTER_PROJECTS.md](docs/SISTER_PROJECTS.md).
 
 ---
 
@@ -117,7 +113,7 @@ pycodekg init --repo .                    # download model, build graph, install
 pycodekg analyze .                        # the architectural report
 ```
 
-That's the recommended path. Variants (minimal install, MCP-only, contributor setup) are in [docs/INSTALLATION.md](docs/INSTALLATION.md). Every CLI subcommand is also exposed as a script alias (`pycodekg-analyze`, `pycodekg-build`, `pycodekg-mcp`, …) for use in Makefiles and Poetry projects.
+That's the recommended path. Variants (minimal install, MCP-only, contributor setup) are in [docs/INSTALLATION.md](docs/INSTALLATION.md). Every capability is a subcommand of the single `pycodekg` entry point — `pycodekg analyze`, `pycodekg build`, `pycodekg mcp` — so that one name is all a Makefile or an MCP config needs.
 
 ---
 
@@ -131,6 +127,33 @@ Search is hybrid by design. A query like *"authentication flow"* runs in two pha
 **Structure is treated as ground truth; the embeddings are strictly an acceleration layer.** When the graph and the vector index disagree, the graph wins. This is why fan-in lookups are accurate even for same-named symbols across modules — `RESOLVES_TO` edges bridge call sites through their import aliases, and `callers()` does a two-phase reverse traversal that grep simply cannot replicate.
 
 The graph is built around four node kinds (module, class, function, method) and five edge relations. Schema and edge semantics are documented in [docs/CHEATSHEET.md](docs/CHEATSHEET.md).
+
+---
+
+## The repo as a tree
+
+`pycodekg viz3d --layout organic` grows the graph instead of plotting it. A
+skeleton is grown toward the code by space colonization, so the shape is the
+data rather than decoration:
+
+- **The trunk** is the repository; its radius follows the pipe model, so it
+  reports how much code the tree carries.
+- **Each limb** is a module. Its *length* is how many definitions the module
+  holds — the biggest module reaches furthest — and its *thickness* follows
+  from the tips it carries.
+- **Each leaf** is a class, function, or method, tinted by kind.
+
+`pycodekg quilt` renders that tree for a [Looking
+Glass](https://lookingglassfactory.com/) light-field display: a multi-view
+quilt the panel fuses into real depth, with `--cast` to send it straight to
+the device. Every render prints its disparity budget first, so you know
+whether the display will fuse the views or ghost them. Details in
+[docs/VIZ3D.md](docs/VIZ3D.md).
+
+The growth engine is shared across the KG fleet
+([kgmodule-utils](https://pypi.org/project/kgmodule-utils/)) and the
+light-field output is [quiltwright](https://pypi.org/project/quiltwright/);
+what lives here is only the mapping from code to wood.
 
 ---
 
@@ -169,10 +192,11 @@ src/pycode_kg/
 ├── ranking/                         # PageRank, bridge centrality, framework nodes
 ├── snapshots.py                     # Temporal metric snapshots
 ├── analysis/                        # Coupling, cycles, orphans, hotspots
-├── cli/                             # All `pycodekg-*` entry points
+├── cli/                             # `pycodekg` subcommands
 ├── mcp_server.py                    # MCP server (nineteen tools)
 ├── app.py                           # Streamlit web app
 ├── viz3d.py / layout3d.py           # PyVista/PyQt5 3-D viewer
+├── scene3d.py                       # Organic tree: repo → trunk, module → limb
 └── viz3d_timeline.py                # Metric history timeline
 ```
 
@@ -191,7 +215,8 @@ The MCP server, the CLI, and the Streamlit app are thin wrappers over the same s
 | [docs/CODERANK.md](docs/CODERANK.md) | SIR PageRank, bridge centrality, framework hubs |
 | [docs/MCP.md](docs/MCP.md) | MCP server setup for Claude / Kilo / Copilot / Cline, tool reference |
 | [docs/CHEATSHEET.md](docs/CHEATSHEET.md) | Every CLI flag and every MCP tool — one page |
-| [docs/VIZ3D.md](docs/VIZ3D.md) | The 3-D PyVista viewer and layouts |
+| [docs/VIZ3D.md](docs/VIZ3D.md) | The 3-D viewer, the organic tree, and Looking Glass output |
+| [docs/SISTER_PROJECTS.md](docs/SISTER_PROJECTS.md) | The other KGRAG graphs and the shared foundations |
 | [CHANGELOG.md](CHANGELOG.md) | Release history |
 
 ---
@@ -227,7 +252,7 @@ If you use PyCodeKG in your research or project, please cite it:
 ## Support & acknowledgments
 
 - **Issues** — [GitHub Issues](https://github.com/Flux-Frontiers/pycode_kg/issues)
-- Sister projects [DocKG](https://github.com/Flux-Frontiers/doc_kg) and [MetaboKG](https://github.com/Flux-Frontiers/metabo_kg)
+- [Sister projects](docs/SISTER_PROJECTS.md) — the rest of the KGRAG family
 - sqlite-vec, sentence-transformers, PyVista, Streamlit, and FastMCP for the foundations
 
 ---

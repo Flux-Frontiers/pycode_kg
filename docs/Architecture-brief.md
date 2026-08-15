@@ -215,18 +215,18 @@ Start: `pycodekg-mcp --repo /path [--db ...] [--vectors ...] [--transport stdio|
 
 ### CLI Entry Points
 
-| Command | Alias | Description |
-|---|---|---|
-| `pycodekg build-sqlite` | `pycodekg-build-sqlite` | AST → SQLite |
-| `pycodekg build-index` | `pycodekg-build-index` | SQLite → sqlite-vec |
-| `pycodekg build` | `pycodekg-build` | Full pipeline (always wipes) |
-| `pycodekg update` | `pycodekg-update` | Incremental upsert (no wipe) |
-| `pycodekg query` | `pycodekg-query` | Hybrid query |
-| `pycodekg pack` | `pycodekg-pack` | Snippet pack |
-| `pycodekg viz` | `pycodekg-viz` | Streamlit 2D visualizer |
-| `pycodekg viz3d` | `pycodekg-viz3d` | PyVista 3D visualizer |
-| `pycodekg analyze` | `pycodekg-analyze` | Architectural analysis |
-| `pycodekg mcp` | `pycodekg-mcp` | MCP server |
+| Command | Description |
+|---|---|
+| `pycodekg build-sqlite` | AST → SQLite |
+| `pycodekg build-index` | SQLite → sqlite-vec |
+| `pycodekg build` | Full pipeline (always wipes) |
+| `pycodekg update` | Incremental upsert (no wipe) |
+| `pycodekg query` | Hybrid query |
+| `pycodekg pack` | Snippet pack |
+| `pycodekg viz` | Streamlit 2D visualizer |
+| `pycodekg viz3d` | PyVista 3D visualizer |
+| `pycodekg analyze` | Architectural analysis |
+| `pycodekg mcp` | MCP server |
 
 ### Directory Exclusion
 
