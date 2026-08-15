@@ -186,3 +186,45 @@ LEVEL_NODE_SIZE: Final[dict[int, float]] = {
     2: KIND_SIZE["function"],
     3: KIND_SIZE["symbol"],
 }
+
+
+# ---------------------------------------------------------------------------
+# Organic tree rendering
+# ---------------------------------------------------------------------------
+
+#: Viewport background as ``(bottom, top)``, for the schematic layouts.
+#: A neutral mid-grey rather than the old white-to-lightblue: white throws
+#: enough light to wash out the node palette and is tiring to sit in front of,
+#: while grey keeps every kind colour distinct against it.
+SCENE_BACKGROUND: Final[tuple[str, str]] = ("#3B4045", "#5C646D")
+
+#: Viewport background for the organic tree, which reads best against a
+#: night sky — the canopy is lit foliage, not a diagram.
+TREE_BACKGROUND: Final[tuple[str, str]] = ("#0B1622", "#1E3A5F")
+
+#: Colour of grown wood — trunk and limbs — in the organic renderer.
+WOOD_COLOR: Final[str] = "#6B4E31"
+
+#: Definition kinds that become foliage, in tint order.  Where a document
+#: corpus tints its canopy by season, a code canopy is tinted by *kind*: the
+#: shape of a module's leaf cluster then reports its composition — mostly
+#: purple is a class-heavy module, mostly green a module of free functions.
+FOLIAGE_KINDS: Final[tuple[str, ...]] = (
+    "class",
+    "function",
+    "private_function",
+    "method",
+)
+
+#: Foliage palette, aligned index-for-index with :data:`FOLIAGE_KINDS` so the
+#: per-leaf ``tint`` scalar indexes straight into a ``ListedColormap``.
+FOLIAGE_COLOR: Final[tuple[str, ...]] = tuple(KIND_COLOR[k] for k in FOLIAGE_KINDS)
+
+#: Growth bias added to every branch direction.  Upward, so limbs reach rather
+#: than sprawl; the magnitude is a fraction of the unit attraction pull.
+DEFAULT_TROPISM: Final[tuple[float, float, float]] = (0.0, 0.0, 0.18)
+
+#: Crown size that :func:`pycode_kg.scene3d.build_code_tree_scene` treats as
+#: nominal for leaf scaling.  Larger crowns shrink their leaves by the cube
+#: root of the ratio, so a big repo does not render as an opaque shell.
+LEAF_REFERENCE_COUNT: Final[int] = 600

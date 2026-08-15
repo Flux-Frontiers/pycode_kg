@@ -21,8 +21,10 @@ import gc
 import logging
 import re
 import sys
+import time
 import warnings
 from collections import Counter
+from dataclasses import replace
 from pathlib import Path
 
 import numpy as np
@@ -73,6 +75,17 @@ DEFAULT_SAVE = "pycodekg_3d"
 CONTROL_PANEL_WIDTH: int = 240
 BUTTON_WIDTH: int = 120
 ZOOM_FACTOR: float = 10.0
+
+#: Looking Glass preset the "Cast to LG" button renders for — the 16" Gen3
+#: Landscape, matching the `pycodekg quilt` default.
+QUILT_SPEC: str = "16-landscape"
+
+#: Fraction of the preset's pixel size used when casting from the viewer.
+#: Rendering a full 7680x4320 quilt costs about a second here but leaves Bridge
+#: a 33-megapixel PNG to load and decode, which is where the wait actually is.
+#: Halving each axis quarters that; the lenticular optics hide the difference.
+#: `pycodekg quilt` still writes full resolution for files that get kept.
+CAST_SCALE: float = 0.5
 
 # Colours and sizes come from pycode_kg.theme, the single source of truth shared
 # with the 2-D explorer and the layout engine.  These names are kept as aliases
@@ -281,6 +294,51 @@ class DocstringPopup(QDialog):
 # ---------------------------------------------------------------------------
 
 
+def _organic_visualization(
+    viz: KGVisualizer,
+    nodes,
+    plotter: pv.Plotter,
+) -> tuple[pv.Plotter, str, dict[str, dict]]:
+    """Grow the graph as a tree instead of placing it on a lattice.
+
+    Picking is not offered in this mode: the canopy is one glyphed mesh, so
+    there is no per-node actor to pick, and the wood is grown rather than
+    positioned — a leaf is a definition, but the branch it hangs from belongs
+    to no single node.  Returning an empty ``actor_to_node`` disables picking
+    without the caller needing to know why.
+
+    :param viz: The visualiser, for status reporting and the repo name.
+    :param nodes: Visible nodes to grow toward.
+    :param plotter: Plotter to compose into.
+    :return: ``(plotter, title_text, actor_to_node)``.
+    """
+    from pycode_kg.scene3d import build_code_tree_scene
+
+    viz.status = "Growing tree..."
+    QApplication.processEvents()
+
+    db = Path(viz.db_path).resolve()
+    repo_name = db.parent.parent.name if db.parent.name == ".pycodekg" else db.stem
+
+    try:
+        scene = build_code_tree_scene(nodes, viz.edges, plotter, key=repo_name or "repository")
+    except ValueError as exc:
+        viz.status = f"Error: {exc}"
+        return plotter, viz.window_title, {}
+
+    plotter.add_axes(interactive=False, viewport=(0.75, 0.75, 1.0, 1.0))  # ty: ignore[missing-argument]
+    plotter.reset_camera()  # ty: ignore[missing-argument]
+    viz.status = (
+        f"Grew {scene.n_modules} module limbs, {scene.n_leaves} leaves "
+        f"({scene.skeleton.n_nodes} skeleton nodes) — picking is off in organic mode"
+    )
+    title = (
+        f"PyCodeKG 3D v{__version__} | {repo_name} | organic | "
+        f"Limbs: {scene.n_modules}  Leaves: {scene.n_leaves}"
+    )
+    return plotter, title, {}
+
+
 def create_kg_visualization(
     viz: KGVisualizer,
     nodes,
@@ -306,10 +364,14 @@ def create_kg_visualization(
     viz.status = "Setting up visualization..."
     QApplication.processEvents()
 
+    if viz.layout_name == "organic":
+        return _organic_visualization(viz, nodes, plotter)
+
     plotter.clear_actors()
     plotter.enable_anti_aliasing("msaa")
     plotter.enable_terrain_style()  # ty: ignore[missing-argument]
-    plotter.set_background("white", top="lightblue")  # ty: ignore[invalid-argument-type]
+    bg_bottom, bg_top = theme.SCENE_BACKGROUND
+    plotter.set_background(bg_bottom, top=bg_top)  # ty: ignore[invalid-argument-type]
     plotter.add_axes(  # ty: ignore[missing-argument]
         interactive=False,
         viewport=(0.75, 0.75, 1.0, 1.0),
@@ -514,7 +576,7 @@ class KGVisualizer(param.Parameterized):
 
     db_path: str = param.String(default=DEFAULT_DB, doc="SQLite database path")  # ty: ignore[invalid-assignment]
     layout_name: str = param.Selector(  # ty: ignore[invalid-assignment]
-        objects=["allium", "funnel"], default="allium", doc="3-D layout strategy"
+        objects=["allium", "funnel", "organic"], default="allium", doc="3-D layout strategy"
     )
     save_path: str = param.String(default=DEFAULT_SAVE, doc="Save path stem")  # ty: ignore[invalid-assignment]
     save_format: str = param.Selector(  # ty: ignore[invalid-assignment]
@@ -642,20 +704,16 @@ class KGVisualizer(param.Parameterized):
         if self.scores is None:
             self.status = f"Metric '{self.centrality_metric}' could not be loaded"
 
-    def visualize(self) -> None:
-        """
-        Build and render the 3-D scene using the current settings.
+    def visible_nodes(self) -> list:
+        """Return the nodes the current filters admit.
 
-        Applies the selected module filter, then delegates to
-        :func:`create_kg_visualization`.
-        """
-        if not self.plotter:
-            return
-        if not self.nodes:
-            self.status = "No data — check DB path."
-            return
+        Both the on-screen render and the Looking Glass cast draw from this,
+        so what gets cast is always what is being looked at — a cast that
+        recomputed its own node set would quietly ignore the module filter and
+        send a different graph to the display.
 
-        # Apply module filter
+        :return: Nodes passing the module filter and the kind filters.
+        """
         if self.selected_modules:
             contains_children: dict[str, list[str]] = {}
             for e in self.edges:
@@ -683,15 +741,25 @@ class KGVisualizer(param.Parameterized):
                     in_scope |= subtree(mod_node.id)
 
             # Respect show_methods / show_symbols
-            visible_nodes = [
-                n for n in self.nodes if n.id in in_scope and self._kind_visible(n.kind)
-            ]
-        else:
-            visible_nodes = [n for n in self.nodes if self._kind_visible(n.kind)]
+            return [n for n in self.nodes if n.id in in_scope and self._kind_visible(n.kind)]
+        return [n for n in self.nodes if self._kind_visible(n.kind)]
+
+    def visualize(self) -> None:
+        """
+        Build and render the 3-D scene using the current settings.
+
+        Applies the selected module filter, then delegates to
+        :func:`create_kg_visualization`.
+        """
+        if not self.plotter:
+            return
+        if not self.nodes:
+            self.status = "No data — check DB path."
+            return
 
         try:
             _, title, actor_to_node = create_kg_visualization(
-                self, visible_nodes, self.edges, self.plotter
+                self, self.visible_nodes(), self.edges, self.plotter
             )
             self.actor_to_node = actor_to_node
             self.window_title = title
@@ -835,12 +903,6 @@ class MainWindow(QMainWindow):
         self.db_path_input.setPlaceholderText(".pycodekg/graph.sqlite")
         ctrl.addWidget(self.db_path_input)
 
-        ctrl.addWidget(self._lbl("<b>Layout</b>"))
-        self.layout_select = QComboBox()
-        self.layout_select.addItems(["allium", "funnel"])
-        self.layout_select.setCurrentText(self.visualizer.layout_name)
-        ctrl.addWidget(self.layout_select)
-
         ctrl.addWidget(self._lbl("<b>Save Path</b>"))
         self.save_path_input = QLineEdit(self.visualizer.save_path)
         ctrl.addWidget(self.save_path_input)
@@ -932,11 +994,31 @@ class MainWindow(QMainWindow):
         )
         ctrl.addWidget(self.stats_label)
 
+    def _build_render_mode(self, ctrl: QVBoxLayout) -> None:
+        """Populate *ctrl* with the Render Mode group.
+
+        Kept near the top of the panel: it is the control reached for most
+        often, and at the bottom — beside the buttons it drives — it was easy
+        to miss entirely.
+
+        :param ctrl: The control-panel layout to populate.
+        """
+        ctrl.addWidget(self._h2("Render Mode"))
+        self.layout_select = QComboBox()
+        self.layout_select.addItems(["allium", "funnel", "organic"])
+        self.layout_select.setCurrentText(self.visualizer.layout_name)
+        self.layout_select.setToolTip(
+            "allium — each module as a Giant Allium plant\n"
+            "funnel — nodes stratified by kind across Z layers\n"
+            "organic — grow the repository as a tree by space colonization:\n"
+            "    modules are limbs, definitions are leaves. Picking is off in\n"
+            "    this mode. This is what `pycodekg quilt` renders.\n"
+            "Changing this re-renders immediately."
+        )
+        ctrl.addWidget(self.layout_select)
+
     def _build_action_buttons(self, ctrl: QVBoxLayout) -> None:
         """Populate *ctrl* with the action-button row at the bottom of the panel.
-
-        Adds a prominent Render Graph button and a secondary row with
-        Show Docstring and Save View.
 
         :param ctrl: The control-panel layout to populate.
         """
@@ -946,6 +1028,18 @@ class MainWindow(QMainWindow):
         self.visualize_button.setMinimumHeight(40)
         self.visualize_button.setStyleSheet("QPushButton { font-size: 14px; font-weight: bold; }")
         ctrl.addWidget(self.visualize_button)
+
+        self.cast_button = QPushButton("Cast to LG")
+        self.cast_button.setMinimumHeight(32)
+        self.cast_button.setStyleSheet(
+            "QPushButton { font-weight: bold; background-color: #3E5F8A; }"
+        )
+        self.cast_button.setToolTip(
+            "Render the current view as a light-field quilt and push it to the\n"
+            "Looking Glass via Bridge. Uses the camera you are looking through.\n"
+            "Best with the organic layout."
+        )
+        ctrl.addWidget(self.cast_button)
 
         btn_row = QHBoxLayout()
         self.show_docstring_button = QPushButton("Show Docstring")
@@ -957,8 +1051,8 @@ class MainWindow(QMainWindow):
     def _build_control_panel(self) -> QWidget:
         """Build and return the left-side control-panel widget.
 
-        Assembles Input Parameters, Module Filter, Render Options, and
-        action buttons into a fixed-width :class:`QWidget`.
+        Assembles Input Parameters, Render Mode, Module Filter, Render
+        Options, and action buttons into a fixed-width :class:`QWidget`.
 
         :return: A :class:`QWidget` containing the complete control panel.
         """
@@ -967,6 +1061,7 @@ class MainWindow(QMainWindow):
         ctrl.setContentsMargins(6, 6, 6, 6)
 
         self._build_input_params(ctrl)
+        self._build_render_mode(ctrl)
         self._build_module_filter(ctrl)
         self._build_render_options(ctrl)
         self._build_action_buttons(ctrl)
@@ -1043,6 +1138,7 @@ class MainWindow(QMainWindow):
         """
         self.db_path_input.editingFinished.connect(self.update_db_path)
         self.layout_select.currentTextChanged.connect(self.update_layout)
+        self.cast_button.clicked.connect(self.cast_to_looking_glass)
         self.save_path_input.textChanged.connect(lambda t: setattr(self.visualizer, "save_path", t))
         self.save_format_select.currentTextChanged.connect(
             lambda t: setattr(self.visualizer, "save_format", t)
@@ -1126,8 +1222,18 @@ class MainWindow(QMainWindow):
             self.module_selector.addItem(name)
 
     def update_layout(self, name: str) -> None:
-        """Handle layout combo-box change."""
+        """Handle layout combo-box change and re-render at once.
+
+        Switching layout used to only set the parameter, leaving the previous
+        layout on screen until Render Graph was clicked — which reads as the
+        control having done nothing.  Re-rendering here costs the same as the
+        click it replaces.
+
+        :param name: The newly selected layout name.
+        """
         self.visualizer.layout_name = name
+        if self.visualizer.nodes:
+            self.visualizer.visualize()
 
     def update_selected_modules(self) -> None:
         """Sync QListWidget selection to visualizer.selected_modules."""
@@ -1314,6 +1420,80 @@ class MainWindow(QMainWindow):
         self.plotter.render()
         self.visualizer.status = "View reset."
 
+    # ── Looking Glass ───────────────────────────────────────────────────────
+
+    def cast_to_looking_glass(self) -> None:
+        """Render the current view as a quilt and push it to the Looking Glass.
+
+        Re-composes the same scene into an off-screen plotter and copies this
+        window's camera, so what is cast is the view being looked at — then
+        hands the quilt to Bridge.  Needs Looking Glass Bridge running on this
+        machine; the rendered file is kept either way.
+
+        The quilt is rendered at :data:`CAST_SCALE` of the preset's pixel size:
+        the local render costs about a second at full size, but the wait is
+        Bridge loading the resulting PNG, and that scales with its area.  The
+        scaled dimensions are rounded down to a multiple of the tile grid, or
+        the tiles stop landing on integer pixel boundaries.
+        """
+        try:
+            from quiltwright import QUILT_PRESETS, cast_quilt, render_quilt, save_quilt
+        except ImportError:
+            self.visualizer.status = (
+                'Casting needs quiltwright: pip install "pycode-kg[viz3d]" (Python 3.12)'
+            )
+            return
+
+        if not self.visualizer.nodes:
+            self.visualizer.status = "Nothing to cast — render something first."
+            return
+
+        preset = QUILT_PRESETS[QUILT_SPEC]
+        spec = replace(
+            preset,
+            quilt_width=int(preset.quilt_width * CAST_SCALE) // preset.columns * preset.columns,
+            quilt_height=int(preset.quilt_height * CAST_SCALE) // preset.rows * preset.rows,
+        )
+
+        def step(n: int, message: str) -> None:
+            """Report cast progress on the status bar.
+
+            :param n: Step number.
+            :param message: What is happening now.
+            """
+            self.visualizer.status = f"Cast {n}/4 — {message}"
+            self.cast_button.setEnabled(False)
+            QApplication.processEvents()
+
+        offscreen = pv.Plotter(off_screen=True)
+        started = time.perf_counter()
+        try:
+            step(1, "building scene...")
+            create_kg_visualization(
+                self.visualizer,
+                self.visualizer.visible_nodes(),
+                self.visualizer.edges,
+                offscreen,
+            )
+            offscreen.camera_position = self.plotter.camera_position
+
+            step(2, f"rendering {spec.n_views} views at {spec.tile_width}x{spec.tile_height}...")
+            quilt = render_quilt(offscreen, spec)
+
+            step(3, f"writing {spec.quilt_width}x{spec.quilt_height} quilt...")
+            out_dir = Path("renders") / "quilts"
+            path = save_quilt(quilt, out_dir / f"{Path(self.visualizer.save_path).name}_cast", spec)
+
+            step(4, "handing to Bridge...")
+            cast_quilt(path.resolve(), spec)
+            self.visualizer.status = f"Cast {path.name} in {time.perf_counter() - started:.1f}s"
+        except Exception as exc:  # noqa: BLE001 — a dark panel must not kill the viewer
+            logger.exception("Cast failed")
+            self.visualizer.status = f"Cast failed (is Bridge running?): {exc}"
+        finally:
+            offscreen.close()
+            self.cast_button.setEnabled(True)
+
     # ── Save ────────────────────────────────────────────────────────────────
 
     def save_current_view(self) -> None:
@@ -1447,7 +1627,7 @@ def launch(
     Create a :class:`QApplication`, open :class:`MainWindow`, and run the event loop.
 
     :param db_path: Path to the SQLite database.
-    :param layout_name: ``"allium"`` or ``"funnel"``.
+    :param layout_name: ``"allium"``, ``"funnel"`` or ``"organic"``.
     :param width: Initial window width.
     :param height: Initial window height.
     """
@@ -1461,6 +1641,8 @@ def launch(
         height=height,
     )
     win.visualizer.layout_name = layout_name
-    win.layout_select.setCurrentText(layout_name)
     win.show()
+    # After show(): setting the combo now fires update_layout, which renders,
+    # and that wants a realized window to draw into.
+    win.layout_select.setCurrentText(layout_name)
     sys.exit(app.exec())

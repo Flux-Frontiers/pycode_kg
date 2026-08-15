@@ -105,6 +105,14 @@ uv.lock
 .agents/
 .codex/
 
+# Skill symlinks that installed packages drop into .claude/skills -- they point
+# into .venv, so committing one puts a machine-specific path in git. Streamlit
+# recreates this on install; the skill itself lives in ~/.claude/skills.
+.claude/skills/developing-with-streamlit
+
+# Quilt and preview output -- large binaries, regenerable from the graph
+renders/*
+
 # MCP server config -- machine-specific, contains absolute paths
 .mcp.json
 .mcp.json.sav

@@ -85,6 +85,88 @@ its name.
 > Best for: understanding cross-layer coupling, import architecture,
 > call graph shape at a glance.
 
+### Organic
+
+Allium and Funnel *place* nodes on a lattice. Organic **grows** a tree toward
+them, by space colonization: the wood starts at the origin and branches its way
+out to reach every definition, the way a real tree grows toward light.
+
+| Graph | Geometry |
+|-------|----------|
+| Repository | The trunk, standing at the origin |
+| Module | A limb, on a golden-angle spiral up the trunk |
+| Class, function, method | A leaf — a crown attractor the wood must reach |
+
+Because the attractors are the actual definitions, the canopy's shape *is* the
+shape of the codebase. Two properties follow from the growth rather than being
+drawn on top of it:
+
+- **Limb thickness** obeys the pipe model (`r_parent = (Σ r_child^2.2)^(1/2.2)`),
+  so a limb's girth is exactly how much code hangs off it. The trunk's radius
+  is a pure function of the repository's total definition count.
+- **Limb length** is scaled by the module's definition count, so the biggest
+  module reaches furthest and the crown fills instead of forming a hollow shell.
+
+Leaves are tinted by kind — orange classes, green functions, yellow private
+functions, purple methods — so a mostly-purple cluster is a class-heavy module
+and a mostly-green one is a module of free functions.
+
+```bash
+pycodekg viz3d --layout organic
+```
+
+> Best for: seeing the whole repository's shape and weight distribution at once,
+> and for holographic output (see below).
+>
+> **Picking is disabled** in this mode. The canopy is a single glyphed mesh with
+> no per-node actor to pick, and the wood is grown rather than positioned — a
+> leaf is a definition, but the branch it hangs from belongs to no single node.
+
+---
+
+## Holographic output — `pycodekg quilt`
+
+The organic tree can be rendered as a **quilt**: the tiled multi-view image a
+Looking Glass lenticular display fuses into real depth.
+
+```bash
+pycodekg quilt                          # 16" Gen3 Landscape, the default
+pycodekg quilt --spec portrait          # a different device preset
+pycodekg quilt --zoom 1.5               # fill more of the frame — more depth
+pycodekg quilt --orbit 120 --fps 24     # a turntable quilt video instead
+pycodekg quilt --cast                   # send it straight to the display
+```
+
+Output lands in `renders/quilts/` with the `_qs<cols>x<rows>a<aspect>` suffix
+Looking Glass Bridge and Studio parse, plus a flat centre-view PNG in
+`renders/previews/` — a quilt opened in an ordinary image viewer is a tiled
+contact sheet, which is useless for judging whether the tree looks right. The
+whole `renders/` directory is git-ignored; everything in it regenerates.
+
+Every render prints a **disparity budget** first:
+
+```
+  focal plane      86.9 units
+  view cone        35.0 deg over 48 views
+  adjacent-view disparity:
+    nearest foliage        76.6   1.90 px
+    focal plane (display surface)     86.9   0.00 px
+    farthest foliage       97.3   1.49 px
+```
+
+That is the per-view pixel shift at each depth, and it is what decides whether
+the display *fuses* the views or ghosts them. Roughly 4–5 px is the practical
+ceiling; past ~8 px expect visible doubling. Content exactly at the focal plane
+has zero disparity, which is why the camera is framed with the focal point at
+mid-canopy — the crown straddles the display surface, half in front of the
+glass and half behind.
+
+All of the quilt geometry — the off-axis frustum per view, the tiling order,
+the filename convention, the Bridge protocol — lives in
+[quiltwright](https://github.com/suchanek/quiltwright), which arrives with the
+`viz3d` extra on Python 3.12. (quiltwright pins `<3.13`, so on 3.13 the
+dependency is skipped and this command reports that it is unavailable.)
+
 ---
 
 ## Camera and navigation
@@ -216,6 +298,9 @@ pycodekg viz3d
 
 # Funnel layout, custom DB
 pycodekg viz3d --layout funnel --db /path/to/.pycodekg/graph.sqlite
+
+# Grow the repository as a tree
+pycodekg viz3d --layout organic
 
 # Larger window
 pycodekg viz3d --width 1920 --height 1080
