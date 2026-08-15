@@ -9,9 +9,11 @@ Note: older entries preserve the API names used at that release (for example com
 
 ## [Unreleased]
 
+## [0.23.0] - 2026-08-15
+
 ### Added
 
-- **`docs/SISTER_PROJECTS.md`** — the KGRAG family in one place, all nine
+- **`docs/SISTER_PROJECTS.md`** — the KGRAG family in one place, all ten
   graphs plus the shared foundations (`kgmodule-utils`, `quiltwright`). The
   README carried a five-item list that had gone stale: GutenbergKG, MemoryKG,
   TSCodeKG and KGRAG itself were missing, and the FTreeKG link pointed at a
