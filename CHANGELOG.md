@@ -9,6 +9,25 @@ Note: older entries preserve the API names used at that release (for example com
 
 ## [Unreleased]
 
+## [0.23.1] - 2026-08-15
+
+### Fixed
+
+- **`scripts/analyze_repo.sh` called console scripts that 0.23.0 deleted.**
+  The script invoked `pycodekg-build-sqlite`, `pycodekg-build-index` and
+  `pycodekg-analyze`, so it died at the first build step on any 0.23.0
+  install. It now uses the `pycodekg <subcommand>` form, and its presence
+  check no longer looks for the removed alias first.
+
+### Changed
+
+- **`kgmodule-utils[semantic,viz3d]>=0.13.1`**, raised from `>=0.12.1`. 0.13.1
+  is the release that stops `SnapshotManager` writing absolute paths into
+  snapshot JSON. `pycodekg snapshot save` writes those files into the user's
+  own repository, where they get committed — against an older kgmodule-utils
+  that means their home directory and username land in version control.
+- **`poetry.lock` refreshed** — `charset-normalizer` 3.5.0 → 3.5.1.
+
 ## [0.23.0] - 2026-08-15
 
 ### Added
