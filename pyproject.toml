@@ -222,7 +222,7 @@ ty = ">=0.0.41"
 optional = true
 
 [tool.poetry.group.kg.dependencies]
-doc-kg = ">=0.21.1"
+doc-kg = ">=0.21.2"
 
 [project.urls]
 Homepage = "https://github.com/Flux-Frontiers/pycode_kg"
