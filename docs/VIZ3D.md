@@ -146,12 +146,12 @@ whole `renders/` directory is git-ignored; everything in it regenerates.
 Every render prints a **disparity budget** first:
 
 ```
-  focal plane      86.9 units
+  focal plane      137.3 units
   view cone        35.0 deg over 48 views
   adjacent-view disparity:
-    nearest foliage        76.6   1.90 px
-    focal plane (display surface)     86.9   0.00 px
-    farthest foliage       97.3   1.49 px
+    nearest foliage       126.7   2.55 px
+    focal plane (display surface)    137.3   0.00 px
+    farthest foliage      147.8   2.18 px
 ```
 
 That is the per-view pixel shift at each depth, and it is what decides whether
@@ -161,11 +161,16 @@ has zero disparity, which is why the camera is framed with the focal point at
 mid-canopy — the crown straddles the display surface, half in front of the
 glass and half behind.
 
+The budget is reported for the camera the render will actually use, not the
+one you framed: `render_quilt` narrows the FOV and dollies back before it
+sweeps, so the focal distance above is larger than the framing distance. That
+is `quiltwright.depth_report`, which takes the same `--fov` and `--zoom` this
+command passes on.
+
 All of the quilt geometry — the off-axis frustum per view, the tiling order,
-the filename convention, the Bridge protocol — lives in
+the filename convention, the depth budget, the Bridge protocol — lives in
 [quiltwright](https://github.com/suchanek/quiltwright), which arrives with the
-`viz3d` extra on Python 3.12. (quiltwright pins `<3.13`, so on 3.13 the
-dependency is skipped and this command reports that it is unavailable.)
+`viz3d` extra on Python 3.12 and 3.13.
 
 ---
 

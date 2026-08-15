@@ -9,6 +9,28 @@ Note: older entries preserve the API names used at that release (for example com
 
 ## [Unreleased]
 
+### Changed
+
+- **The depth budget comes from `quiltwright.depth_report` instead of a local
+  copy — and the numbers change, because the local copy was wrong.**
+  `render_quilt` narrows the FOV to 14° and dollies the camera back before it
+  sweeps, so a budget measured from the camera as-framed is computed at the
+  wrong FOV *and* the wrong focal distance. `quiltwright.depth_report` takes
+  the `fov` and `zoom` that will actually be used and models the reframing, so
+  the report now describes the render rather than the framing. On this
+  repository at `--zoom 1.35` the focal plane reads 137.3 units rather than
+  86.7, and nearest-foliage disparity 2.55 px rather than 3.57 — more headroom
+  than we thought, not less. The ~38-line helper is deleted; the domain part
+  (foliage labels, sky at infinity) is now just arguments.
+- **`quiltwright>=0.4.0`, declared plainly.** The
+  `; python_version < '3.13'` marker is gone from both the `viz3d` and `all`
+  extras. It existed only because quiltwright pinned `requires-python <3.13`
+  while this project allows `<3.14`, which made an unmarked declaration
+  unresolvable — Poetry rejected the entire resolution rather than skipping
+  the package. 0.4.0 widened the ceiling to match and runs CI on 3.12 and
+  3.13, so the holographic commands are now available on both interpreters
+  instead of degrading to an error on 3.13.
+
 ### Added
 
 - **`pycodekg quilt` — the repository as a hologram.** Grows the graph into a

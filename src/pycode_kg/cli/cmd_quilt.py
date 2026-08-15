@@ -6,11 +6,10 @@ Click subcommand for holographic output:
   quilt — grow the repository as a tree and render it as a Looking Glass
           light-field quilt (or a turntable quilt video).
 
-The quilt geometry — the off-axis frustum per view, the tiling convention and
-the filename suffix Looking Glass software parses — all lives in
-:mod:`quiltwright`.  What this command owns is the part quiltwright cannot
-know: which graph to grow, how to frame it, and what the depth budget of the
-result is.
+The quilt geometry — the off-axis frustum per view, the tiling convention, the
+filename suffix Looking Glass software parses, and the depth budget — all lives
+in :mod:`quiltwright`.  What this command owns is the part quiltwright cannot
+know: which graph to grow and how to frame it.
 
 Author: Eric G. Suchanek, PhD
 Last Revision: 2026-08-14
@@ -28,52 +27,6 @@ import click
 from pycode_kg.cli.main import cli
 
 _VIZ3D_EXTRA = 'pip install "pycode-kg[viz3d]"'
-
-
-def _depth_report(plotter, spec) -> str:
-    """Disparity report for the framed subject, printed before every render.
-
-    Projects the scene's bounding box onto the view axis to get near and far
-    depths, then hands them to quiltwright's budget formatter.  Numbers above
-    roughly 5 px read soft; past ~8 px expect visible ghosting.
-
-    :param plotter: The framed plotter.
-    :param spec: Quilt specification.
-    :return: Multi-line report.
-    """
-    import numpy as np  # noqa: PLC0415
-    from quiltwright.povray import PovCamera, format_depth_budget  # noqa: PLC0415
-
-    camera = plotter.camera
-    pos = np.asarray(camera.position, dtype=float)
-    focal = np.asarray(camera.focal_point, dtype=float)
-    forward = focal - pos
-    distance = float(np.linalg.norm(forward))
-    forward = forward / max(distance, 1e-9)
-
-    xmin, xmax, ymin, ymax, zmin, zmax = plotter.bounds
-    corners = np.array(
-        [[x, y, z] for x in (xmin, xmax) for y in (ymin, ymax) for z in (zmin, zmax)],
-        dtype=float,
-    )
-    along = (corners - pos) @ forward
-
-    pov_cam = PovCamera(
-        location=tuple(pos),
-        look_at=tuple(focal),
-        sky=(0.0, 0.0, 1.0),
-        fov=camera.view_angle,
-    )
-    return format_depth_budget(
-        spec,
-        pov_cam,
-        {
-            "nearest foliage": float(along.min()),
-            "focal plane (display surface)": distance,
-            "farthest foliage": float(along.max()),
-            "sky": math.inf,
-        },
-    )
 
 
 def _frame_tree(plotter) -> None:
@@ -196,6 +149,7 @@ def quilt(  # noqa: PLR0913 - one option per knob, by design
         import pyvista as pv  # noqa: PLC0415
         from quiltwright import (  # noqa: PLC0415
             QUILT_PRESETS,
+            depth_report,
             render_quilt,
             render_quilt_video,
             save_quilt,
@@ -247,7 +201,23 @@ def quilt(  # noqa: PLR0913 - one option per knob, by design
         )
 
         _frame_tree(plotter)
-        click.echo(_depth_report(plotter, quilt_spec))
+        # fov and zoom are the ones the render will use: render_quilt narrows
+        # the FOV and dollies back before sweeping, so a budget measured from
+        # the camera as-framed describes a picture we are not about to make.
+        click.echo(
+            depth_report(
+                plotter,
+                quilt_spec,
+                fov=fov,
+                zoom=zoom,
+                labels=(
+                    "nearest foliage",
+                    "focal plane (display surface)",
+                    "farthest foliage",
+                ),
+                extra_depths={"sky": math.inf},
+            )
+        )
 
         out_dir = Path(out)
         out_dir.mkdir(parents=True, exist_ok=True)
