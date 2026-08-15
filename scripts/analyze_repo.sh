@@ -6,7 +6,7 @@
 #   ./scripts/analyze_repo.sh https://github.com/owner/repo
 #   ./scripts/analyze_repo.sh owner/repo --include-dir src --include-dir lib
 #
-# Extra flags after the repo argument are forwarded to pycodekg-build-sqlite.
+# Extra flags after the repo argument are forwarded to `pycodekg build-sqlite`.
 # If no --include-dir is given, the script auto-detects the Python package dir
 # (looks for a subdir matching the repo name, then src/, then falls back to all).
 #
@@ -28,7 +28,7 @@ die()     { echo -e "${RED}✗ $*${NC}" >&2; exit 1; }
 
 INPUT="$1"
 shift
-EXTRA_BUILD_ARGS=("$@")   # remaining args forwarded to pycodekg-build-sqlite
+EXTRA_BUILD_ARGS=("$@")   # remaining args forwarded to `pycodekg build-sqlite`
 
 # Normalise: strip trailing .git, extract owner/repo from URL or bare slug
 INPUT="${INPUT%.git}"
@@ -63,7 +63,6 @@ info "Output file : $OUT_FILE"
 echo
 
 command -v git   >/dev/null || die "git not found"
-command -v pycodekg-build-sqlite >/dev/null || \
 command -v pycodekg >/dev/null || \
     die "pycodekg not found — run this script from within the pycode-kg virtual environment"
 
@@ -111,10 +110,10 @@ echo
 # ── build PyCodeKG ─────────────────────────────────────────────────────────────
 
 info "Building PyCodeKG SQLite index..."
-pycodekg-build-sqlite --repo "$CLONE_DIR" --wipe "${EXTRA_BUILD_ARGS[@]+"${EXTRA_BUILD_ARGS[@]}"}" 2>&1 | sed 's/^/  /'
+pycodekg build-sqlite --repo "$CLONE_DIR" --wipe "${EXTRA_BUILD_ARGS[@]+"${EXTRA_BUILD_ARGS[@]}"}" 2>&1 | sed 's/^/  /'
 
 info "Building PyCodeKG semantic (sqlite-vec) index..."
-pycodekg-build-index --repo "$CLONE_DIR" 2>&1 | sed 's/^/  /'
+pycodekg build-index --repo "$CLONE_DIR" 2>&1 | sed 's/^/  /'
 
 success "Knowledge graph built"
 echo
@@ -122,7 +121,7 @@ echo
 # ── analyse ──────────────────────────────────────────────────────────────────
 
 info "Running analysis → $OUT_FILE"
-pycodekg-analyze "$CLONE_DIR" --output "$OUT_FILE" 2>&1 | sed 's/^/  /'
+pycodekg analyze "$CLONE_DIR" --output "$OUT_FILE" 2>&1 | sed 's/^/  /'
 
 if [[ -f "$OUT_FILE" ]]; then
     SIZE="$(wc -l < "$OUT_FILE" | tr -d ' ')"
