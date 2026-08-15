@@ -4,6 +4,8 @@ utils.py
 Shared primitive utilities used by both pycodekg.py and visitor.py.
 Kept in a separate module to avoid circular imports.
 
+Author: Eric G. Suchanek, PhD
+
 License: Elastic 2.0
 """
 

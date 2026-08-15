@@ -10,6 +10,8 @@ Click command to provide consistent option names, defaults, and help text::
     def my_command(sqlite, vectors):
         ...
 
+Author: Eric G. Suchanek, PhD
+
 License: Elastic 2.0
 """
 

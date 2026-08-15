@@ -22,6 +22,8 @@ Notes
 - If you later compute shortest-path or betweenness centrality, convert these
   strengths to distances, e.g. distance = 1 / (weight + eps).
 
+Author: Eric G. Suchanek, PhD
+
 License: Elastic 2.0
 """
 

@@ -7,6 +7,8 @@ Click subcommands for launching PyCodeKG visualizers:
   viz3d        — PyVista/PyQt5 3-D interactive knowledge-graph visualizer
   viz-timeline — Interactive temporal metrics visualization from snapshots
 
+Author: Eric G. Suchanek, PhD
+
 License: Elastic 2.0
 """
 

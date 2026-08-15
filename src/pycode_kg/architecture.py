@@ -24,6 +24,8 @@ Usage
 >>> arch_md = analyzer.analyze_to_markdown()
 >>> arch_json = analyzer.analyze_to_json()
 
+Author: Eric G. Suchanek, PhD
+
 License: Elastic 2.0
 """
 

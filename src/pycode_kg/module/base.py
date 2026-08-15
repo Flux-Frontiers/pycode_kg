@@ -1,5 +1,7 @@
 """pycode_kg/module/base.py — KGModule for pycode_kg: thin subclass of kg_utils.pipeline.
 
+Author: Eric G. Suchanek, PhD
+
 License: Elastic 2.0
 """
 

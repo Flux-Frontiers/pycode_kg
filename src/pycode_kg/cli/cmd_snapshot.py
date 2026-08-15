@@ -8,6 +8,8 @@ Click subcommands for managing temporal snapshots of PyCodeKG metrics:
   snapshot show   — display full snapshot details
   snapshot diff   — compare two snapshots
 
+Author: Eric G. Suchanek, PhD
+
 License: Elastic 2.0
 """
 

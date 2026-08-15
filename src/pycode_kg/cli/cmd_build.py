@@ -6,6 +6,8 @@ Click subcommands for building the PyCodeKG knowledge graph:
     build-sqlite  - repo -> AST -> graph store
     build-index   - graph store -> sqlite-vec vector index
 
+Author: Eric G. Suchanek, PhD
+
 License: Elastic 2.0
 """
 

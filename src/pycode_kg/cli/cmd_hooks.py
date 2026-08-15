@@ -8,6 +8,8 @@ CLI command for installing PyCodeKG git hooks:
   Author: Eric G. Suchanek, PhD
   Last Revision: 2026-08-11 19:32:52
 
+Author: Eric G. Suchanek, PhD
+
 License: Elastic 2.0
 """
 

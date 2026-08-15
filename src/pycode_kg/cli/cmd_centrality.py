@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Click command for Structural Importance Ranking (SIR).
 
+Author: Eric G. Suchanek, PhD
+
 License: Elastic 2.0
 """
 

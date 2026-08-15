@@ -11,6 +11,8 @@ Interactive knowledge-graph explorer with:
 Run with:
     poetry run pycodekg-viz
 
+Author: Eric G. Suchanek, PhD
+
 License: Elastic 2.0
 """
 

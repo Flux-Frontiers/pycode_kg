@@ -1,6 +1,8 @@
 """
 CLI command for framework node detection in PyCodeKG.
 
+Author: Eric G. Suchanek, PhD
+
 License: Elastic 2.0
 """
 

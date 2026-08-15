@@ -5,6 +5,8 @@ CLI command for managing the PyCodeKG embedding model cache.
 
   download-model   — download and cache the sentence-transformer model for offline use
 
+Author: Eric G. Suchanek, PhD
+
 License: Elastic 2.0
 """
 

@@ -15,6 +15,8 @@ dotted ``sym:`` stub ending in one of them is a builtin method call, and
 the resolution pass.  The durable fix is receiver-aware resolution upstream
 in kg_utils; until then this prune runs in :meth:`PyCodeKG._post_build_hook`.
 
+Author: Eric G. Suchanek, PhD
+
 License: Elastic 2.0
 """
 

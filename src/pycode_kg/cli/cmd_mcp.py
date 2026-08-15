@@ -5,6 +5,8 @@ Click subcommand for starting the PyCodeKG MCP server:
 
   mcp  — start the MCP server (thin wrapper around mcp_server.main)
 
+Author: Eric G. Suchanek, PhD
+
 License: Elastic 2.0
 """
 

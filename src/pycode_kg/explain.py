@@ -11,6 +11,8 @@ their role-labeling, formatting, threshold semantics, or markdown
 structure — which previously caused divergent output (different
 thresholds, different "Utility function" vs kind-aware labels).
 
+Author: Eric G. Suchanek, PhD
+
 License: Elastic 2.0
 """
 

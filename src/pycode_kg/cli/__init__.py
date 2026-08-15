@@ -8,6 +8,8 @@ The root Click group is importable from either location::
     from pycode_kg.cli import cli
     from pycode_kg.cli.main import cli
 
+Author: Eric G. Suchanek, PhD
+
 License: Elastic 2.0
 """
 

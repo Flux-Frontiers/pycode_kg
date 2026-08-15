@@ -5,6 +5,8 @@ Click subcommand for explaining code nodes:
 
   explain  — get a natural-language explanation of a code node by its ID
 
+Author: Eric G. Suchanek, PhD
+
 License: Elastic 2.0
 """
 

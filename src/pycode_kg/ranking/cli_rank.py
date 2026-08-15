@@ -1,5 +1,7 @@
 """CLI wrapper for CodeRank and hybrid query ranking.
 
+Author: Eric G. Suchanek, PhD
+
 License: Elastic 2.0
 """
 

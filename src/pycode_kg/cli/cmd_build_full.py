@@ -6,6 +6,8 @@ Click subcommand for building the full PyCodeKG pipeline in one step:
     build   - repo -> AST -> graph store -> vector index (full pipeline, always wipes)
     update  - repo -> AST -> graph store -> vector index (incremental upsert, no wipe)
 
+Author: Eric G. Suchanek, PhD
+
 License: Elastic 2.0
 """
 

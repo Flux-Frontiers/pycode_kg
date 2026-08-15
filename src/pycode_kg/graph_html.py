@@ -9,6 +9,8 @@ showing on hover.
 ``build_graph_html`` and ``select_nodes`` are re-exported so existing callers do
 not need to know where the implementation moved.
 
+Author: Eric G. Suchanek, PhD
+
 License: Elastic 2.0
 """
 
