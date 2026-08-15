@@ -137,7 +137,12 @@ dependencies = [
     # Its only dependency is numpy, which `[semantic]` already pulls, so it adds
     # nothing to the install — it just declares what layout3d actually imports.
     # Unlike `[viz]`, there is no pyvis to leak into a bare install.
-    "kgmodule-utils[semantic,viz3d]>=0.12.1",
+    # Floor is 0.13.1 rather than 0.12.1 because that is the release which
+    # stops SnapshotManager writing absolute paths into snapshot JSON. This
+    # package ships `pycodekg snapshot save`, and those snapshots get committed
+    # to the user's repo — against an older kgmodule-utils the command writes
+    # their home directory and username into version control.
+    "kgmodule-utils[semantic,viz3d]>=0.13.1",
 ]
 
 [project.optional-dependencies]

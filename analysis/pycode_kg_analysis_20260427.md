@@ -1,12 +1,12 @@
-> **Analysis Report Metadata**  
-> - **Generated:** 2026-04-27T22:58:43Z  
-> - **Version:** pycode-kg 0.17.2  
-> - **Commit:** e9a9e27 (main)  
-> - **Platform:** macOS 26.4.1 | arm64 (arm) | Turing | Python 3.12.13  
-> - **Graph:** 7240 nodes · 7196 edges (479 meaningful)  
-> - **Included directories:** src  
-> - **Excluded directories:** none  
-> - **Elapsed time:** 4s  
+> **Analysis Report Metadata**
+> - **Generated:** 2026-04-27T22:58:43Z
+> - **Version:** pycode-kg 0.17.2
+> - **Commit:** e9a9e27 (main)
+> - **Platform:** macOS 26.4.1 | arm64 (arm) | Turing | Python 3.12.13
+> - **Graph:** 7240 nodes · 7196 edges (479 meaningful)
+> - **Included directories:** src
+> - **Excluded directories:** none
+> - **Elapsed time:** 4s
 
 # pycode_kg Analysis
 
