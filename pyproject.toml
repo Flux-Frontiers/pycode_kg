@@ -137,12 +137,16 @@ dependencies = [
     # Its only dependency is numpy, which `[semantic]` already pulls, so it adds
     # nothing to the install — it just declares what layout3d actually imports.
     # Unlike `[viz]`, there is no pyvis to leak into a bare install.
-    # Floor is 0.13.1 rather than 0.12.1 because that is the release which
-    # stops SnapshotManager writing absolute paths into snapshot JSON. This
-    # package ships `pycodekg snapshot save`, and those snapshots get committed
-    # to the user's repo — against an older kgmodule-utils the command writes
-    # their home directory and username into version control.
-    "kgmodule-utils[semantic,viz3d]>=0.13.1",
+    # Floor is 0.13.x rather than 0.12.1 because that is where SnapshotManager
+    # stops writing absolute paths into snapshot JSON. This package ships
+    # `pycodekg snapshot save`, and those snapshots get committed to the
+    # user's repo — against an older kgmodule-utils the command writes their
+    # home directory and username into version control.
+    #
+    # 0.13.2 specifically, never 0.13.1: that release carried the path fix but
+    # also made `repo_root` a read-only property, which breaks every subclass
+    # that assigns it. 0.13.2 keeps the fix and restores the plain attribute.
+    "kgmodule-utils[semantic,viz3d]>=0.13.2",
 ]
 
 [project.optional-dependencies]
@@ -159,7 +163,9 @@ viz3d = [
     # and smooth_paths live there. The main dependency above stays on plain
     # [viz3d] (numpy only) so the nine repos that take pycode-kg do not acquire
     # VTK for a layout import; rendering stays opt-in, here.
-    "kgmodule-utils[viz3d-render]>=0.12.1",
+    # Same floor as the core declaration above — one package, one floor, so a
+    # reader does not have to work out which constraint actually binds.
+    "kgmodule-utils[viz3d-render]>=0.13.2",
     "pyvistaqt>=0.11.0",
     "trame-vtk>=2.0.0",
     # Looking Glass quilts. 0.4.0 supplies depth_report() and widened
