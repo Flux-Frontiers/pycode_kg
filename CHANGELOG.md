@@ -95,6 +95,8 @@ Note: older entries preserve the API names used at that release (for example com
   delegation so `kg.analyze()` and the MCP `analyze_repo` tool keep their
   API. The analyzer file drops from 3,037 to 2,464 lines and holds only
   analysis phases; renderer and analyzer are testable independently.
+- **`kg` group requires doc-kg ≥0.21.2.** Lock refresh also picks up
+  kgmodule-utils 0.13.0, trame-vtk 2.11.16, and ty 0.0.72.
 
 ### Removed
 

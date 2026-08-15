@@ -78,16 +78,12 @@ uv.lock
 # reproducible. snapshots/ is TRACKED and must never be ignored --
 # never use a bare `**/.<ns>/` pattern here, it swallows snapshots too.
 
-**/.pycodekg/lancedb/
-**/.pycodekg/lancedb-*
 **/.pycodekg/*.sqlite
 **/.pycodekg/*.sqlite-shm
 **/.pycodekg/*.sqlite-wal
 **/.pycodekg/*.db
 **/.pycodekg/models
 
-**/.dockg/lancedb/
-**/.dockg/lancedb-*
 **/.dockg/*.sqlite
 **/.dockg/*.sqlite-shm
 **/.dockg/*.sqlite-wal
@@ -98,8 +94,6 @@ uv.lock
 # AgentKG local store -- nothing under it is ever tracked
 **/.agentkg/
 
-**/.diarykg/lancedb/
-**/.diarykg/lancedb-*
 **/.diarykg/*.sqlite
 **/.diarykg/*.sqlite-shm
 **/.diarykg/*.sqlite-wal
