@@ -157,11 +157,11 @@ viz3d = [
     "kgmodule-utils[viz3d-render]>=0.12.1",
     "pyvistaqt>=0.11.0",
     "trame-vtk>=2.0.0",
-    # Looking Glass quilts. Marker-gated because quiltwright pins
-    # requires-python ">=3.12,<3.13" while this project allows <3.14; without
-    # the marker poetry rejects the whole resolution rather than just skipping
-    # it on 3.13. The holographic commands degrade to a clear error there.
-    "quiltwright>=0.3.1; python_version < '3.13'",
+    # Looking Glass quilts. 0.4.0 is the floor for two reasons: it supplies
+    # depth_report(), which this package used to hand-roll, and it widened
+    # requires-python to <3.14 to match this project — which is what retires
+    # the `; python_version < '3.13'` marker every consumer used to need.
+    "quiltwright>=0.4.0",
 ]
 
 # Cross-KG sibling packages (doc-kg, pycode-kg, agent-kg, kg-rag) are NOT
@@ -186,7 +186,7 @@ all = [
     "pyvis>=0.3.2",
     "pyvista>=0.44.0",
     "pyvistaqt>=0.11.0",
-    "quiltwright>=0.3.1; python_version < '3.13'",
+    "quiltwright>=0.4.0",
     "streamlit>=1.56.0",
     "trame-vtk>=2.0.0",
 ]
