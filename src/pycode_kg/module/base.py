@@ -1,4 +1,7 @@
-"""pycode_kg/module/base.py — KGModule for pycode_kg: thin subclass of kg_utils.pipeline."""
+"""pycode_kg/module/base.py — KGModule for pycode_kg: thin subclass of kg_utils.pipeline.
+
+License: Elastic 2.0
+"""
 
 from __future__ import annotations
 

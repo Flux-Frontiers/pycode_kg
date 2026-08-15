@@ -5,6 +5,8 @@ Usage::
 
     python -m pycode_kg --help
     python -m pycode_kg --version
+
+License: Elastic 2.0
 """
 
 import importlib.metadata

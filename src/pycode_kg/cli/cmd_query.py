@@ -5,6 +5,8 @@ Click subcommands for querying and packing snippets from the PyCodeKG:
 
   query   — hybrid semantic + graph query, prints a ranked result summary
   pack    — hybrid query + source-grounded snippet packing, outputs markdown or JSON
+
+License: Elastic 2.0
 """
 
 from __future__ import annotations

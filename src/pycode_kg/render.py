@@ -16,6 +16,8 @@ Usage::
         [(1, f"{0.12:.6f}", "`src/pkg/a.py`")],
         aligns="rrl",
     )
+
+License: Elastic 2.0
 """
 
 from collections.abc import Iterable, Sequence

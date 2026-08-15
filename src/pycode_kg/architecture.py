@@ -23,6 +23,8 @@ Usage
 >>> analyzer.incorporate_thorough_analysis(analysis_results)
 >>> arch_md = analyzer.analyze_to_markdown()
 >>> arch_json = analyzer.analyze_to_json()
+
+License: Elastic 2.0
 """
 
 from __future__ import annotations

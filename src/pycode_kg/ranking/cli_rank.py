@@ -1,4 +1,7 @@
-"""CLI wrapper for CodeRank and hybrid query ranking."""
+"""CLI wrapper for CodeRank and hybrid query ranking.
+
+License: Elastic 2.0
+"""
 
 from __future__ import annotations
 

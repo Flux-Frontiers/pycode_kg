@@ -9,6 +9,27 @@ Note: older entries preserve the API names used at that release (for example com
 
 ## [Unreleased]
 
+### Changed
+
+- **Every module docstring now carries `License: Elastic 2.0`.** Three files
+  had it; 51 did not. Per-file notices matter for this codebase specifically,
+  because files travel: `layout3d`'s primitives and the organic tree engine
+  were both promoted out of KG repos into `kgmodule-utils`, and a file that
+  arrives somewhere new without its licence line arrives with no terms
+  attached. Eight single-line docstrings were promoted to the multi-line form
+  to hold the line; nothing else in the diff is code.
+- **`visitor.py` has a module docstring.** It was 413 lines of PASS-3
+  data-flow extraction with no module-level explanation at all, despite
+  ranking seventh by structural importance — and with no docstring there was
+  nowhere to put the licence either. Records what the pass emits, why property
+  accesses are pre-scanned into `CALLS` edges, and that `REL_DEPENDS_ON` is an
+  unused placeholder.
+
+  The four one-line tombstone modules (`pycodekg_query.py`,
+  `pycodekg_snippet_packer.py`, `pycodekg_viz.py`, `pycodekg_viz3d.py`) are
+  left as they are — each is a single comment redirecting to its CLI
+  replacement, with no docstring to annotate.
+
 ## [0.22.1] - 2026-08-14
 
 ### Added

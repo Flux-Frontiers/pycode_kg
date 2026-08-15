@@ -4,6 +4,8 @@ cmd_analyze.py
 Click subcommand for running a thorough codebase analysis:
 
   analyze  — run PyCodeKGAnalyzer, emit a Markdown report (JSON optional via --json)
+
+License: Elastic 2.0
 """
 
 from __future__ import annotations

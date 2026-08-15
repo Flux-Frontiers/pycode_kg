@@ -7,6 +7,8 @@ The root Click group is importable from either location::
 
     from pycode_kg.cli import cli
     from pycode_kg.cli.main import cli
+
+License: Elastic 2.0
 """
 
 from pycode_kg.cli import (  # noqa: F401  — registers snapshot (save, list, show, diff)

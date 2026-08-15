@@ -10,6 +10,8 @@ Features:
   - Commit-based X-axis with version labels
   - Color-coded risk assessment (green→yellow→red)
   - Hover tooltips with snapshot details
+
+License: Elastic 2.0
 """
 
 from __future__ import annotations

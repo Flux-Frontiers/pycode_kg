@@ -9,6 +9,8 @@ Click command to provide consistent option names, defaults, and help text::
     @vectors_option
     def my_command(sqlite, vectors):
         ...
+
+License: Elastic 2.0
 """
 
 import click

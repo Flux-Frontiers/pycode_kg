@@ -17,6 +17,8 @@ adapted from *repo_vis* ``pkg_visualizer/utility.py``
 (Eric G. Suchanek, PhD — https://github.com/Suchanek/repo_vis).
 
 Author: Eric G. Suchanek, PhD
+
+License: Elastic 2.0
 """
 
 from __future__ import annotations

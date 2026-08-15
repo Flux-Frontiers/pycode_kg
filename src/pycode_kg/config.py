@@ -2,6 +2,8 @@
 config.py — Configuration utilities for PyCodeKG.
 
 Reads and parses PyCodeKG configuration from pyproject.toml.
+
+License: Elastic 2.0
 """
 
 from __future__ import annotations

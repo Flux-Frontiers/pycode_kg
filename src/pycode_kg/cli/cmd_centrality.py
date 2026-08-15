@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Click command for Structural Importance Ranking (SIR)."""
+"""Click command for Structural Importance Ranking (SIR).
+
+License: Elastic 2.0
+"""
 
 from __future__ import annotations
 

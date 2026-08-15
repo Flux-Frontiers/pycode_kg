@@ -5,6 +5,8 @@ Click subcommands for building the PyCodeKG knowledge graph:
 
     build-sqlite  - repo -> AST -> graph store
     build-index   - graph store -> sqlite-vec vector index
+
+License: Elastic 2.0
 """
 
 from __future__ import annotations

@@ -1,4 +1,7 @@
-"""pycode_kg/index.py — Re-exports semantic index from kg_utils.semantic."""
+"""pycode_kg/index.py — Re-exports semantic index from kg_utils.semantic.
+
+License: Elastic 2.0
+"""
 
 from kg_utils.semantic import (  # noqa: F401
     DEFAULT_MODEL,

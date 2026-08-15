@@ -10,6 +10,8 @@ Interactive knowledge-graph explorer with:
 
 Run with:
     poetry run pycodekg-viz
+
+License: Elastic 2.0
 """
 
 from __future__ import annotations

@@ -1,4 +1,7 @@
-"""Analysis primitives for PyCodeKG."""
+"""Analysis primitives for PyCodeKG.
+
+License: Elastic 2.0
+"""
 
 from kg_utils.analysis.scores import MetricRef, ScoreSet, available_metrics, load_scores
 

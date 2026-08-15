@@ -1,5 +1,7 @@
 """
 CLI command for framework node detection in PyCodeKG.
+
+License: Elastic 2.0
 """
 
 import argparse

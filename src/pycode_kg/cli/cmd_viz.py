@@ -6,6 +6,8 @@ Click subcommands for launching PyCodeKG visualizers:
   viz          — Streamlit-based interactive graph explorer
   viz3d        — PyVista/PyQt5 3-D interactive knowledge-graph visualizer
   viz-timeline — Interactive temporal metrics visualization from snapshots
+
+License: Elastic 2.0
 """
 
 from __future__ import annotations
