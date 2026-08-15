@@ -199,13 +199,14 @@ def viz_export(
 )
 @click.option(
     "--layout",
-    type=click.Choice(["allium", "funnel"]),
+    type=click.Choice(["allium", "funnel", "organic"]),
     default="allium",
     show_default=True,
     help=(
         "3-D layout strategy. "
         "'allium' renders each module as a Giant Allium plant; "
-        "'funnel' stratifies nodes by kind across Z layers."
+        "'funnel' stratifies nodes by kind across Z layers; "
+        "'organic' grows the repository as a tree (no picking)."
     ),
 )
 @click.option(

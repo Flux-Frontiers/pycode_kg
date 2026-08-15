@@ -25,6 +25,7 @@ from pycode_kg.cli import (  # noqa: F401  — registers snapshot (save, list, s
     cmd_mcp,  # noqa: F401  — registers mcp
     cmd_model,  # noqa: F401  — registers download-model
     cmd_query,  # noqa: F401  — registers query, pack
+    cmd_quilt,  # noqa: F401  — registers quilt
     cmd_snapshot,
     cmd_viz,  # noqa: F401  — registers viz, viz3d, viz-timeline
 )

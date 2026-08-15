@@ -2165,7 +2165,7 @@ description = "CUBLAS native runtime libraries"
 optional = false
 python-versions = ">=3"
 groups = ["main", "kg"]
-markers = "(sys_platform != \"linux\" and sys_platform != \"win32\" or platform_machine != \"x86_64\") and platform_system == \"Linux\" and sys_platform != \"linux\""
+markers = "(platform_machine != \"x86_64\" or sys_platform != \"linux\" and sys_platform != \"win32\") and platform_system == \"Linux\" and sys_platform != \"linux\""
 files = [
     {file = "nvidia_cublas-13.6.1.10-py3-none-manylinux_2_27_aarch64.whl", hash = "sha256:e05a431062a17cb9b02e2f37e67817b637051ce8fad57b388482c594396ddbb4"},
     {file = "nvidia_cublas-13.6.1.10-py3-none-manylinux_2_27_x86_64.whl", hash = "sha256:feb2ed8a1e211bc5774413efc0f1a08c4d5269b56f68b4ac6fe5408e57f7dc1c"},
@@ -2209,7 +2209,7 @@ description = "NVRTC native runtime libraries"
 optional = false
 python-versions = ">=3"
 groups = ["main", "kg"]
-markers = "(sys_platform != \"linux\" and sys_platform != \"win32\" or platform_machine != \"x86_64\") and platform_system == \"Linux\" and sys_platform != \"linux\""
+markers = "(platform_machine != \"x86_64\" or sys_platform != \"linux\" and sys_platform != \"win32\") and platform_system == \"Linux\" and sys_platform != \"linux\""
 files = [
     {file = "nvidia_cuda_nvrtc-13.3.33-py3-none-manylinux2010_x86_64.manylinux_2_12_x86_64.whl", hash = "sha256:82530788b8c6164a54d3fd9ae8bcca8893d397c4aeb998861982a03bbe41e204"},
     {file = "nvidia_cuda_nvrtc-13.3.33-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:7b05ecda494c6dabc44231a608b060a71008a730d9dfda932cc508e6d29159e0"},
@@ -3669,6 +3669,27 @@ packaging = "*"
 
 [package.extras]
 test = ["pytest (>=6,!=7.0.0,!=7.0.1)", "pytest-cov (>=3.0.0)", "pytest-qt"]
+
+[[package]]
+name = "quiltwright"
+version = "0.3.1"
+description = "Holographic output for Looking Glass displays: off-axis multi-view quilts from PyVista or POV-Ray scenes"
+optional = true
+python-versions = "<3.13,>=3.12"
+groups = ["main"]
+markers = "python_version == \"3.12\" and (extra == \"viz3d\" or extra == \"all\")"
+files = [
+    {file = "quiltwright-0.3.1-py3-none-any.whl", hash = "sha256:2a78ac9bd0741ae10005f9b420689f65ff79e4515eb35d2cdc2479364c2eb8b3"},
+    {file = "quiltwright-0.3.1.tar.gz", hash = "sha256:56d025b49cf497f0d3be6146a58b953723be18440298af238b6948f5ab8e829b"},
+]
+
+[package.dependencies]
+numpy = ">=1.26"
+pillow = ">=10.0"
+
+[package.extras]
+video = ["imageio-ffmpeg (>=0.4)"]
+viz = ["pyvista (>=0.44)"]
 
 [[package]]
 name = "referencing"
@@ -5186,11 +5207,11 @@ files = [
 ]
 
 [extras]
-all = ["PyQt5", "markdown", "param", "plotly", "pyvis", "pyvista", "pyvistaqt", "streamlit", "trame-vtk"]
+all = ["PyQt5", "markdown", "param", "plotly", "pyvis", "pyvista", "pyvistaqt", "quiltwright", "streamlit", "trame-vtk"]
 viz = ["plotly", "pyvis", "streamlit"]
-viz3d = ["PyQt5", "kgmodule-utils", "markdown", "param", "pyvistaqt", "trame-vtk"]
+viz3d = ["PyQt5", "kgmodule-utils", "markdown", "param", "pyvistaqt", "quiltwright", "trame-vtk"]
 
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12,<3.14"
-content-hash = "a1d052ca27fd9ad42cafe3591dd6aec9d034fbb4d8dc832fc64b84d1e2c51b28"
+content-hash = "86dd00a0f38b81fb30a066d43513c54379ebd4526297807cc7eaf8b74aa92735"

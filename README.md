@@ -147,6 +147,8 @@ The graph is built around four node kinds (module, class, function, method) and 
 | **Browse the graph interactively** | `pycodekg viz` (Streamlit) | [docs/INSTALLATION.md](docs/INSTALLATION.md) |
 | **Share a graph as one file** | `pycodekg viz-export -o graph.html` | opens from `file://`, no server |
 | **See call graphs in 3-D** *(active development — functional but rough)* | `pycodekg viz3d --layout funnel` | [docs/VIZ3D.md](docs/VIZ3D.md) |
+| **Grow the repo as a tree** | `pycodekg viz3d --layout organic` | modules are limbs, definitions are leaves |
+| **Render it for a Looking Glass display** | `pycodekg quilt --spec 16-landscape` | [docs/VIZ3D.md](docs/VIZ3D.md) |
 | **Wire it into Claude / Copilot / Cline** | `pycodekg mcp` | [docs/MCP.md](docs/MCP.md) |
 
 If you only read one doc after this one, read [docs/Analyze.md](docs/Analyze.md) — that's where most of the day-to-day value lives.

@@ -9,7 +9,75 @@ Note: older entries preserve the API names used at that release (for example com
 
 ## [Unreleased]
 
+### Added
+
+- **`pycodekg quilt` — the repository as a hologram.** Grows the graph into a
+  tree and renders it as a Looking Glass light-field quilt: an off-axis
+  multi-view image a lenticular panel fuses into real depth. `--spec` picks
+  the device preset, `--orbit N` renders a turntable quilt video instead of a
+  still, `--cast` hands the result to Looking Glass Bridge, and `--preview`
+  (on by default) also writes the centre view as a flat PNG, because a quilt
+  opened in an ordinary viewer is a tiled contact sheet and useless for
+  judging whether the tree looks right. Every render prints its disparity
+  budget first — the per-view pixel shift at the near and far extremes, which
+  is what decides whether a display fuses the views or ghosts them.
+- **`pycode_kg.scene3d` — organic tree rendering for a code graph.** Where the
+  funnel and allium layouts place nodes on a lattice, this *grows* a skeleton
+  toward them by space colonization, so the shape is the data rather than
+  decoration: the repository is the trunk, each module a limb on a
+  golden-angle spiral, and each class, function and method a crown attractor
+  the wood has to reach. Two consequences fall out for free — limb *thickness*
+  follows the pipe model, so a fat limb is a module carrying a lot of code,
+  and limb *length* is scaled by definition count, so the biggest module
+  reaches furthest. Foliage is tinted by node kind, so a mostly purple cluster
+  is a class-heavy module and a mostly green one a module of free functions.
+  Available as `--layout organic` in `pycodekg viz3d` and in the Qt layout
+  selector; picking is off in that mode, because the canopy is a single
+  glyphed mesh with no per-node actor to pick.
+- **"Cast to LG" button in the 3-D viewer**, matching gutenberg_kg's. Re-composes
+  the on-screen scene into an off-screen plotter, copies the window's camera so
+  what gets cast is the view being looked at, and hands the quilt to Looking
+  Glass Bridge — reporting progress in four steps and surviving a missing
+  Bridge with a status message rather than taking the viewer down with it. It
+  renders at half the preset's pixel size, rounded down to a multiple of the
+  tile grid: the local render is about a second either way, but the real wait
+  is Bridge decoding a 33-megapixel PNG, and that scales with area. `pycodekg
+  quilt` still writes full resolution for files that get kept.
+- **`KGVisualizer.visible_nodes()`** now owns the module- and kind-filter
+  logic that `visualize()` held inline, so the renderer and the cast draw from
+  one definition of "what is on screen". A cast that recomputed its own node
+  set would quietly ignore the module filter and send a different graph to the
+  display than the one being looked at.
+- **Two details worth recording, since neither is obvious from the geometry.**
+  The colonizer only knows the targets it is given, so with attractors only in
+  the crown the root bridges to whichever is nearest and the "trunk" comes out
+  a stem wandering off at an angle; `CodeTreeLayout.trunk_guides()` seeds the
+  axis below the lowest limb so the leader climbs before it branches, and
+  those guides are growth targets only — never foliage. And tying crown width
+  to trunk *height* rather than to the module count is what keeps the
+  silhouette proportional across repositories; sizing limbs from the module
+  count alone grew a 60-module repo as a leggy weed.
+
 ### Changed
+
+- **`viz3d` extra gains `quiltwright>=0.3.1`, marker-gated to Python <3.13.**
+  quiltwright pins `requires-python ">=3.12,<3.13"` while this project allows
+  `<3.14`; without the `; python_version < '3.13'` marker Poetry rejects the
+  entire resolution rather than skipping the package on 3.13. Mirrored into
+  the `all` extra per the hand-copy convention documented there. The growth
+  engine needed nothing new — `kgmodule-utils[viz3d-render]` was already a
+  `viz3d` dependency, and `grow_tree`/`tree_mesh`/`leaf_glyphs` have lived in
+  the shared SDK since kgmodule-utils 0.12.0.
+- **`renders/` is git-ignored in full**, matching gutenberg_kg: quilts are
+  large binaries that regenerate from the graph.
+- **Viewport background is a neutral mid-grey** rather than white-to-lightblue.
+  White throws enough light to wash out the node palette and is tiring to sit
+  in front of; grey keeps every kind colour distinct. Both backgrounds now
+  come from `theme.SCENE_BACKGROUND` / `theme.TREE_BACKGROUND` rather than
+  being colour literals in the renderer.
+- **The layout selector is its own "Render Mode" group** near the top of the
+  control panel, and changing it re-renders immediately instead of waiting for
+  a Render Graph click — a control that visibly does nothing reads as broken.
 
 - **Every module docstring now carries `Author:` and `License: Elastic 2.0`.**
   Three files had the licence line and twelve had the author line; the rest
@@ -20,7 +88,6 @@ Note: older entries preserve the API names used at that release (for example com
   Placement follows `snapshots.py` — author, blank line, licence, at the foot
   of the docstring. Eight single-line docstrings were promoted to the
   multi-line form to hold the block; nothing else in the diff is code.
-
   `Last Revision:` was deliberately **not** propagated. It is a
   hand-maintained mirror of `git log -1`, wrong the moment anyone edits
   without updating it — the existing ones were already stale enough that the
