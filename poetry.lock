@@ -1549,9 +1549,11 @@ files = [
 [package.dependencies]
 numpy = [
     {version = ">=1.24.0", optional = true, markers = "extra == \"semantic\" or extra == \"viz3d\""},
-    {version = ">=1.24.0", optional = true, markers = "extra == \"viz3d-render\""},
+    {version = ">=1.24.0", optional = true, markers = "extra == \"viz3d-qt\" or extra == \"viz3d-render\""},
 ]
-pyvista = {version = ">=0.44.0", optional = true, markers = "extra == \"viz3d-render\""}
+PyQt5 = {version = ">=5.15.0", optional = true, markers = "extra == \"viz3d-qt\""}
+pyvista = {version = ">=0.44.0", optional = true, markers = "extra == \"viz3d-qt\" or extra == \"viz3d-render\""}
+quiltwright = {version = ">=0.6.0", optional = true, markers = "extra == \"viz3d-qt\""}
 rich = {version = ">=13.0.0,<15.0.0", optional = true, markers = "extra == \"semantic\""}
 sentence-transformers = {version = ">=5.4.1", optional = true, markers = "extra == \"semantic\""}
 sqlite-vec = {version = "0.1.9", optional = true, markers = "extra == \"semantic\""}
@@ -3673,15 +3675,15 @@ test = ["pytest (>=6,!=7.0.0,!=7.0.1)", "pytest-cov (>=3.0.0)", "pytest-qt"]
 
 [[package]]
 name = "quiltwright"
-version = "0.4.0"
+version = "0.6.0"
 description = "Holographic output for Looking Glass displays: off-axis multi-view quilts from PyVista or POV-Ray scenes"
 optional = true
 python-versions = "<3.14,>=3.12"
 groups = ["main"]
 markers = "extra == \"viz3d\" or extra == \"all\""
 files = [
-    {file = "quiltwright-0.4.0-py3-none-any.whl", hash = "sha256:d256218cf888fd0c91ce7142cffe0289ad6cffa9e5f08cc00f066ab57fa9c178"},
-    {file = "quiltwright-0.4.0.tar.gz", hash = "sha256:c42c6e53185ddf085c046f2e90cd92ea7075ded697fd820b657cbe6c930e0cfa"},
+    {file = "quiltwright-0.6.0-py3-none-any.whl", hash = "sha256:c61cc1c1cd84b0cda7e9695d8f2f9d12bbf49f363d69303108f8bf2ddecd493f"},
+    {file = "quiltwright-0.6.0.tar.gz", hash = "sha256:bddc2e320e7bf3df1db8dc998ed25b7e3e1ae07babd0dd60e06b98ea8af55742"},
 ]
 
 [package.dependencies]
@@ -5215,4 +5217,4 @@ viz3d = ["PyQt5", "kgmodule-utils", "markdown", "param", "pyvistaqt", "quiltwrig
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12,<3.14"
-content-hash = "88dc666bd998c8c7899b3923ac82872030e2a21b04c84fd8844b423c0d721423"
+content-hash = "bc72f4e21076376816e0c3bc63294c2203b318f5cf2f7ba59cf6300f97ce3891"
