@@ -69,17 +69,28 @@ class TestTheContractTheViewerReliesOn:
     context even though the builder always raises.
     """
 
-    def test_the_helper_returns_a_path_and_an_error_slot(self):
-        """`(None, msg)` means the render failed; `(path, msg)` means only Bridge did."""
-        from kg_utils.viz3d.qt import cast_scene_to_looking_glass
+    def test_the_helper_returns_a_cast_result(self):
+        """0.16.0 returns a CastResult, not a tuple — the viewer reads .message."""
+        from kg_utils.viz3d.qt import CastResult, cast_scene_to_looking_glass
 
         def explode(_plotter):
             raise RuntimeError("scene build failed")
 
-        spec = _tiny_spec()
-        path, error = cast_scene_to_looking_glass(explode, None, "unused", spec)
-        assert path is None
-        assert error is not None and "scene build failed" in error
+        result = cast_scene_to_looking_glass(explode, None, "unused", _tiny_spec())
+        assert isinstance(result, CastResult)
+        assert result.path is None
+        assert result.error is not None and "scene build failed" in result.error
+
+    def test_the_result_carries_the_status_line(self):
+        """The wording both viewers used to duplicate now lives in the SDK."""
+        from kg_utils.viz3d.qt import cast_scene_to_looking_glass
+
+        def explode(_plotter):
+            raise RuntimeError("no good")
+
+        result = cast_scene_to_looking_glass(explode, None, "unused", _tiny_spec())
+        assert result.message and "no good" in result.message
+        assert result.elapsed >= 0.0
 
     def test_a_failed_build_is_returned_not_raised(self):
         """A dark panel — or a broken scene — must not kill the viewer."""
@@ -107,6 +118,13 @@ class TestTheContractTheViewerReliesOn:
 
 class TestTheScaledSpecIsWhatGetsCast:
     """The viewer and the spec test must agree on one calculation."""
+
+    def test_the_constants_alias_the_sdk_defaults(self):
+        """Thin aliases, so a fork can retarget a panel without an SDK change."""
+        from kg_utils.viz3d.qt import DEFAULT_CAST_SCALE, DEFAULT_QUILT_PRESET
+
+        assert viz3d.QUILT_SPEC == DEFAULT_QUILT_PRESET
+        assert viz3d.CAST_SCALE == DEFAULT_CAST_SCALE
 
     def test_the_viewer_scales_the_preset_it_names(self):
         from quiltwright import QUILT_PRESETS
