@@ -7,6 +7,7 @@ guards, and property decorators.  The 2026-08-13 analysis run flagged 31
 orphans of which ~26 were false positives in exactly these classes.
 """
 
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -279,9 +280,19 @@ def test_internal_fan_out_deduplicates_targets() -> None:
 # ── end-to-end against this repo's own graph ─────────────────────────────────
 
 
-@pytest.mark.integration
+@pytest.mark.skipif(
+    not Path(".pycodekg/graph.sqlite").exists(),
+    reason="needs this repo's own graph; .pycodekg/*.sqlite is gitignored",
+)
 def test_repo_orphan_scan_has_no_framework_false_positives() -> None:
-    """Run Phase 4 on the live graph: the 2026-08-13 false positives stay out."""
+    """Run Phase 4 on the live graph: the 2026-08-13 false positives stay out.
+
+    Conditional rather than marked ``integration``: the marker deselected this
+    everywhere, including on a machine that *has* a graph.  A skipif states the
+    actual precondition, so it runs whenever one is present and reports why when
+    it is not.  Making it run in CI as well would mean building the graph there
+    first — worth doing, but it is a CI-runtime decision, not a test one.
+    """
     from pycode_kg.kg import PyCodeKG
 
     analyzer = PyCodeKGAnalyzer(kg=PyCodeKG("."))

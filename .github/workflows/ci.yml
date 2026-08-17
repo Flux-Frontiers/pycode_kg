@@ -93,13 +93,28 @@ jobs:
           path: .venv
           key: test-extras-${{ runner.os }}-${{ hashFiles('poetry.lock') }}
 
+      # The embedding model the `integration` suite loads. sentence-transformers
+      # and torch already arrive as core dependencies via kgmodule-utils[semantic],
+      # so the model weights are the only thing standing between CI and those
+      # tests. ~130 MB, downloaded once and then restored from cache; keyed on the
+      # model name so a model change re-downloads rather than reusing the wrong one.
+      - name: Cache the embedding model
+        uses: actions/cache@v4
+        with:
+          path: ~/.kgrag/models
+          key: kgrag-models-${{ runner.os }}-bge-small-en-v1.5
+
       # viz and viz3d, so the suites gated on pyvis/plotly/pyvista run instead
       # of skipping — without them the Test job silently drops those modules.
       - name: Install dependencies
         run: poetry install --no-interaction --with dev --extras "viz viz3d"
 
+      # No `-m "not integration"`. The marker was hiding fourteen end-to-end
+      # tests of the real embedder, index and pipeline behind a deselect, on the
+      # assumption they were too slow for CI; they run in about four seconds
+      # once the model is cached, and they cover the path a unit test cannot.
       - name: Run tests
-        run: poetry run pytest -m "not integration"
+        run: poetry run pytest
 
   wheel:
     name: Installed CLI
