@@ -51,7 +51,9 @@ from kg_utils.viz3d import (
     Skeleton,
     fibonacci_sphere,
     grow_tree,
+    leaf_facing,
     leaf_glyphs,
+    oriented_cluster,
     seed_from_key,
     tree_mesh,
 )
@@ -81,53 +83,6 @@ def crown_kinds() -> frozenset[str]:
     return frozenset(theme.FOLIAGE_KINDS)
 
 
-def _leaf_facing(outward: np.ndarray, up_bias: float = 0.6) -> np.ndarray:
-    """Direction a leaf cluster faces: along the limb, then up toward light.
-
-    A cluster that always points straight up is the clearest tell that a tree
-    was assembled rather than grown, and parallax on a light-field display
-    makes it far more obvious than a flat projection does.  Blending the
-    limb's own outward direction with a fixed upward bias keeps each cluster
-    oriented by where its branch actually went.
-
-    :param outward: Vector from the trunk axis to the limb tip.
-    :param up_bias: Weight of the upward reach relative to the unit outward
-        direction.
-    :return: Unit facing vector.
-    """
-    horizontal = np.array([outward[0], outward[1], 0.0])
-    norm = float(np.linalg.norm(horizontal))
-    if norm < 1e-9:
-        return np.array([0.0, 0.0, 1.0])
-    facing = horizontal / norm + np.array([0.0, 0.0, up_bias])
-    return facing / max(float(np.linalg.norm(facing)), 1e-9)
-
-
-def _oriented_cluster(
-    n_points: int,
-    center: np.ndarray,
-    facing: np.ndarray,
-    radius: float,
-) -> list[np.ndarray]:
-    """Scatter *n_points* over the hemisphere of a sphere facing *facing*.
-
-    Points on the far side are **reflected** across the facing plane rather
-    than discarded, so a cluster of any size fills its hemisphere evenly
-    instead of thinning out as half the samples are thrown away.
-
-    :param n_points: Number of points to place.
-    :param center: Cluster centre.
-    :param facing: Unit direction the hemisphere opens toward.
-    :param radius: Cluster radius.
-    :return: List of 3-D positions.
-    """
-    if n_points <= 0:
-        return []
-    sphere = np.asarray(fibonacci_sphere(n_points, radius=radius))
-    behind = np.minimum(sphere @ facing, 0.0)
-    return list(center + sphere - 2.0 * behind[:, None] * facing)
-
-
 @dataclass
 class CodeTreeLayout(Layout3D):
     """Crown layout for a code graph — the schematic the wood grows toward.
@@ -144,7 +99,7 @@ class CodeTreeLayout(Layout3D):
         length makes a 60-module repo grow as a leggy weed.
     :param branch_radius: Floor on limb length, for very short trunks.
     :param leaf_radius: Base radius of a module's leaf cluster.
-    :param up_bias: Upward blend for leaf-cluster facing, see :func:`_leaf_facing`.
+    :param up_bias: Upward blend for leaf-cluster facing, see :func:`~kg_utils.viz3d.leaf_facing`.
     :param limb_start: Height of the lowest limb as a fraction of the trunk.
         The bare trunk below it is what reads as a trunk rather than a bottle
         brush, and it is also the ceiling for :meth:`trunk_guides`.
@@ -262,10 +217,10 @@ class CodeTreeLayout(Layout3D):
             if not members:
                 continue
             cluster_r = self.leaf_radius + float(np.sqrt(len(members))) * 0.12
-            facing = _leaf_facing(tip - axis, self.up_bias)
+            facing = leaf_facing(tip - axis, self.up_bias)
             for node, pos in zip(
                 members,
-                _oriented_cluster(len(members), tip, facing, cluster_r),
+                oriented_cluster(len(members), tip, facing, cluster_r),
                 strict=True,
             ):
                 positions[node.id] = pos

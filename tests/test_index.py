@@ -497,7 +497,7 @@ def test_escape_multiple_quotes():
 def test_semanticindex_init(tmp_path):
     emb = FakeEmbedder()
     idx = SemanticIndex(tmp_path / "ldb", embedder=emb, table="mytbl")
-    assert idx.lancedb_dir == tmp_path / "ldb"
+    assert idx.vectors_path == tmp_path / "ldb"
     assert idx.table_name == "mytbl"
     assert idx.embedder is emb
     # Backend is constructed lazily on first access (build/search), not at init.
@@ -586,7 +586,7 @@ def test_semanticindex_build_returns_stats(tmp_path):
     assert stats["indexed_rows"] > 0
     assert stats["dim"] == 4
     assert stats["table"] == "kg_nodes"
-    assert "lancedb_dir" in stats
+    assert "vectors_path" in stats
     assert "kinds" in stats
     store.close()
 

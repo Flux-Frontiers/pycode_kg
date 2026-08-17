@@ -146,7 +146,7 @@ dependencies = [
     # 0.13.2 specifically, never 0.13.1: that release carried the path fix but
     # also made `repo_root` a read-only property, which breaks every subclass
     # that assigns it. 0.13.2 keeps the fix and restores the plain attribute.
-    "kgmodule-utils[semantic,viz3d]>=0.13.2",
+    "kgmodule-utils[semantic,viz3d]>=0.14.0",
 ]
 
 [project.optional-dependencies]
@@ -165,7 +165,7 @@ viz3d = [
     # VTK for a layout import; rendering stays opt-in, here.
     # Same floor as the core declaration above — one package, one floor, so a
     # reader does not have to work out which constraint actually binds.
-    "kgmodule-utils[viz3d-render]>=0.13.2",
+    "kgmodule-utils[viz3d-render]>=0.14.0",
     "pyvistaqt>=0.11.0",
     "trame-vtk>=2.0.0",
     # Looking Glass quilts. 0.4.0 supplies depth_report() and widened

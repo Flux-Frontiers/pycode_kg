@@ -91,10 +91,12 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .venv
-          key: test-${{ runner.os }}-${{ hashFiles('poetry.lock') }}
+          key: test-extras-${{ runner.os }}-${{ hashFiles('poetry.lock') }}
 
+      # viz and viz3d, so the suites gated on pyvis/plotly/pyvista run instead
+      # of skipping — without them the Test job silently drops those modules.
       - name: Install dependencies
-        run: poetry install --no-interaction --with dev
+        run: poetry install --no-interaction --with dev --extras "viz viz3d"
 
       - name: Run tests
         run: poetry run pytest -m "not integration"
