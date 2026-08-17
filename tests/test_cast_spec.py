@@ -12,8 +12,6 @@ a subtly wrong image.
 
 from __future__ import annotations
 
-from dataclasses import replace
-
 import pytest
 
 quiltwright = pytest.importorskip("quiltwright")
@@ -24,14 +22,16 @@ from pycode_kg.viz3d import CAST_SCALE, QUILT_SPEC  # noqa: E402
 def _cast_spec():
     """Build the cast spec exactly as ``cast_to_looking_glass`` does.
 
-    :return: The scaled ``QuiltSpec``.
+    This calls the same ``QuiltSpec.scaled`` the viewer calls, rather than
+    re-deriving the arithmetic.  It used to open-code the ``// columns *
+    columns`` rounding, which meant this file tested *its own* copy of the
+    formula: the viewer could have changed and every assertion below would
+    still have passed.
+
+    :return: ``(preset, scaled spec)``.
     """
     preset = quiltwright.QUILT_PRESETS[QUILT_SPEC]
-    return preset, replace(
-        preset,
-        quilt_width=int(preset.quilt_width * CAST_SCALE) // preset.columns * preset.columns,
-        quilt_height=int(preset.quilt_height * CAST_SCALE) // preset.rows * preset.rows,
-    )
+    return preset, preset.scaled(CAST_SCALE)
 
 
 def test_cast_preset_exists() -> None:
@@ -42,9 +42,9 @@ def test_cast_preset_exists() -> None:
 def test_scaled_quilt_still_tiles_exactly() -> None:
     """Tiles divide the scaled quilt with no remainder.
 
-    This is the reason for the ``// columns * columns`` rounding; plain
-    multiplication by 0.5 is not guaranteed to stay grid-aligned for every
-    preset, and a fractional tile misaligns every view.
+    This is the reason ``QuiltSpec.scaled`` rounds down to the tile grid;
+    plain multiplication by 0.5 is not guaranteed to stay grid-aligned for
+    every preset, and a fractional tile misaligns every view.
     """
     _preset, spec = _cast_spec()
 

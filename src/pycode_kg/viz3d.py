@@ -26,7 +26,6 @@ import sys
 import time
 import warnings
 from collections import Counter
-from dataclasses import replace
 from pathlib import Path
 
 import numpy as np
@@ -1434,12 +1433,18 @@ class MainWindow(QMainWindow):
 
         The quilt is rendered at :data:`CAST_SCALE` of the preset's pixel size:
         the local render costs about a second at full size, but the wait is
-        Bridge loading the resulting PNG, and that scales with its area.  The
-        scaled dimensions are rounded down to a multiple of the tile grid, or
-        the tiles stop landing on integer pixel boundaries.
+        Bridge loading the resulting PNG, and that scales with its area.
+        ``QuiltSpec.scaled`` keeps the scaled dimensions on the tile grid — the
+        detail this method used to open-code, and got right only because it was
+        copied from the one place that had already worked it out.
+
+        The render itself is :func:`kg_utils.viz3d.qt.cast_scene_to_looking_glass`.
+        What stays here is which nodes are drawn, where the file lands, and
+        which button greys out while it happens.
         """
         try:
-            from quiltwright import QUILT_PRESETS, cast_quilt, render_quilt, save_quilt
+            from kg_utils.viz3d.qt import cast_scene_to_looking_glass
+            from quiltwright import QUILT_PRESETS
         except ImportError:
             self.visualizer.status = (
                 'Casting needs quiltwright: pip install "pycode-kg[viz3d]" (Python 3.12)'
@@ -1450,50 +1455,47 @@ class MainWindow(QMainWindow):
             self.visualizer.status = "Nothing to cast — render something first."
             return
 
-        preset = QUILT_PRESETS[QUILT_SPEC]
-        spec = replace(
-            preset,
-            quilt_width=int(preset.quilt_width * CAST_SCALE) // preset.columns * preset.columns,
-            quilt_height=int(preset.quilt_height * CAST_SCALE) // preset.rows * preset.rows,
-        )
+        spec = QUILT_PRESETS[QUILT_SPEC].scaled(CAST_SCALE)
 
-        def step(n: int, message: str) -> None:
+        def step(n: int, total: int, message: str) -> None:
             """Report cast progress on the status bar.
 
             :param n: Step number.
+            :param total: How many steps there are.
             :param message: What is happening now.
             """
-            self.visualizer.status = f"Cast {n}/4 — {message}"
-            self.cast_button.setEnabled(False)
+            self.visualizer.status = f"Cast {n}/{total} — {message}"
             QApplication.processEvents()
 
-        offscreen = pv.Plotter(off_screen=True)
-        started = time.perf_counter()
-        try:
-            step(1, "building scene...")
+        def build(offscreen: pv.Plotter) -> None:
+            """Compose the graph into *offscreen*; its return value is unused here."""
             create_kg_visualization(
                 self.visualizer,
                 self.visualizer.visible_nodes(),
                 self.visualizer.edges,
                 offscreen,
             )
-            offscreen.camera_position = self.plotter.camera_position
 
-            step(2, f"rendering {spec.n_views} views at {spec.tile_width}x{spec.tile_height}...")
-            quilt = render_quilt(offscreen, spec)
-
-            step(3, f"writing {spec.quilt_width}x{spec.quilt_height} quilt...")
-            out_dir = Path("renders") / "quilts"
-            path = save_quilt(quilt, out_dir / f"{Path(self.visualizer.save_path).name}_cast", spec)
-
-            step(4, "handing to Bridge...")
-            cast_quilt(path.resolve(), spec)
-            self.visualizer.status = f"Cast {path.name} in {time.perf_counter() - started:.1f}s"
-        except Exception as exc:  # noqa: BLE001 — a dark panel must not kill the viewer
-            logger.exception("Cast failed")
-            self.visualizer.status = f"Cast failed (is Bridge running?): {exc}"
+        out_dir = Path("renders") / "quilts"
+        started = time.perf_counter()
+        self.cast_button.setEnabled(False)
+        try:
+            path, error = cast_scene_to_looking_glass(
+                build,
+                self.plotter.camera_position,
+                out_dir / f"{Path(self.visualizer.save_path).name}_cast",
+                spec,
+                progress=step,
+            )
+            if path is None:
+                logger.error("Cast failed: %s", error)
+                self.visualizer.status = f"Cast failed (is Bridge running?): {error}"
+            elif error:
+                # The quilt is on disk; only the display is missing.
+                self.visualizer.status = f"Wrote {path.name}, casting failed: {error}"
+            else:
+                self.visualizer.status = f"Cast {path.name} in {time.perf_counter() - started:.1f}s"
         finally:
-            offscreen.close()
             self.cast_button.setEnabled(True)
 
     # ── Save ────────────────────────────────────────────────────────────────
