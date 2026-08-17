@@ -146,7 +146,12 @@ dependencies = [
     # 0.13.2 specifically, never 0.13.1: that release carried the path fix but
     # also made `repo_root` a read-only property, which breaks every subclass
     # that assigns it. 0.13.2 keeps the fix and restores the plain attribute.
-    "kgmodule-utils[semantic,viz3d]>=0.14.0",
+    #
+    # 0.15.0 because the `viz3d` extra below needs kg_utils.viz3d.qt, and this
+    # repo's own rule is one floor per package — a lower floor here would leave
+    # a reader working out which constraint actually binds. Nothing in the core
+    # install needs 0.15.0 functionally; it is a superset of 0.14.0.
+    "kgmodule-utils[semantic,viz3d]>=0.16.0",
 ]
 
 [project.optional-dependencies]
@@ -165,12 +170,20 @@ viz3d = [
     # VTK for a layout import; rendering stays opt-in, here.
     # Same floor as the core declaration above — one package, one floor, so a
     # reader does not have to work out which constraint actually binds.
-    "kgmodule-utils[viz3d-render]>=0.14.0",
+    # [viz3d-qt] (new in 0.15.0) adds kg_utils.viz3d.qt — the Qt machinery a
+    # viewer needs to cast: the render lifecycle and cast_scene_to_looking_glass,
+    # which this module's "Cast to LG" button now drives instead of open-coding
+    # the four-step build/render/write/cast itself. It subsumes [viz3d-render]
+    # (it declares pyvista too), but both are named so the dependency reads as
+    # what it is rather than as a side effect.
+    "kgmodule-utils[viz3d-render,viz3d-qt]>=0.16.0",
     "pyvistaqt>=0.11.0",
     "trame-vtk>=2.0.0",
     # Looking Glass quilts. 0.4.0 supplies depth_report() and widened
-    # requires-python to <3.14, which retires the old marker gate.
-    "quiltwright>=0.4.0",
+    # requires-python to <3.14, which retires the old marker gate. 0.6.0 adds
+    # QuiltSpec.scaled(), which replaces the tile-grid rounding this repo used
+    # to open-code, and save_and_cast_quilt() underneath the SDK cast helper.
+    "quiltwright>=0.6.0",
 ]
 
 # Cross-KG sibling packages (doc-kg, pycode-kg, agent-kg, kg-rag) are NOT
@@ -195,7 +208,7 @@ all = [
     "pyvis>=0.3.2",
     "pyvista>=0.44.0",
     "pyvistaqt>=0.11.0",
-    "quiltwright>=0.4.0",
+    "quiltwright>=0.6.0",
     "streamlit>=1.56.0",
     "trame-vtk>=2.0.0",
 ]
