@@ -60,14 +60,32 @@ class TestTheMachineryIsNotOursAnyMore:
         assert qt.cast_scene_to_looking_glass.__module__ == "kg_utils.viz3d.qt"
 
 
-@pytest.mark.integration
 class TestTheContractTheViewerReliesOn:
     """`cast_to_looking_glass` branches on this shape.
 
-    Marked integration: ``cast_scene_to_looking_glass`` builds an off-screen
-    ``pv.Plotter`` before it reaches the builder, so these need a working GL
-    context even though the builder always raises.
+    ``cast_scene_to_looking_glass`` opens an off-screen ``pv.Plotter`` before it
+    reaches the builder, which would make these need a GL context — and a VTK
+    build without an OSMesa or EGL fallback *aborts* rather than raising, taking
+    every queued test with it.  The contract under test has nothing to do with
+    PyVista, so the plotter is stubbed and these run everywhere, unmarked.
     """
+
+    @pytest.fixture(autouse=True)
+    def _stub_plotter(self, monkeypatch):
+        """Replace ``pv.Plotter`` with something that needs no GL context."""
+
+        class _FakePlotter:
+            camera_position = None
+
+            def __init__(self, *_args, **_kwargs):
+                pass
+
+            def close(self):
+                pass
+
+        import pyvista
+
+        monkeypatch.setattr(pyvista, "Plotter", _FakePlotter)
 
     def test_the_helper_returns_a_cast_result(self):
         """0.16.0 returns a CastResult, not a tuple — the viewer reads .message."""
