@@ -69,6 +69,13 @@ fi
 TREE_HASH=$(git write-tree)
 BRANCH=$(git rev-parse --abbrev-ref HEAD)
 
+# Snapshots are default-branch history. On any other branch, stop here —
+# feature-branch commits (and the PRs/CI built from them) stay free of
+# generated snapshot files, and skip the 60-90s rebuild along the way.
+DEFAULT_BRANCH=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null || true)
+DEFAULT_BRANCH="${DEFAULT_BRANCH#origin/}"
+[ "$BRANCH" != "${DEFAULT_BRANCH:-main}" ] && exit 0
+
 # Rebuild the local index to keep it in sync with staged content.
 "$REPO_ROOT/.venv/bin/pycodekg" build --repo "$REPO_ROOT" || exit 1
 
@@ -104,10 +111,13 @@ exit 0
 def install_hooks(repo: str, force: bool) -> None:
     """Install the PyCodeKG pre-commit git hook.
 
-    After installation, before each commit:
+    After installation, before each commit on the default branch:
       1. Rebuilds the local PyCodeKG index (full wipe)
       2. Captures a metrics snapshot, keyed by tree hash
       3. Stages the snapshot directory
+
+    On any other branch the quality checks still run but the rebuild and
+    snapshot are skipped, so feature-branch commits carry no generated files.
 
     This keeps the index in sync and ensures snapshots reflect the state of
     the knowledge graph at commit time.  The hook only ever touches its own
