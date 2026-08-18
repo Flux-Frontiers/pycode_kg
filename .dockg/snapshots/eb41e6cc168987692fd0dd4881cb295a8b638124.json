@@ -4,7 +4,7 @@
   "timestamp": "2026-04-27T15:26:42.271845+00:00",
   "version": "test",
   "metrics": {
-    "db_path": "/Users/egs/repos/pycode_kg/.dockg/graph.sqlite",
+    "db_path": ".dockg/graph.sqlite",
     "total_nodes": 6240,
     "total_edges": 74454,
     "node_counts": {
