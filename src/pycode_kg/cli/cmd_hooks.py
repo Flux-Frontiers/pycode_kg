@@ -29,10 +29,33 @@ from pycode_kg.cli.main import cli
 
 _PRE_COMMIT_HOOK = """\
 #!/usr/bin/env bash
-# PyCodeKG pre-commit hook — runs quality checks first, then rebuilds the local
-# index and captures a metrics snapshot.
+# PyCodeKG pre-commit hook — runs quality checks. The index rebuild and metrics
+# snapshot are opt-in and OFF by default; see "Why snapshots are off" below.
 # Installed by: pycodekg install-hooks
-# Skip with: PYCODEKG_SKIP_SNAPSHOT=1 git commit ...
+#
+#   PYCODEKG_SNAPSHOT=1 git commit ...        opt in to a per-commit snapshot
+#   PYCODEKG_SKIP_SNAPSHOT=1 git commit ...   force snapshots off (wins)
+#
+# Note that PYCODEKG_SKIP_SNAPSHOT no longer skips the quality checks. It used
+# to short-circuit the whole hook, so a variable named "skip snapshot" also
+# silently skipped ruff, ty and pytest. It now gates only what it names.
+#
+# Why snapshots are off by default (2026-08-18)
+# ---------------------------------------------
+# A per-commit snapshot records `git write-tree` and is then itself staged into
+# that same commit. Staging changes the index, so the recorded hash can never
+# equal the tree it claims to describe — and manifest.json carries a
+# `last_update` timestamp, so the `git add` is never a no-op. The drift is
+# guaranteed by construction, not caused by formatting, and reordering does not
+# fix it: the `git add` lands after the hash either way.
+#
+# An audit of 605 snapshots across 29 fleet manifests found 63 (10.4%) keyed to
+# a tree any commit actually has. `snapshot diff` between adjacent entries has
+# therefore been comparing states that never existed.
+#
+# The fix is to snapshot at release, keyed on the tag rather than on an
+# ephemeral pre-commit tree. See kgrag_priv/docs/SNAPSHOT_STRATEGY.md. Until
+# that lands, this hook runs quality checks only.
 #
 # Order matters, and it is deliberately checks-then-index:
 #
@@ -45,8 +68,6 @@ _PRE_COMMIT_HOOK = """\
 #   * A full index rebuild costs 60-90s. There is no reason to pay it for a
 #     commit that ruff/ty/pytest is about to reject.
 set -euo pipefail
-
-[ "${PYCODEKG_SKIP_SNAPSHOT:-0}" = "1" ] && exit 0
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 
@@ -63,9 +84,17 @@ elif command -v pre-commit &>/dev/null; then
     pre-commit run || exit 1
 fi
 
-# Capture the tree hash now that the checks have passed and nothing further
-# will modify the working tree — this keys the snapshot to the content that is
-# actually about to be committed.
+# ---------------------------------------------------------------------------
+# Opt-in index rebuild + snapshot. Everything below is skipped unless
+# PYCODEKG_SNAPSHOT=1 is set, and is skipped regardless if
+# PYCODEKG_SKIP_SNAPSHOT=1.
+# ---------------------------------------------------------------------------
+[ "${PYCODEKG_SNAPSHOT:-0}" = "1" ] || exit 0
+[ "${PYCODEKG_SKIP_SNAPSHOT:-0}" = "1" ] && exit 0
+
+# Captured after the checks so nothing further modifies the working tree. Note
+# the caveat above: this still cannot match the committed tree, because the
+# `git add` below changes the index after this point.
 TREE_HASH=$(git write-tree)
 BRANCH=$(git rev-parse --abbrev-ref HEAD)
 
@@ -147,5 +176,8 @@ def install_hooks(repo: str, force: bool) -> None:
     hook_path.chmod(mode)
 
     click.echo(f"OK Installed pre-commit hook: {hook_path}")
-    click.echo("  Snapshots will be captured automatically before each commit.")
+    click.echo("  Quality checks run on every commit.")
+    click.echo("  Snapshots are OFF by default - see kgrag_priv/docs/SNAPSHOT_STRATEGY.md.")
+    click.echo("  Opt in with:  PYCODEKG_SNAPSHOT=1 git commit ...")
+    click.echo("  Force off:    PYCODEKG_SKIP_SNAPSHOT=1 git commit ...")
     click.echo("  Run 'pycodekg build' first if you haven't built the graph yet.")
