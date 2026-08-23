@@ -23,6 +23,11 @@ from pycode_kg.render import md_table
 
 _EDGE_RELS = ("CALLS", "CONTAINS", "IMPORTS", "ATTR_ACCESS", "INHERITS")
 
+# A single depth-3 chain carries no signal — show the section only once the
+# chains clear one of these bars.
+_MIN_CALL_CHAIN_DEPTH = 4
+_MIN_CALL_CHAIN_COUNT = 3
+
 
 def _sym(name: str, kind: str) -> str:
     """Render a symbol as inline code, with call parens only for callables.
@@ -279,7 +284,10 @@ def render_markdown(analyzer, *, metadata: str = "", elapsed_seconds: float | No
 
     # ── Key Call Chains ──────────────────────────────────────────────────
     out += ["## Key Call Chains", ""]
-    if analyzer.critical_paths:
+    if analyzer.critical_paths and (
+        max(c.depth for c in analyzer.critical_paths) >= _MIN_CALL_CHAIN_DEPTH
+        or len(analyzer.critical_paths) >= _MIN_CALL_CHAIN_COUNT
+    ):
         out += ["Deepest call chains in the codebase.", ""]
         for i, chain in enumerate(analyzer.critical_paths[:5], 1):
             out += [

@@ -260,6 +260,20 @@ def _dotted_module(module_path: str) -> str:
     return path.replace("/", ".")
 
 
+def _fan_in_count(kg, node_id: str, rel: str = "CALLS") -> int:
+    """Count real callers of *node_id*, excluding self-loops.
+
+    A property body that reads the attribute it backs emits a ``CALLS`` edge
+    to itself; counting that inflates fan-in for a node with no real callers.
+
+    :param kg: PyCodeKG instance for graph queries.
+    :param node_id: Target node identifier.
+    :param rel: Relation type to invert (default ``"CALLS"``).
+    :return: Number of distinct callers, excluding *node_id* itself.
+    """
+    return sum(1 for c in kg.callers(node_id, rel=rel) if c.get("id") != node_id)
+
+
 class PyCodeKGAnalyzer:
     """Thorough repository analyzer using PyCodeKG graph.
 
@@ -470,8 +484,7 @@ class PyCodeKGAnalyzer:
                 for _score, row in scored[:100]:
                     node_id, name, kind, module_path, docstring, lineno, end_lineno = row
                     try:
-                        caller_list = self.kg.callers(node_id, rel="CALLS")
-                        caller_count = len(caller_list)
+                        caller_count = _fan_in_count(self.kg, node_id, rel="CALLS")
                         metrics = FunctionMetrics(
                             node_id=node_id,
                             name=name or "unknown",
@@ -503,8 +516,7 @@ class PyCodeKGAnalyzer:
                 for row in rows:
                     node_id, name, kind, module_path, docstring, lineno, end_lineno = row
                     try:
-                        caller_list = self.kg.callers(node_id, rel="CALLS")
-                        caller_count = len(caller_list)
+                        caller_count = _fan_in_count(self.kg, node_id, rel="CALLS")
                         metrics = FunctionMetrics(
                             node_id=node_id,
                             name=name or "unknown",

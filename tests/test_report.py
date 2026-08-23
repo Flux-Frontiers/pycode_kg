@@ -10,7 +10,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from pycode_kg.pycodekg_thorough_analysis import PyCodeKGAnalyzer
+from pycode_kg.pycodekg_thorough_analysis import CallChain, PyCodeKGAnalyzer
 from pycode_kg.report import render_markdown
 
 
@@ -54,3 +54,27 @@ def test_metadata_and_footer_are_optional(analyzer) -> None:
 def test_to_markdown_delegates_to_render_markdown(analyzer) -> None:
     """The analyzer method and the renderer produce the identical document."""
     assert analyzer.to_markdown() == render_markdown(analyzer)
+
+
+def test_single_shallow_call_chain_renders_empty_state(analyzer) -> None:
+    """One depth-3 chain carries no signal — the empty-state line renders instead."""
+    analyzer.critical_paths = [CallChain(chain=["a", "b", "c"], depth=3, total_callers=1)]
+    md = render_markdown(analyzer)
+    assert "No deep call chains detected." in md
+    assert "Deepest call chains in the codebase." not in md
+
+
+def test_deep_call_chain_renders_section(analyzer) -> None:
+    """A single chain that clears the depth bar is shown."""
+    analyzer.critical_paths = [CallChain(chain=["a", "b", "c", "d"], depth=4, total_callers=1)]
+    md = render_markdown(analyzer)
+    assert "Deepest call chains in the codebase." in md
+
+
+def test_several_shallow_chains_render_section(analyzer) -> None:
+    """Enough shallow chains together are signal even if none alone is deep."""
+    analyzer.critical_paths = [
+        CallChain(chain=["a", "b", "c"], depth=3, total_callers=1) for _ in range(3)
+    ]
+    md = render_markdown(analyzer)
+    assert "Deepest call chains in the codebase." in md
