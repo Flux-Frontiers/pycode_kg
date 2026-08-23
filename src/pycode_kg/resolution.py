@@ -17,10 +17,15 @@ the resolution pass.
 :func:`prune_thirdparty_attribute_resolutions` covers the larger population:
 any dotted stub whose root is an imported stdlib/third-party name (e.g.
 ``subprocess.run``), found by joining ``CALLS`` back to the calling module's
-``IMPORTS`` edges — no receiver typing required.  Both prunes run from
-:func:`resolve_symbols_pruned`, called from every build site.  The durable
-fix is receiver-aware resolution upstream in kg_utils; until then these
-prunes run in :meth:`PyCodeKG._post_build_hook`.
+``IMPORTS`` edges — no receiver typing required.
+
+:func:`prune_self_attribute_resolutions` covers a third population: a stub
+like ``self.plotter.render`` names an instance attribute of unknown type as
+its receiver, so last-segment matching is a coin flip regardless of import
+visibility.  All three prunes run from :func:`resolve_symbols_pruned`,
+called from every build site.  The durable fix is receiver-aware resolution
+upstream in kg_utils; until then these prunes run in
+:meth:`PyCodeKG._post_build_hook`.
 
 Author: Eric G. Suchanek, PhD
 
@@ -160,6 +165,34 @@ def prune_thirdparty_attribute_resolutions(con: sqlite3.Connection) -> int:
     return cur.rowcount
 
 
+def prune_self_attribute_resolutions(con: sqlite3.Connection) -> int:
+    """Delete RESOLVES_TO edges from ``self.``/``cls.`` attribute-of-attribute stubs.
+
+    A stub with three or more dotted segments rooted at ``self`` or ``cls``
+    (e.g. ``self.plotter.render``) names an instance/class attribute of
+    unknown type as its receiver.  ``kg_utils.store.resolve_symbols()``
+    still matches it by last-segment name fallback, so any first-party
+    method sharing the final segment's name captures the call — a coin
+    flip, not a resolution.  A two-segment ``self.<method>`` stub is a
+    same-class method reference and is left alone; only the deeper,
+    attribute-of-attribute form is unresolvable without receiver-type
+    inference.
+
+    :param con: Open SQLite connection with an ``edges`` table.
+    :return: Number of RESOLVES_TO edges deleted.
+    """
+    rows = con.execute(
+        "SELECT DISTINCT src FROM edges WHERE rel = 'RESOLVES_TO'"
+        " AND (src LIKE 'sym:self.%.%' OR src LIKE 'sym:cls.%.%')"
+    ).fetchall()
+    doomed = [(src,) for (src,) in rows]
+    if not doomed:
+        return 0
+    cur = con.executemany("DELETE FROM edges WHERE rel = 'RESOLVES_TO' AND src = ?", doomed)
+    con.commit()
+    return cur.rowcount
+
+
 def resolve_symbols_pruned(store) -> int:
     """Resolve symbol stubs, then prune bogus attribute-call resolutions.
 
@@ -174,4 +207,5 @@ def resolve_symbols_pruned(store) -> int:
     resolved = store.resolve_symbols()
     pruned = prune_builtin_method_resolutions(store.con)
     pruned += prune_thirdparty_attribute_resolutions(store.con)
+    pruned += prune_self_attribute_resolutions(store.con)
     return max(0, resolved - pruned)

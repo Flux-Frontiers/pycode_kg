@@ -13,6 +13,7 @@ import pytest
 from pycode_kg.resolution import (
     BUILTIN_METHOD_NAMES,
     prune_builtin_method_resolutions,
+    prune_self_attribute_resolutions,
     prune_thirdparty_attribute_resolutions,
 )
 
@@ -148,3 +149,45 @@ def test_leaves_stub_when_no_caller_imports_root() -> None:
     )
     con.commit()
     assert prune_thirdparty_attribute_resolutions(con) == 0
+
+
+# ── prune_self_attribute_resolutions ────────────────────────────────────────
+
+
+@pytest.fixture
+def con_self_attr() -> sqlite3.Connection:
+    """self.plotter.render() resolved onto an unrelated first-party Log.render."""
+    con = sqlite3.connect(":memory:")
+    con.execute("CREATE TABLE edges (src TEXT, rel TEXT, dst TEXT)")
+    con.executemany(
+        "INSERT INTO edges VALUES (?, ?, ?)",
+        [
+            # Bogus: unknown-type instance attribute, matched by last segment only
+            ("m:src/p/widget.py:W.render", "CALLS", "sym:self.plotter.render"),
+            ("sym:self.plotter.render", "RESOLVES_TO", "m:src/p/log.py:Log.render"),
+            # Bogus: same shape via cls.
+            ("m:src/p/widget.py:W.build", "CALLS", "sym:cls.factory.make"),
+            ("sym:cls.factory.make", "RESOLVES_TO", "fn:src/p/other.py:make"),
+            # Legitimate: same-class method reference, only two segments
+            ("m:src/p/widget.py:W.helper", "CALLS", "sym:self.render"),
+            ("sym:self.render", "RESOLVES_TO", "m:src/p/widget.py:W.render"),
+        ],
+    )
+    con.commit()
+    return con
+
+
+def test_prunes_self_and_cls_attribute_of_attribute_stubs(con_self_attr) -> None:
+    """Three-or-more-segment self./cls. stubs are pruned; a bare self.<method> is kept."""
+    deleted = prune_self_attribute_resolutions(con_self_attr)
+    assert deleted == 2
+    remaining = {
+        row[0] for row in con_self_attr.execute("SELECT src FROM edges WHERE rel='RESOLVES_TO'")
+    }
+    assert remaining == {"sym:self.render"}
+
+
+def test_self_attribute_prune_is_idempotent(con_self_attr) -> None:
+    """A second pass finds nothing left to delete."""
+    prune_self_attribute_resolutions(con_self_attr)
+    assert prune_self_attribute_resolutions(con_self_attr) == 0
