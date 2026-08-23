@@ -10,7 +10,12 @@ import sqlite3
 
 import pytest
 
-from pycode_kg.resolution import BUILTIN_METHOD_NAMES, prune_builtin_method_resolutions
+from pycode_kg.resolution import (
+    BUILTIN_METHOD_NAMES,
+    prune_builtin_method_resolutions,
+    prune_self_attribute_resolutions,
+    prune_thirdparty_attribute_resolutions,
+)
 
 
 @pytest.fixture
@@ -61,3 +66,128 @@ def test_prune_is_idempotent(con) -> None:
 def test_builtin_names_cover_the_observed_polluters() -> None:
     """The names seen polluting this repo's graph are all covered."""
     assert {"update", "append", "get", "items", "add", "extend"} <= BUILTIN_METHOD_NAMES
+
+
+# ── prune_thirdparty_attribute_resolutions ──────────────────────────────────
+
+
+@pytest.fixture
+def con_thirdparty() -> sqlite3.Connection:
+    """A stdlib attribute call resolved onto a first-party lookalike, plus a genuine call."""
+    con = sqlite3.connect(":memory:")
+    con.execute("CREATE TABLE edges (src TEXT, rel TEXT, dst TEXT)")
+    con.execute("CREATE TABLE nodes (id TEXT, kind TEXT)")
+    con.executemany(
+        "INSERT INTO nodes VALUES (?, ?)",
+        [("mod:src/p/util.py", "module"), ("fn:src/p/util.py:run", "function")],
+    )
+    con.executemany(
+        "INSERT INTO edges VALUES (?, ?, ?)",
+        [
+            # tool.py imports subprocess and calls subprocess.run(...)
+            ("mod:src/p/tool.py", "IMPORTS", "sym:subprocess"),
+            ("fn:src/p/tool.py:deploy", "CALLS", "sym:subprocess.run"),
+            # bogus: name-fallback resolved the stdlib call onto a first-party `run`
+            ("sym:subprocess.run", "RESOLVES_TO", "fn:src/p/util.py:run"),
+            # legitimate: an intra-module bare-name call to the real `run`
+            ("fn:src/p/util.py:caller", "CALLS", "sym:run"),
+            ("sym:run", "RESOLVES_TO", "fn:src/p/util.py:run"),
+        ],
+    )
+    con.commit()
+    return con
+
+
+def test_prunes_thirdparty_attribute_resolution(con_thirdparty) -> None:
+    """A dotted stub whose imported root is stdlib/third-party is pruned."""
+    deleted = prune_thirdparty_attribute_resolutions(con_thirdparty)
+    assert deleted == 1
+    remaining = {
+        row[0] for row in con_thirdparty.execute("SELECT src FROM edges WHERE rel='RESOLVES_TO'")
+    }
+    assert remaining == {"sym:run"}
+
+
+def test_thirdparty_prune_is_idempotent(con_thirdparty) -> None:
+    """A second pass finds nothing left to delete."""
+    prune_thirdparty_attribute_resolutions(con_thirdparty)
+    assert prune_thirdparty_attribute_resolutions(con_thirdparty) == 0
+
+
+def test_leaves_stub_when_root_resolves_first_party_anywhere() -> None:
+    """A root that resolves first-party anywhere makes the stub unverifiable, not deletable."""
+    con = sqlite3.connect(":memory:")
+    con.execute("CREATE TABLE edges (src TEXT, rel TEXT, dst TEXT)")
+    con.execute("CREATE TABLE nodes (id TEXT, kind TEXT)")
+    con.execute("INSERT INTO nodes VALUES ('mod:src/p/pkgname.py', 'module')")
+    con.executemany(
+        "INSERT INTO edges VALUES (?, ?, ?)",
+        [
+            ("mod:src/p/tool.py", "IMPORTS", "sym:pkgname"),
+            ("fn:src/p/tool.py:deploy", "CALLS", "sym:pkgname.run"),
+            ("sym:pkgname.run", "RESOLVES_TO", "fn:src/p/other.py:run"),
+            # the join can't tell this caller's `pkgname` from another module's
+            # first-party module of the same name, so both stay
+            ("sym:pkgname", "RESOLVES_TO", "mod:src/p/pkgname.py"),
+        ],
+    )
+    con.commit()
+    assert prune_thirdparty_attribute_resolutions(con) == 0
+
+
+def test_leaves_stub_when_no_caller_imports_root() -> None:
+    """A root no calling module imports (self.<attr>.<method>) is left for a later prune."""
+    con = sqlite3.connect(":memory:")
+    con.execute("CREATE TABLE edges (src TEXT, rel TEXT, dst TEXT)")
+    con.execute("CREATE TABLE nodes (id TEXT, kind TEXT)")
+    con.executemany(
+        "INSERT INTO edges VALUES (?, ?, ?)",
+        [
+            ("m:src/p/widget.py:W.render", "CALLS", "sym:self.plotter.render"),
+            ("sym:self.plotter.render", "RESOLVES_TO", "m:src/p/log.py:Log.render"),
+        ],
+    )
+    con.commit()
+    assert prune_thirdparty_attribute_resolutions(con) == 0
+
+
+# ── prune_self_attribute_resolutions ────────────────────────────────────────
+
+
+@pytest.fixture
+def con_self_attr() -> sqlite3.Connection:
+    """self.plotter.render() resolved onto an unrelated first-party Log.render."""
+    con = sqlite3.connect(":memory:")
+    con.execute("CREATE TABLE edges (src TEXT, rel TEXT, dst TEXT)")
+    con.executemany(
+        "INSERT INTO edges VALUES (?, ?, ?)",
+        [
+            # Bogus: unknown-type instance attribute, matched by last segment only
+            ("m:src/p/widget.py:W.render", "CALLS", "sym:self.plotter.render"),
+            ("sym:self.plotter.render", "RESOLVES_TO", "m:src/p/log.py:Log.render"),
+            # Bogus: same shape via cls.
+            ("m:src/p/widget.py:W.build", "CALLS", "sym:cls.factory.make"),
+            ("sym:cls.factory.make", "RESOLVES_TO", "fn:src/p/other.py:make"),
+            # Legitimate: same-class method reference, only two segments
+            ("m:src/p/widget.py:W.helper", "CALLS", "sym:self.render"),
+            ("sym:self.render", "RESOLVES_TO", "m:src/p/widget.py:W.render"),
+        ],
+    )
+    con.commit()
+    return con
+
+
+def test_prunes_self_and_cls_attribute_of_attribute_stubs(con_self_attr) -> None:
+    """Three-or-more-segment self./cls. stubs are pruned; a bare self.<method> is kept."""
+    deleted = prune_self_attribute_resolutions(con_self_attr)
+    assert deleted == 2
+    remaining = {
+        row[0] for row in con_self_attr.execute("SELECT src FROM edges WHERE rel='RESOLVES_TO'")
+    }
+    assert remaining == {"sym:self.render"}
+
+
+def test_self_attribute_prune_is_idempotent(con_self_attr) -> None:
+    """A second pass finds nothing left to delete."""
+    prune_self_attribute_resolutions(con_self_attr)
+    assert prune_self_attribute_resolutions(con_self_attr) == 0

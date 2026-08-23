@@ -250,6 +250,59 @@ def test_snapshot_manager_capture(snapshot_dir: Path, sample_metrics: SnapshotMe
     assert snap.metrics.total_nodes == 100
 
 
+def test_snapshot_manager_capture_coverage_counts(
+    snapshot_dir: Path, sample_metrics: SnapshotMetrics
+) -> None:
+    """coverage_documented/coverage_total ride alongside the coverage fraction."""
+    mgr = SnapshotManager(snapshot_dir)
+
+    with patch(
+        "pycode_kg.snapshots.SnapshotManager._get_current_tree_hash",
+        return_value="abc123tree",  # pragma: allowlist secret
+    ):
+        with patch(
+            "pycode_kg.snapshots.SnapshotManager._get_current_branch",
+            return_value="develop",
+        ):
+            snap = mgr.capture(
+                version="0.5.1",
+                graph_stats_dict={"total_nodes": 100, "total_edges": 150},
+                coverage=0.85,
+                coverage_documented=68,
+                coverage_total=80,
+                critical_issues=0,
+                complexity_median=1.0,
+            )
+
+    assert snap.metrics.coverage_documented == 68
+    assert snap.metrics.coverage_total == 80
+
+
+def test_snapshot_metrics_coverage_counts_default_to_zero() -> None:
+    """A SnapshotMetrics built without the new fields (old call sites) stays valid."""
+    m = SnapshotMetrics(
+        total_nodes=1,
+        total_edges=1,
+        meaningful_nodes=1,
+        docstring_coverage=0.5,
+        node_counts={},
+        edge_counts={},
+        critical_issues=0,
+        complexity_median=0.0,
+    )
+    assert m.coverage_documented == 0
+    assert m.coverage_total == 0
+
+
+def test_snapshot_metrics_from_dict_missing_coverage_counts() -> None:
+    """A snapshot saved before this field existed loads with zero defaults, not KeyError."""
+    from pycode_kg.snapshots import metrics_from_dict
+
+    m = metrics_from_dict({"total_nodes": 1, "docstring_coverage": 0.5})
+    assert m.coverage_documented == 0
+    assert m.coverage_total == 0
+
+
 def test_snapshot_manager_save_and_load(snapshot_dir: Path, sample_snapshot: Snapshot) -> None:
     """Test saving and loading snapshots."""
     mgr = SnapshotManager(snapshot_dir)

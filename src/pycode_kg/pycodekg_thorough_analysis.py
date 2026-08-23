@@ -211,6 +211,78 @@ def _console_script_targets(pyproject_path: Path) -> set[tuple[str, str]]:
     return targets
 
 
+def _declared_export_names(repo_root: Path) -> set[str]:
+    """Collect names declared as public exports anywhere in the repo.
+
+    A name in any module's ``__all__`` list, or re-exported (``from X import
+    Y``) by a package ``__init__.py``, is a declared public API. Zero
+    internal callers is its expected state, not evidence of dead code.
+
+    Two definitions sharing a name are indistinguishable to this AST-only
+    walk, so a name collision excludes both from orphan detection. That is
+    the safe direction to err: missing one dead orphan costs less than
+    flagging a declared export as dead code.
+
+    :param repo_root: Root directory of the repository being analyzed.
+    :return: Set of exported names (unqualified), collected repo-wide.
+    """
+    import ast as _ast  # noqa: PLC0415
+
+    names: set[str] = set()
+    for py_path in repo_root.rglob("*.py"):
+        try:
+            tree = _ast.parse(py_path.read_text(encoding="utf-8"))
+        except (OSError, SyntaxError):
+            continue
+        for node in _ast.walk(tree):
+            if (
+                isinstance(node, _ast.Assign)
+                and any(isinstance(t, _ast.Name) and t.id == "__all__" for t in node.targets)
+                and isinstance(node.value, _ast.List | _ast.Tuple)
+            ):
+                for elt in node.value.elts:
+                    if isinstance(elt, _ast.Constant) and isinstance(elt.value, str):
+                        names.add(elt.value)
+            elif py_path.name == "__init__.py" and isinstance(node, _ast.ImportFrom):
+                for alias in node.names:
+                    name = alias.asname or alias.name
+                    if name and not name.startswith("_"):
+                        names.add(name)
+    return names
+
+
+def _package_root(repo_root: Path) -> str:
+    """Detect the module-path prefix that qualifies as the installable package.
+
+    Reads the project name from ``pyproject.toml`` (``[project].name`` or
+    ``[tool.poetry].name``), normalizes hyphens to underscores, and checks
+    for a ``src/<name>/`` or ``<name>/`` directory.  A provisioning script
+    under ``runpod/`` is real repo content, but "Public API Surface" and
+    "Structural Importance" describe the installable package, not every
+    top-level directory the repo happens to contain.
+
+    :param repo_root: Root directory of the repository being analyzed.
+    :return: Module-path prefix ending in ``/`` (e.g. ``"src/pycode_kg/"``),
+        or ``""`` when the package root cannot be determined.  Callers must
+        treat an empty result as "do not filter" — an undetectable package
+        root is not evidence that nothing qualifies.
+    """
+    try:
+        data = tomllib.loads((repo_root / "pyproject.toml").read_text(encoding="utf-8"))
+    except (OSError, tomllib.TOMLDecodeError):
+        return ""
+
+    name = data.get("project", {}).get("name") or data.get("tool", {}).get("poetry", {}).get("name")
+    if not isinstance(name, str) or not name:
+        return ""
+
+    normalized = name.replace("-", "_")
+    for candidate in (f"src/{normalized}", normalized):
+        if (repo_root / candidate).is_dir():
+            return f"{candidate}/"
+    return ""
+
+
 def _main_guard_block(source: str) -> str:
     """Return module source from the ``if __name__ == "__main__":`` guard on.
 
@@ -260,6 +332,20 @@ def _dotted_module(module_path: str) -> str:
     return path.replace("/", ".")
 
 
+def _fan_in_count(kg, node_id: str, rel: str = "CALLS") -> int:
+    """Count real callers of *node_id*, excluding self-loops.
+
+    A property body that reads the attribute it backs emits a ``CALLS`` edge
+    to itself; counting that inflates fan-in for a node with no real callers.
+
+    :param kg: PyCodeKG instance for graph queries.
+    :param node_id: Target node identifier.
+    :param rel: Relation type to invert (default ``"CALLS"``).
+    :return: Number of distinct callers, excluding *node_id* itself.
+    """
+    return sum(1 for c in kg.callers(node_id, rel=rel) if c.get("id") != node_id)
+
+
 class PyCodeKGAnalyzer:
     """Thorough repository analyzer using PyCodeKG graph.
 
@@ -298,7 +384,9 @@ class PyCodeKGAnalyzer:
         self.module_metrics: dict[str, ModuleMetrics] = {}
         self.orphaned_functions: list[FunctionMetrics] = []
         self.test_covered_orphans: list[FunctionMetrics] = []  # prod-orphaned, test-covered
+        self.unverifiable_overrides: list[FunctionMetrics] = []  # external base, can't judge
         self._source_cache: dict[str, str | None] = {}  # module_path → source text
+        self._package_root_cache: str | None = None  # computed once by _get_package_root
         self._orphan_scan_total: int = 0  # definitions the orphan scan examined
         self.grade_components: list[dict] = []  # populated by _compute_quality_grade
         self.high_fanout_functions: list[FunctionMetrics] = []
@@ -442,19 +530,25 @@ class PyCodeKGAnalyzer:
         """
 
         try:
+            package_root = self._get_package_root()
+
             # --- Option A: seed from CodeRank top nodes (deterministic, no vector search) ---
             if self.coderank_scores:
                 # Pull ALL real function/method/class nodes from SQLite, sorted by
                 # CodeRank score descending.  This is O(nodes) but avoids the k-limit
-                # and semantic-search noise of the old approach.
+                # and semantic-search noise of the old approach.  A non-package root
+                # (an empty package_root) disables the filter rather than excluding
+                # everything, since the package root could not be determined.
                 rows = self.kg.store.con.execute(
                     """
                     SELECT id, name, kind, module_path, docstring, lineno, end_lineno
                     FROM nodes
                     WHERE kind IN ('function', 'method', 'class')
                       AND id NOT LIKE 'sym:%'
+                      AND (? = '' OR module_path LIKE ? || '%')
                     ORDER BY module_path, name
-                    """
+                    """,
+                    (package_root, package_root),
                 ).fetchall()
 
                 # Attach CodeRank scores and sort by score descending
@@ -470,8 +564,7 @@ class PyCodeKGAnalyzer:
                 for _score, row in scored[:100]:
                     node_id, name, kind, module_path, docstring, lineno, end_lineno = row
                     try:
-                        caller_list = self.kg.callers(node_id, rel="CALLS")
-                        caller_count = len(caller_list)
+                        caller_count = _fan_in_count(self.kg, node_id, rel="CALLS")
                         metrics = FunctionMetrics(
                             node_id=node_id,
                             name=name or "unknown",
@@ -495,16 +588,17 @@ class PyCodeKGAnalyzer:
                     FROM nodes
                     WHERE kind IN ('function', 'method', 'class')
                       AND id NOT LIKE 'sym:%'
+                      AND (? = '' OR module_path LIKE ? || '%')
                     ORDER BY module_path, name
-                    """
+                    """,
+                    (package_root, package_root),
                 ).fetchall()
 
                 fan_in_data = []
                 for row in rows:
                     node_id, name, kind, module_path, docstring, lineno, end_lineno = row
                     try:
-                        caller_list = self.kg.callers(node_id, rel="CALLS")
-                        caller_count = len(caller_list)
+                        caller_count = _fan_in_count(self.kg, node_id, rel="CALLS")
                         metrics = FunctionMetrics(
                             node_id=node_id,
                             name=name or "unknown",
@@ -642,6 +736,17 @@ class PyCodeKGAnalyzer:
             self._source_cache[module_path] = text
         return self._source_cache[module_path]
 
+    def _get_package_root(self) -> str:
+        """Package-root module-path prefix for this analysis run, cached.
+
+        :return: See :func:`_package_root` — a prefix ending in ``/``, or
+            ``""`` when it cannot be determined (meaning "do not filter").
+        """
+        if self._package_root_cache is None:
+            repo_root = getattr(self.kg, "repo_root", None)
+            self._package_root_cache = _package_root(Path(repo_root)) if repo_root else ""
+        return self._package_root_cache
+
     def _tests_corpus(self) -> str:
         """Concatenate the target repo's ``tests/`` sources for name matching.
 
@@ -679,6 +784,8 @@ class PyCodeKGAnalyzer:
           edge, following sym: stubs through RESOLVES_TO
         - ``script_targets``: ``(dotted_module, function)`` pairs declared in
           ``[project.scripts]``
+        - ``exported_names``: names declared public via ``__all__`` anywhere
+          in the repo, or re-exported by a package ``__init__.py``
 
         :return: Context dict consumed by :meth:`_is_special_entry_point`.
         """
@@ -729,15 +836,18 @@ class PyCodeKGAnalyzer:
         }
 
         script_targets: set[tuple[str, str]] = set()
+        exported_names: set[str] = set()
         repo_root = getattr(self.kg, "repo_root", None)
         if repo_root:
             script_targets = _console_script_targets(Path(repo_root) / "pyproject.toml")
+            exported_names = _declared_export_names(Path(repo_root))
 
         return {
             "class_of": class_of,
             "external_bases": external_bases,
             "inherited_classes": inherited_classes,
             "script_targets": script_targets,
+            "exported_names": exported_names,
         }
 
     def _is_special_entry_point(self, node: dict, ctx: dict) -> bool:
@@ -755,6 +865,8 @@ class PyCodeKGAnalyzer:
         - Classes with incoming INHERITS edges — used as bases
         - ``[project.scripts]`` targets and functions called from a module's
           ``if __name__ == "__main__":`` guard
+        - Declared public exports — a name in any ``__all__`` list, or
+          re-exported by a package ``__init__.py``
 
         :param node: Dict with node_id, name, kind, module_path, lineno.
         :param ctx: Precomputed context from :meth:`_build_orphan_context`.
@@ -779,6 +891,12 @@ class PyCodeKGAnalyzer:
 
         # Classes used as bases: INHERITS is usage, even with zero CALLS.
         if kind == "class" and node_id in ctx["inherited_classes"]:
+            return True
+
+        # Declared public exports: named in __all__ somewhere, or re-exported
+        # by a package __init__.py. Zero internal callers is expected — the
+        # name exists to be imported from outside the indexed graph.
+        if kind in ("function", "class") and name in ctx["exported_names"]:
             return True
 
         if kind == "method":
@@ -829,6 +947,32 @@ class PyCodeKGAnalyzer:
 
         return False
 
+    def _is_unverifiable_override(self, node: dict, ctx: dict) -> bool:
+        """Check whether a method overrides a base class this graph cannot see.
+
+        Called only after :meth:`_is_special_entry_point` returns ``False``,
+        so this covers the override cases that check *doesn't* recognize by
+        name (``_protocol_attr_names()``) or pattern (``NodeVisitor``
+        dispatch): any other method on a class with an external base.  The
+        graph has no visibility into that base, so the caller may live
+        inside the dependency — this cannot be judged either way.
+
+        Deleting such an override does not raise ``NameError``; it silently
+        reverts behavior to the base class, so treating "unverifiable" as
+        "dead" is the worse failure mode. Report it separately instead of
+        excusing it into silence.
+
+        :param node: Dict with node_id, name, kind, module_path, lineno.
+        :param ctx: Precomputed context from :meth:`_build_orphan_context`.
+        :return: True when the method's enclosing class has an external base.
+        """
+        if node.get("kind") != "method":
+            return False
+        cls_id = ctx["class_of"].get(node.get("node_id", ""))
+        if not cls_id:
+            return False
+        return bool(ctx["external_bases"].get(cls_id))
+
     def _analyze_dependencies(self) -> None:
         """Phase 4: Detect orphaned definitions (zero callers).
 
@@ -843,7 +987,9 @@ class PyCodeKGAnalyzer:
         repo's ``tests/`` sources are reported separately as "test-covered" —
         they are unused in production code but exercised by tests, which
         usually marks public API consumed by downstream packages rather than
-        dead code.
+        dead code.  A zero-caller method whose class inherits from a base
+        outside the indexed graph (see ``_is_unverifiable_override``) cannot
+        be judged either way and is reported separately, not as dead code.
         """
 
         try:
@@ -890,6 +1036,23 @@ class PyCodeKGAnalyzer:
                         logger.debug(f"Skipping {name} — special entry point (framework-driven)")
                         continue
 
+                    # External-base overrides: no positive evidence either
+                    # way, so report separately rather than call it dead.
+                    if self._is_unverifiable_override(node, ctx):
+                        logger.debug(f"Skipping {name} — external base class, cannot verify")
+                        self.unverifiable_overrides.append(
+                            FunctionMetrics(
+                                node_id=node_id,
+                                name=name or "unknown",
+                                module=module_path or "unknown",
+                                kind=kind or "unknown",
+                                fan_in=0,
+                                fan_out=0,
+                                lines=max(0, (end_lineno or 0) - (lineno or 0)),
+                            )
+                        )
+                        continue
+
                     candidates.append(
                         FunctionMetrics(
                             node_id=node_id,
@@ -916,9 +1079,11 @@ class PyCodeKGAnalyzer:
 
             self.orphaned_functions.sort(key=lambda f: f.lines, reverse=True)
             self.test_covered_orphans.sort(key=lambda f: f.lines, reverse=True)
+            self.unverifiable_overrides.sort(key=lambda f: f.lines, reverse=True)
             self._phase_result = (
                 f"{len(self.orphaned_functions)} dead, "
-                f"{len(self.test_covered_orphans)} test-covered orphans"
+                f"{len(self.test_covered_orphans)} test-covered orphans, "
+                f"{len(self.unverifiable_overrides)} unverifiable overrides"
             )
 
         except (AttributeError, ValueError, RuntimeError) as e:
@@ -1152,76 +1317,46 @@ class PyCodeKGAnalyzer:
         """Phase 8: Identify public APIs (module-level exports).
 
         Strategy (in priority order):
-        1. Parse every ``__init__.py`` under the repo root with AST to find
-           re-exported names (``from X import Y`` / ``__all__`` entries).
-           Look each name up in the graph and record it as a public API.
+        1. Collect declared exports (``__all__`` anywhere, ``__init__.py``
+           re-exports — see :func:`_declared_export_names`) and look each
+           name up in the graph as a public API.
         2. Supplement with non-private functions/classes in ``function_metrics``
            that have at least one caller and are not already included.
         """
 
         try:
-            import ast as _ast  # noqa: PLC0415
-
             already_ids: set[str] = set()
 
-            # --- Step 1: walk __init__.py files and collect re-exported names ---
+            # --- Step 1: declared exports (__all__ / __init__.py re-exports) ---
             try:
-                repo_root = Path(self.kg.repo_root)
-                for init_path in sorted(repo_root.rglob("__init__.py")):
-                    try:
-                        src = init_path.read_text(encoding="utf-8")
-                        tree = _ast.parse(src)
-                    except (OSError, SyntaxError):
-                        continue
-
-                    exported_names: set[str] = set()
-
-                    for node in _ast.walk(tree):
-                        # from X import Y, Z  →  Y, Z are re-exported
-                        if isinstance(node, _ast.ImportFrom):
-                            for alias in node.names:
-                                name = alias.asname or alias.name
-                                if name and not name.startswith("_"):
-                                    exported_names.add(name)
-                        # __all__ = ["Foo", "bar"]
-                        elif (
-                            isinstance(node, _ast.Assign)
-                            and any(
-                                isinstance(t, _ast.Name) and t.id == "__all__" for t in node.targets
-                            )
-                            and isinstance(node.value, _ast.List | _ast.Tuple)
-                        ):
-                            for elt in node.value.elts:
-                                if isinstance(elt, _ast.Constant) and isinstance(elt.value, str):
-                                    exported_names.add(elt.value)
-
-                    for name in exported_names:
-                        rows = self.kg.store.con.execute(
-                            "SELECT id, name, kind, module_path, docstring FROM nodes"
-                            " WHERE name = ? AND kind IN ('class', 'function')"
-                            "   AND SUBSTR(name, 1, 1) != '_'",
-                            (name,),
-                        ).fetchall()
-                        for row in rows:
-                            node_id, nm, kind, module_path, docstring = row
-                            if node_id not in already_ids:
-                                try:
-                                    fan_in = len(self.kg.callers(node_id, rel="CALLS"))
-                                except (AttributeError, ValueError, RuntimeError):
-                                    fan_in = 0
-                                self.public_apis.append(
-                                    FunctionMetrics(
-                                        node_id=node_id,
-                                        name=nm,
-                                        module=module_path or "",
-                                        kind=kind,
-                                        fan_in=fan_in,
-                                        fan_out=0,
-                                        lines=0,
-                                        docstring=docstring,
-                                    )
+                exported_names = _declared_export_names(Path(self.kg.repo_root))
+                for name in sorted(exported_names):
+                    rows = self.kg.store.con.execute(
+                        "SELECT id, name, kind, module_path, docstring FROM nodes"
+                        " WHERE name = ? AND kind IN ('class', 'function')"
+                        "   AND SUBSTR(name, 1, 1) != '_'",
+                        (name,),
+                    ).fetchall()
+                    for row in rows:
+                        node_id, nm, kind, module_path, docstring = row
+                        if node_id not in already_ids:
+                            try:
+                                fan_in = len(self.kg.callers(node_id, rel="CALLS"))
+                            except (AttributeError, ValueError, RuntimeError):
+                                fan_in = 0
+                            self.public_apis.append(
+                                FunctionMetrics(
+                                    node_id=node_id,
+                                    name=nm,
+                                    module=module_path or "",
+                                    kind=kind,
+                                    fan_in=fan_in,
+                                    fan_out=0,
+                                    lines=0,
+                                    docstring=docstring,
                                 )
-                                already_ids.add(node_id)
+                            )
+                            already_ids.add(node_id)
             except (OSError, AttributeError, ValueError, RuntimeError):
                 pass
 
@@ -1237,6 +1372,15 @@ class PyCodeKGAnalyzer:
                 ):
                     self.public_apis.append(func)
                     already_ids.add(func.node_id)
+
+            # A provisioning script outside the installable package is not an API
+            # surface candidate even if it declares __all__; an undetermined
+            # package_root disables the filter rather than excluding everything.
+            package_root = self._get_package_root()
+            if package_root:
+                self.public_apis = [
+                    f for f in self.public_apis if f.module.startswith(package_root)
+                ]
 
             # Sort by fan-in descending
             self.public_apis.sort(key=lambda m: m.fan_in, reverse=True)
@@ -1494,7 +1638,12 @@ class PyCodeKGAnalyzer:
             )
             self.coderank_scores = compute_coderank(graph)
 
-            # Build top-25 real nodes (exclude sym: stubs) with node metadata
+            # Build top-25 real nodes (exclude sym: stubs) with node metadata.
+            # A provisioning script outside the installable package is real repo
+            # content, but not an "important code" candidate for this ranking; an
+            # undetermined package_root disables the filter rather than excluding
+            # everything.
+            package_root = self._get_package_root()
             sorted_nodes = sorted(self.coderank_scores.items(), key=lambda kv: kv[1], reverse=True)
             top_nodes: list[dict] = []
             for node_id, score in sorted_nodes:
@@ -1503,6 +1652,8 @@ class PyCodeKGAnalyzer:
                 attrs = graph.nodes.get(node_id, {})
                 kind = attrs.get("kind", "")
                 if kind not in ("function", "method", "class", "module"):
+                    continue
+                if package_root and not (attrs.get("module_path") or "").startswith(package_root):
                     continue
                 top_nodes.append(
                     {
@@ -1686,8 +1837,16 @@ class PyCodeKGAnalyzer:
 
             ranker = StructuralImportanceRanker(self.kg.db_path)
             # Compute all nodes (no top cap) so module aggregates are accurate,
-            # then store top-25 for node-level display.
+            # then store top-25 for node-level display.  PageRank itself runs over
+            # the full graph -- only the reported candidates are restricted to the
+            # installable package, since a provisioning script isn't a Structural
+            # Importance candidate even when it genuinely calls a lot of code.
             all_records = ranker.compute()
+            package_root = self._get_package_root()
+            if package_root:
+                all_records = [
+                    r for r in all_records if (r.module_path or "").startswith(package_root)
+                ]
             self.centrality_records = all_records[:25]
             self.centrality_modules = aggregate_module_scores(all_records)
 
@@ -2065,7 +2224,8 @@ class PyCodeKGAnalyzer:
         """Build a Markdown metadata block for the top of the report.
 
         Collects the generation timestamp, PyCodeKG package version, current Git
-        commit SHA and branch, host platform details, and a summary of the
+        commit SHA and branch, an index-freshness warning when the working tree
+        has uncommitted changes, host platform details, and a summary of the
         graph snapshot metrics (total nodes/edges).  All Git, import, and
         platform operations fail gracefully so the method is safe to call
         outside of a Git working tree or before the package is installed.
@@ -2139,6 +2299,37 @@ class PyCodeKGAnalyzer:
 
         commit_ref = f"{commit} ({branch})"
 
+        # --- index freshness (uncommitted changes since the graph was built) ---
+        # The graph indexes on-disk file contents at build time, not git state, so
+        # it cannot record "built at commit X" -- but a dirty working tree at
+        # report time means *some* files may have changed since the last build,
+        # and the report's line numbers / counts would drift accordingly.  Round
+        # 2's own audit was thrown off by exactly this: orphan-table line numbers
+        # were off by roughly 100 lines because the tree had moved on since build.
+        dirty_count: int | None = None
+        try:
+            result = subprocess.run(
+                ["git", "status", "--porcelain"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            if result.returncode == 0:
+                dirty_count = len(result.stdout.splitlines())
+        except (OSError, FileNotFoundError):
+            pass
+
+        if dirty_count is None:
+            freshness_line = "unknown (not a git repo, or git unavailable)"
+        elif dirty_count == 0:
+            freshness_line = "[OK] working tree clean"
+        else:
+            freshness_line = (
+                f"[WARN] {dirty_count} uncommitted change(s) — the index may not reflect "
+                "current file contents; line numbers and edge counts can drift. Re-run "
+                "`pycodekg build` before trusting them."
+            )
+
         # --- platform ---
         try:
             _sys = platform.system()
@@ -2186,6 +2377,7 @@ class PyCodeKGAnalyzer:
             f"> - **Generated:** {generated}  \n"
             f"> - **Version:** {version}  \n"
             f"> - **Commit:** {commit_ref}  \n"
+            f"> - **Index freshness:** {freshness_line}  \n"
             f"> - **Platform:** {plat}  \n"
             f"> - **Graph:** {graph_line}  \n"
             f"> - **Included directories:** {dirs_line}  \n"
@@ -2246,6 +2438,7 @@ class PyCodeKGAnalyzer:
             "module_metrics": {k: asdict(v) for k, v in active_modules.items()},
             "orphaned_functions": [asdict(f) for f in self.orphaned_functions],
             "test_covered_orphans": [asdict(f) for f in self.test_covered_orphans],
+            "unverifiable_overrides": [asdict(f) for f in self.unverifiable_overrides],
             "high_fanout_functions": [asdict(f) for f in self.high_fanout_functions],
             "critical_paths": [asdict(c) for c in self.critical_paths],
             "public_apis": [asdict(a) for a in self.public_apis],
