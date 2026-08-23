@@ -3,8 +3,9 @@
 Each exclusion class that keeps a framework-dispatched definition out of the
 dead-code list gets a regression test: ``ast.NodeVisitor`` dispatch, SDK
 protocol overrides, INHERITS-as-usage, console-script targets, ``__main__``
-guards, and property decorators.  The 2026-08-13 analysis run flagged 31
-orphans of which ~26 were false positives in exactly these classes.
+guards, property decorators, and declared exports (``__all__`` / ``__init__.py``
+re-exports).  The 2026-08-13 analysis run flagged 31 orphans of which ~26
+were false positives in exactly these classes.
 """
 
 from pathlib import Path
@@ -15,6 +16,7 @@ import pytest
 from pycode_kg.pycodekg_thorough_analysis import (
     PyCodeKGAnalyzer,
     _console_script_targets,
+    _declared_export_names,
     _dotted_module,
     _has_property_decorator,
     _main_guard_block,
@@ -53,6 +55,30 @@ def test_console_script_targets_parses_project_scripts(tmp_path) -> None:
 def test_console_script_targets_empty_on_missing_file(tmp_path) -> None:
     """A repo without pyproject.toml yields no targets rather than an error."""
     assert _console_script_targets(tmp_path / "pyproject.toml") == set()
+
+
+def test_declared_export_names_collects_all_from_any_module(tmp_path) -> None:
+    """__all__ is a declared export wherever it appears, not just __init__.py."""
+    mod = tmp_path / "src" / "p" / "core.py"
+    mod.parent.mkdir(parents=True)
+    mod.write_text('__all__ = ["Widget", "helper"]\n\nclass Widget: ...\ndef helper(): ...\n')
+    assert _declared_export_names(tmp_path) == {"Widget", "helper"}
+
+
+def test_declared_export_names_collects_init_reexports(tmp_path) -> None:
+    """from X import Y inside a package __init__.py re-exports Y."""
+    pkg = tmp_path / "src" / "p"
+    pkg.mkdir(parents=True)
+    (pkg / "__init__.py").write_text("from p.core import Widget, _private\n")
+    assert _declared_export_names(tmp_path) == {"Widget"}
+
+
+def test_declared_export_names_ignores_reexports_outside_init(tmp_path) -> None:
+    """The same import in a non-__init__.py module is an ordinary import, not a re-export."""
+    mod = tmp_path / "src" / "p" / "user.py"
+    mod.parent.mkdir(parents=True)
+    mod.write_text("from p.core import Widget\n")
+    assert _declared_export_names(tmp_path) == set()
 
 
 def test_main_guard_block_returns_guarded_tail() -> None:
@@ -98,6 +124,7 @@ EMPTY_CTX = {
     "external_bases": {},
     "inherited_classes": set(),
     "script_targets": set(),
+    "exported_names": set(),
 }
 
 
@@ -181,6 +208,29 @@ def test_console_script_target_is_excluded(analyzer) -> None:
     ctx = dict(EMPTY_CTX, script_targets={("p.tool", "main")})
     node = _node(node_id="fn:src/p/tool.py:main", name="main", module_path="src/p/tool.py")
     assert analyzer._is_special_entry_point(node, ctx)
+
+
+def test_exported_class_with_no_callers_is_excluded(analyzer) -> None:
+    """A class named in __all__ has zero callers by design — not dead code."""
+    ctx = dict(EMPTY_CTX, exported_names={"Widget"})
+    node = _node(
+        node_id="cls:src/p/core.py:Widget", name="Widget", kind="class", module_path="src/p/core.py"
+    )
+    assert analyzer._is_special_entry_point(node, ctx)
+
+
+def test_reexported_function_with_no_callers_is_excluded(analyzer) -> None:
+    """A function re-exported by a package __init__.py is a declared export."""
+    ctx = dict(EMPTY_CTX, exported_names={"helper"})
+    node = _node(node_id="fn:src/p/core.py:helper", name="helper", module_path="src/p/core.py")
+    assert analyzer._is_special_entry_point(node, ctx)
+
+
+def test_undeclared_name_is_not_excluded_by_exports(analyzer) -> None:
+    """A name absent from every __all__ and every __init__.py stays a candidate."""
+    ctx = dict(EMPTY_CTX, exported_names={"Widget"})
+    node = _node(node_id="fn:src/p/core.py:other", name="other", module_path="src/p/core.py")
+    assert not analyzer._is_special_entry_point(node, ctx)
 
 
 def test_main_guard_function_is_excluded(analyzer, tmp_path) -> None:

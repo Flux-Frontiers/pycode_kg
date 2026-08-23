@@ -211,6 +211,46 @@ def _console_script_targets(pyproject_path: Path) -> set[tuple[str, str]]:
     return targets
 
 
+def _declared_export_names(repo_root: Path) -> set[str]:
+    """Collect names declared as public exports anywhere in the repo.
+
+    A name in any module's ``__all__`` list, or re-exported (``from X import
+    Y``) by a package ``__init__.py``, is a declared public API. Zero
+    internal callers is its expected state, not evidence of dead code.
+
+    Two definitions sharing a name are indistinguishable to this AST-only
+    walk, so a name collision excludes both from orphan detection. That is
+    the safe direction to err: missing one dead orphan costs less than
+    flagging a declared export as dead code.
+
+    :param repo_root: Root directory of the repository being analyzed.
+    :return: Set of exported names (unqualified), collected repo-wide.
+    """
+    import ast as _ast  # noqa: PLC0415
+
+    names: set[str] = set()
+    for py_path in repo_root.rglob("*.py"):
+        try:
+            tree = _ast.parse(py_path.read_text(encoding="utf-8"))
+        except (OSError, SyntaxError):
+            continue
+        for node in _ast.walk(tree):
+            if (
+                isinstance(node, _ast.Assign)
+                and any(isinstance(t, _ast.Name) and t.id == "__all__" for t in node.targets)
+                and isinstance(node.value, _ast.List | _ast.Tuple)
+            ):
+                for elt in node.value.elts:
+                    if isinstance(elt, _ast.Constant) and isinstance(elt.value, str):
+                        names.add(elt.value)
+            elif py_path.name == "__init__.py" and isinstance(node, _ast.ImportFrom):
+                for alias in node.names:
+                    name = alias.asname or alias.name
+                    if name and not name.startswith("_"):
+                        names.add(name)
+    return names
+
+
 def _main_guard_block(source: str) -> str:
     """Return module source from the ``if __name__ == "__main__":`` guard on.
 
@@ -691,6 +731,8 @@ class PyCodeKGAnalyzer:
           edge, following sym: stubs through RESOLVES_TO
         - ``script_targets``: ``(dotted_module, function)`` pairs declared in
           ``[project.scripts]``
+        - ``exported_names``: names declared public via ``__all__`` anywhere
+          in the repo, or re-exported by a package ``__init__.py``
 
         :return: Context dict consumed by :meth:`_is_special_entry_point`.
         """
@@ -741,15 +783,18 @@ class PyCodeKGAnalyzer:
         }
 
         script_targets: set[tuple[str, str]] = set()
+        exported_names: set[str] = set()
         repo_root = getattr(self.kg, "repo_root", None)
         if repo_root:
             script_targets = _console_script_targets(Path(repo_root) / "pyproject.toml")
+            exported_names = _declared_export_names(Path(repo_root))
 
         return {
             "class_of": class_of,
             "external_bases": external_bases,
             "inherited_classes": inherited_classes,
             "script_targets": script_targets,
+            "exported_names": exported_names,
         }
 
     def _is_special_entry_point(self, node: dict, ctx: dict) -> bool:
@@ -767,6 +812,8 @@ class PyCodeKGAnalyzer:
         - Classes with incoming INHERITS edges — used as bases
         - ``[project.scripts]`` targets and functions called from a module's
           ``if __name__ == "__main__":`` guard
+        - Declared public exports — a name in any ``__all__`` list, or
+          re-exported by a package ``__init__.py``
 
         :param node: Dict with node_id, name, kind, module_path, lineno.
         :param ctx: Precomputed context from :meth:`_build_orphan_context`.
@@ -791,6 +838,12 @@ class PyCodeKGAnalyzer:
 
         # Classes used as bases: INHERITS is usage, even with zero CALLS.
         if kind == "class" and node_id in ctx["inherited_classes"]:
+            return True
+
+        # Declared public exports: named in __all__ somewhere, or re-exported
+        # by a package __init__.py. Zero internal callers is expected — the
+        # name exists to be imported from outside the indexed graph.
+        if kind in ("function", "class") and name in ctx["exported_names"]:
             return True
 
         if kind == "method":
@@ -1164,76 +1217,46 @@ class PyCodeKGAnalyzer:
         """Phase 8: Identify public APIs (module-level exports).
 
         Strategy (in priority order):
-        1. Parse every ``__init__.py`` under the repo root with AST to find
-           re-exported names (``from X import Y`` / ``__all__`` entries).
-           Look each name up in the graph and record it as a public API.
+        1. Collect declared exports (``__all__`` anywhere, ``__init__.py``
+           re-exports — see :func:`_declared_export_names`) and look each
+           name up in the graph as a public API.
         2. Supplement with non-private functions/classes in ``function_metrics``
            that have at least one caller and are not already included.
         """
 
         try:
-            import ast as _ast  # noqa: PLC0415
-
             already_ids: set[str] = set()
 
-            # --- Step 1: walk __init__.py files and collect re-exported names ---
+            # --- Step 1: declared exports (__all__ / __init__.py re-exports) ---
             try:
-                repo_root = Path(self.kg.repo_root)
-                for init_path in sorted(repo_root.rglob("__init__.py")):
-                    try:
-                        src = init_path.read_text(encoding="utf-8")
-                        tree = _ast.parse(src)
-                    except (OSError, SyntaxError):
-                        continue
-
-                    exported_names: set[str] = set()
-
-                    for node in _ast.walk(tree):
-                        # from X import Y, Z  →  Y, Z are re-exported
-                        if isinstance(node, _ast.ImportFrom):
-                            for alias in node.names:
-                                name = alias.asname or alias.name
-                                if name and not name.startswith("_"):
-                                    exported_names.add(name)
-                        # __all__ = ["Foo", "bar"]
-                        elif (
-                            isinstance(node, _ast.Assign)
-                            and any(
-                                isinstance(t, _ast.Name) and t.id == "__all__" for t in node.targets
-                            )
-                            and isinstance(node.value, _ast.List | _ast.Tuple)
-                        ):
-                            for elt in node.value.elts:
-                                if isinstance(elt, _ast.Constant) and isinstance(elt.value, str):
-                                    exported_names.add(elt.value)
-
-                    for name in exported_names:
-                        rows = self.kg.store.con.execute(
-                            "SELECT id, name, kind, module_path, docstring FROM nodes"
-                            " WHERE name = ? AND kind IN ('class', 'function')"
-                            "   AND SUBSTR(name, 1, 1) != '_'",
-                            (name,),
-                        ).fetchall()
-                        for row in rows:
-                            node_id, nm, kind, module_path, docstring = row
-                            if node_id not in already_ids:
-                                try:
-                                    fan_in = len(self.kg.callers(node_id, rel="CALLS"))
-                                except (AttributeError, ValueError, RuntimeError):
-                                    fan_in = 0
-                                self.public_apis.append(
-                                    FunctionMetrics(
-                                        node_id=node_id,
-                                        name=nm,
-                                        module=module_path or "",
-                                        kind=kind,
-                                        fan_in=fan_in,
-                                        fan_out=0,
-                                        lines=0,
-                                        docstring=docstring,
-                                    )
+                exported_names = _declared_export_names(Path(self.kg.repo_root))
+                for name in sorted(exported_names):
+                    rows = self.kg.store.con.execute(
+                        "SELECT id, name, kind, module_path, docstring FROM nodes"
+                        " WHERE name = ? AND kind IN ('class', 'function')"
+                        "   AND SUBSTR(name, 1, 1) != '_'",
+                        (name,),
+                    ).fetchall()
+                    for row in rows:
+                        node_id, nm, kind, module_path, docstring = row
+                        if node_id not in already_ids:
+                            try:
+                                fan_in = len(self.kg.callers(node_id, rel="CALLS"))
+                            except (AttributeError, ValueError, RuntimeError):
+                                fan_in = 0
+                            self.public_apis.append(
+                                FunctionMetrics(
+                                    node_id=node_id,
+                                    name=nm,
+                                    module=module_path or "",
+                                    kind=kind,
+                                    fan_in=fan_in,
+                                    fan_out=0,
+                                    lines=0,
+                                    docstring=docstring,
                                 )
-                                already_ids.add(node_id)
+                            )
+                            already_ids.add(node_id)
             except (OSError, AttributeError, ValueError, RuntimeError):
                 pass
 
