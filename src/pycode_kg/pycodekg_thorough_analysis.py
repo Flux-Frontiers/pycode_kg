@@ -352,6 +352,7 @@ class PyCodeKGAnalyzer:
         self.module_metrics: dict[str, ModuleMetrics] = {}
         self.orphaned_functions: list[FunctionMetrics] = []
         self.test_covered_orphans: list[FunctionMetrics] = []  # prod-orphaned, test-covered
+        self.unverifiable_overrides: list[FunctionMetrics] = []  # external base, can't judge
         self._source_cache: dict[str, str | None] = {}  # module_path → source text
         self._orphan_scan_total: int = 0  # definitions the orphan scan examined
         self.grade_components: list[dict] = []  # populated by _compute_quality_grade
@@ -894,6 +895,32 @@ class PyCodeKGAnalyzer:
 
         return False
 
+    def _is_unverifiable_override(self, node: dict, ctx: dict) -> bool:
+        """Check whether a method overrides a base class this graph cannot see.
+
+        Called only after :meth:`_is_special_entry_point` returns ``False``,
+        so this covers the override cases that check *doesn't* recognize by
+        name (``_protocol_attr_names()``) or pattern (``NodeVisitor``
+        dispatch): any other method on a class with an external base.  The
+        graph has no visibility into that base, so the caller may live
+        inside the dependency — this cannot be judged either way.
+
+        Deleting such an override does not raise ``NameError``; it silently
+        reverts behavior to the base class, so treating "unverifiable" as
+        "dead" is the worse failure mode. Report it separately instead of
+        excusing it into silence.
+
+        :param node: Dict with node_id, name, kind, module_path, lineno.
+        :param ctx: Precomputed context from :meth:`_build_orphan_context`.
+        :return: True when the method's enclosing class has an external base.
+        """
+        if node.get("kind") != "method":
+            return False
+        cls_id = ctx["class_of"].get(node.get("node_id", ""))
+        if not cls_id:
+            return False
+        return bool(ctx["external_bases"].get(cls_id))
+
     def _analyze_dependencies(self) -> None:
         """Phase 4: Detect orphaned definitions (zero callers).
 
@@ -908,7 +935,9 @@ class PyCodeKGAnalyzer:
         repo's ``tests/`` sources are reported separately as "test-covered" —
         they are unused in production code but exercised by tests, which
         usually marks public API consumed by downstream packages rather than
-        dead code.
+        dead code.  A zero-caller method whose class inherits from a base
+        outside the indexed graph (see ``_is_unverifiable_override``) cannot
+        be judged either way and is reported separately, not as dead code.
         """
 
         try:
@@ -955,6 +984,23 @@ class PyCodeKGAnalyzer:
                         logger.debug(f"Skipping {name} — special entry point (framework-driven)")
                         continue
 
+                    # External-base overrides: no positive evidence either
+                    # way, so report separately rather than call it dead.
+                    if self._is_unverifiable_override(node, ctx):
+                        logger.debug(f"Skipping {name} — external base class, cannot verify")
+                        self.unverifiable_overrides.append(
+                            FunctionMetrics(
+                                node_id=node_id,
+                                name=name or "unknown",
+                                module=module_path or "unknown",
+                                kind=kind or "unknown",
+                                fan_in=0,
+                                fan_out=0,
+                                lines=max(0, (end_lineno or 0) - (lineno or 0)),
+                            )
+                        )
+                        continue
+
                     candidates.append(
                         FunctionMetrics(
                             node_id=node_id,
@@ -981,9 +1027,11 @@ class PyCodeKGAnalyzer:
 
             self.orphaned_functions.sort(key=lambda f: f.lines, reverse=True)
             self.test_covered_orphans.sort(key=lambda f: f.lines, reverse=True)
+            self.unverifiable_overrides.sort(key=lambda f: f.lines, reverse=True)
             self._phase_result = (
                 f"{len(self.orphaned_functions)} dead, "
-                f"{len(self.test_covered_orphans)} test-covered orphans"
+                f"{len(self.test_covered_orphans)} test-covered orphans, "
+                f"{len(self.unverifiable_overrides)} unverifiable overrides"
             )
 
         except (AttributeError, ValueError, RuntimeError) as e:
@@ -2281,6 +2329,7 @@ class PyCodeKGAnalyzer:
             "module_metrics": {k: asdict(v) for k, v in active_modules.items()},
             "orphaned_functions": [asdict(f) for f in self.orphaned_functions],
             "test_covered_orphans": [asdict(f) for f in self.test_covered_orphans],
+            "unverifiable_overrides": [asdict(f) for f in self.unverifiable_overrides],
             "high_fanout_functions": [asdict(f) for f in self.high_fanout_functions],
             "critical_paths": [asdict(c) for c in self.critical_paths],
             "public_apis": [asdict(a) for a in self.public_apis],

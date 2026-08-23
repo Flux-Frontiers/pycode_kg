@@ -194,6 +194,41 @@ def test_protocol_name_without_external_base_is_not_excluded(analyzer) -> None:
     assert not analyzer._is_special_entry_point(node, ctx)
 
 
+def test_unverifiable_override_on_external_base_is_flagged(analyzer) -> None:
+    """A method on a class with an external base can't be judged — not dead, not confirmed."""
+    ctx = dict(
+        EMPTY_CTX,
+        class_of={"m:src/p/widget.py:W.render": "cls:src/p/widget.py:W"},
+        external_bases={"cls:src/p/widget.py:W": {"pyvista.Plotter"}},
+    )
+    node = _node(
+        node_id="m:src/p/widget.py:W.render",
+        name="render",
+        kind="method",
+        module_path="src/p/widget.py",
+    )
+    assert not analyzer._is_special_entry_point(node, ctx)
+    assert analyzer._is_unverifiable_override(node, ctx)
+
+
+def test_method_on_purely_internal_class_is_not_unverifiable(analyzer) -> None:
+    """A class with no external base gives a confident dead/alive answer."""
+    ctx = dict(
+        EMPTY_CTX,
+        class_of={"m:src/p/a.py:A.helper": "cls:src/p/a.py:A"},
+    )
+    node = _node(
+        node_id="m:src/p/a.py:A.helper", name="helper", kind="method", module_path="src/p/a.py"
+    )
+    assert not analyzer._is_unverifiable_override(node, ctx)
+
+
+def test_functions_are_never_unverifiable_overrides(analyzer) -> None:
+    """Only methods can override a base class; module-level functions can't."""
+    node = _node(node_id="fn:src/p/a.py:helper", name="helper", module_path="src/p/a.py")
+    assert not analyzer._is_unverifiable_override(node, EMPTY_CTX)
+
+
 def test_inherited_class_is_excluded(analyzer) -> None:
     """A class with incoming INHERITS edges is in use even with zero CALLS."""
     ctx = dict(EMPTY_CTX, inherited_classes={"cls:src/p/base.py:Base"})

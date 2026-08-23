@@ -10,7 +10,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from pycode_kg.pycodekg_thorough_analysis import CallChain, PyCodeKGAnalyzer
+from pycode_kg.pycodekg_thorough_analysis import CallChain, FunctionMetrics, PyCodeKGAnalyzer
 from pycode_kg.report import render_markdown
 
 
@@ -78,3 +78,21 @@ def test_several_shallow_chains_render_section(analyzer) -> None:
     ]
     md = render_markdown(analyzer)
     assert "Deepest call chains in the codebase." in md
+
+
+def test_unverifiable_overrides_render_as_separate_section(analyzer) -> None:
+    """External-base overrides are shown, not silently dropped or called dead."""
+    analyzer.unverifiable_overrides = [
+        FunctionMetrics(
+            node_id="m:src/p/w.py:W.render",
+            name="render",
+            module="src/p/w.py",
+            kind="method",
+            fan_in=0,
+            fan_out=0,
+            lines=5,
+        )
+    ]
+    md = render_markdown(analyzer)
+    assert "render" in md
+    assert "cannot be judged dead or alive" in md

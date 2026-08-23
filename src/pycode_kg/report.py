@@ -541,6 +541,25 @@ def render_markdown(analyzer, *, metadata: str = "", elapsed_seconds: float | No
             [(_sym(f.name, f.kind), f.kind, f.module, f.lines) for f in top_tested],
             aligns="lllr",
         )
+    if analyzer.unverifiable_overrides:
+        top_unverifiable = analyzer.unverifiable_overrides[:15]
+        shown = (
+            f"  Top {len(top_unverifiable)} of {len(analyzer.unverifiable_overrides)} by size shown."
+            if len(analyzer.unverifiable_overrides) > len(top_unverifiable)
+            else ""
+        )
+        out += [
+            "",
+            f"{len(analyzer.unverifiable_overrides)} further methods override a base class "
+            "outside the indexed graph — the caller may live in that dependency, so these "
+            f"cannot be judged dead or alive.  Not counted against the quality grade.{shown}",
+            "",
+        ]
+        out += md_table(
+            ["Name", "Kind", "Module", "Lines"],
+            [(_sym(f.name, f.kind), f.kind, f.module, f.lines) for f in top_unverifiable],
+            aligns="lllr",
+        )
     rule()
 
     # ── CodeRank ─────────────────────────────────────────────────────────
