@@ -253,6 +253,8 @@ def init(
 
                 docstring_cov = analysis.get("docstring_coverage", {})
                 coverage = docstring_cov.get("coverage_pct", 0.0) / 100.0 if docstring_cov else 0.0
+                coverage_documented = docstring_cov.get("with_doc", 0)
+                coverage_total = docstring_cov.get("total", 0)
                 critical_issues = len(analysis.get("issues", []))
 
                 fn_metrics = analysis.get("function_metrics", {})
@@ -276,6 +278,8 @@ def init(
                 branch=branch,
                 graph_stats_dict=stats,
                 coverage=coverage,
+                coverage_documented=coverage_documented,
+                coverage_total=coverage_total,
                 critical_issues=critical_issues,
                 complexity_median=complexity_median,
                 hotspots=hotspots,

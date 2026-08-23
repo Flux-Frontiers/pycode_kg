@@ -58,8 +58,18 @@ def _snapshot_row(index: int, snap: dict) -> tuple:
     """
     m = snap.get("metrics", {})
     cov_raw = m.get("docstring_coverage")
+    cov_documented = m.get("coverage_documented")
+    cov_total = m.get("coverage_total")
     delta = (snap.get("deltas") or {}).get("vs_previous") or {}
     dn, de, dc = delta.get("nodes"), delta.get("edges"), delta.get("coverage_delta")
+    if cov_raw is None:
+        cov_cell = "?"
+    elif cov_total:
+        # Counts distinguish a coverage drop from growth (more nodes, same
+        # documented count) versus a regression (documented count itself fell).
+        cov_cell = f"{cov_raw * 100:.1f}% ({cov_documented}/{cov_total})"
+    else:
+        cov_cell = f"{cov_raw * 100:.1f}%"
     return (
         index,
         snap.get("timestamp", "")[:19].replace("T", " "),
@@ -67,7 +77,7 @@ def _snapshot_row(index: int, snap: dict) -> tuple:
         snap.get("version", "?"),
         m.get("total_nodes", "?"),
         m.get("total_edges", "?"),
-        f"{cov_raw * 100:.1f}%" if cov_raw is not None else "?",
+        cov_cell,
         f"{dn:+d}" if dn is not None else "—",
         f"{de:+d}" if de is not None else "—",
         f"{dc * 100:+.1f}%" if dc is not None else "—",

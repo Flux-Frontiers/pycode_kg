@@ -11,7 +11,7 @@ from types import SimpleNamespace
 import pytest
 
 from pycode_kg.pycodekg_thorough_analysis import CallChain, FunctionMetrics, PyCodeKGAnalyzer
-from pycode_kg.report import render_markdown
+from pycode_kg.report import _snapshot_row, render_markdown
 
 
 @pytest.fixture
@@ -96,3 +96,33 @@ def test_unverifiable_overrides_render_as_separate_section(analyzer) -> None:
     md = render_markdown(analyzer)
     assert "render" in md
     assert "cannot be judged dead or alive" in md
+
+
+def test_snapshot_row_shows_documented_over_total() -> None:
+    """The coverage cell shows counts alongside the percentage when available."""
+    snap = {
+        "timestamp": "2026-08-23T12:00:00+00:00",
+        "branch": "main",
+        "version": "0.23.1",
+        "metrics": {
+            "total_nodes": 100,
+            "total_edges": 150,
+            "docstring_coverage": 0.85,
+            "coverage_documented": 68,
+            "coverage_total": 80,
+        },
+    }
+    row = _snapshot_row(1, snap)
+    assert row[6] == "85.0% (68/80)"
+
+
+def test_snapshot_row_falls_back_without_counts() -> None:
+    """A snapshot saved before coverage counts existed still renders a bare percentage."""
+    snap = {
+        "timestamp": "2026-08-23T12:00:00+00:00",
+        "branch": "main",
+        "version": "0.23.0",
+        "metrics": {"total_nodes": 100, "total_edges": 150, "docstring_coverage": 0.85},
+    }
+    row = _snapshot_row(1, snap)
+    assert row[6] == "85.0%"

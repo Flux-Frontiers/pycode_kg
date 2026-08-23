@@ -89,6 +89,8 @@ class SnapshotMetrics:
     critical_issues: int
     complexity_median: float  # median fan-in across functions
     module_node_counts: dict[str, int] = field(default_factory=dict)
+    coverage_documented: int = 0  # nodes with a docstring
+    coverage_total: int = 0  # nodes eligible for docstring coverage
 
 
 @dataclass
@@ -118,6 +120,8 @@ def metrics_to_dict(m: SnapshotMetrics) -> dict[str, Any]:
         "critical_issues": m.critical_issues,
         "complexity_median": m.complexity_median,
         "module_node_counts": m.module_node_counts,
+        "coverage_documented": m.coverage_documented,
+        "coverage_total": m.coverage_total,
     }
 
 
@@ -133,6 +137,8 @@ def metrics_from_dict(d: dict[str, Any]) -> SnapshotMetrics:
         critical_issues=int(d.get("critical_issues", 0)),
         complexity_median=float(d.get("complexity_median", 0.0)),
         module_node_counts=d.get("module_node_counts", {}),
+        coverage_documented=int(d.get("coverage_documented", 0)),
+        coverage_total=int(d.get("coverage_total", 0)),
     )
 
 
@@ -290,6 +296,8 @@ class SnapshotManager(_BaseSnapshotManager):
         branch: str | None = None,
         graph_stats_dict: dict[str, Any] | None = None,
         coverage: float = 0.0,
+        coverage_documented: int = 0,
+        coverage_total: int = 0,
         critical_issues: int = 0,
         complexity_median: float = 0.0,
         hotspots: list[dict[str, Any]] | None = None,
@@ -307,6 +315,12 @@ class SnapshotManager(_BaseSnapshotManager):
         :param branch: Git branch name; auto-detected if None.
         :param graph_stats_dict: Output from ``graph_stats()`` / ``store.stats()``.
         :param coverage: Docstring coverage fraction (0.0–1.0).
+        :param coverage_documented: Nodes with a non-empty docstring — the
+            numerator behind ``coverage``.  Shown beside the percentage in
+            Snapshot History so a coverage drop caused by adding undocumented
+            nodes reads differently from one caused by removing docstrings.
+        :param coverage_total: Nodes eligible for docstring coverage — the
+            denominator behind ``coverage``.
         :param critical_issues: Number of critical issues detected.
         :param complexity_median: Median fan-in across functions.
         :param hotspots: Top hotspot entries.
@@ -324,6 +338,8 @@ class SnapshotManager(_BaseSnapshotManager):
             hotspots=hotspots,
             issues=issues,
             docstring_coverage=coverage,
+            coverage_documented=coverage_documented,
+            coverage_total=coverage_total,
             critical_issues=critical_issues,
             complexity_median=complexity_median,
             module_node_counts=module_node_counts,

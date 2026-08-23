@@ -251,6 +251,38 @@ def _declared_export_names(repo_root: Path) -> set[str]:
     return names
 
 
+def _package_root(repo_root: Path) -> str:
+    """Detect the module-path prefix that qualifies as the installable package.
+
+    Reads the project name from ``pyproject.toml`` (``[project].name`` or
+    ``[tool.poetry].name``), normalizes hyphens to underscores, and checks
+    for a ``src/<name>/`` or ``<name>/`` directory.  A provisioning script
+    under ``runpod/`` is real repo content, but "Public API Surface" and
+    "Structural Importance" describe the installable package, not every
+    top-level directory the repo happens to contain.
+
+    :param repo_root: Root directory of the repository being analyzed.
+    :return: Module-path prefix ending in ``/`` (e.g. ``"src/pycode_kg/"``),
+        or ``""`` when the package root cannot be determined.  Callers must
+        treat an empty result as "do not filter" — an undetectable package
+        root is not evidence that nothing qualifies.
+    """
+    try:
+        data = tomllib.loads((repo_root / "pyproject.toml").read_text(encoding="utf-8"))
+    except (OSError, tomllib.TOMLDecodeError):
+        return ""
+
+    name = data.get("project", {}).get("name") or data.get("tool", {}).get("poetry", {}).get("name")
+    if not isinstance(name, str) or not name:
+        return ""
+
+    normalized = name.replace("-", "_")
+    for candidate in (f"src/{normalized}", normalized):
+        if (repo_root / candidate).is_dir():
+            return f"{candidate}/"
+    return ""
+
+
 def _main_guard_block(source: str) -> str:
     """Return module source from the ``if __name__ == "__main__":`` guard on.
 
@@ -354,6 +386,7 @@ class PyCodeKGAnalyzer:
         self.test_covered_orphans: list[FunctionMetrics] = []  # prod-orphaned, test-covered
         self.unverifiable_overrides: list[FunctionMetrics] = []  # external base, can't judge
         self._source_cache: dict[str, str | None] = {}  # module_path → source text
+        self._package_root_cache: str | None = None  # computed once by _get_package_root
         self._orphan_scan_total: int = 0  # definitions the orphan scan examined
         self.grade_components: list[dict] = []  # populated by _compute_quality_grade
         self.high_fanout_functions: list[FunctionMetrics] = []
@@ -497,19 +530,25 @@ class PyCodeKGAnalyzer:
         """
 
         try:
+            package_root = self._get_package_root()
+
             # --- Option A: seed from CodeRank top nodes (deterministic, no vector search) ---
             if self.coderank_scores:
                 # Pull ALL real function/method/class nodes from SQLite, sorted by
                 # CodeRank score descending.  This is O(nodes) but avoids the k-limit
-                # and semantic-search noise of the old approach.
+                # and semantic-search noise of the old approach.  A non-package root
+                # (an empty package_root) disables the filter rather than excluding
+                # everything, since the package root could not be determined.
                 rows = self.kg.store.con.execute(
                     """
                     SELECT id, name, kind, module_path, docstring, lineno, end_lineno
                     FROM nodes
                     WHERE kind IN ('function', 'method', 'class')
                       AND id NOT LIKE 'sym:%'
+                      AND (? = '' OR module_path LIKE ? || '%')
                     ORDER BY module_path, name
-                    """
+                    """,
+                    (package_root, package_root),
                 ).fetchall()
 
                 # Attach CodeRank scores and sort by score descending
@@ -549,8 +588,10 @@ class PyCodeKGAnalyzer:
                     FROM nodes
                     WHERE kind IN ('function', 'method', 'class')
                       AND id NOT LIKE 'sym:%'
+                      AND (? = '' OR module_path LIKE ? || '%')
                     ORDER BY module_path, name
-                    """
+                    """,
+                    (package_root, package_root),
                 ).fetchall()
 
                 fan_in_data = []
@@ -694,6 +735,17 @@ class PyCodeKGAnalyzer:
                     text = None
             self._source_cache[module_path] = text
         return self._source_cache[module_path]
+
+    def _get_package_root(self) -> str:
+        """Package-root module-path prefix for this analysis run, cached.
+
+        :return: See :func:`_package_root` — a prefix ending in ``/``, or
+            ``""`` when it cannot be determined (meaning "do not filter").
+        """
+        if self._package_root_cache is None:
+            repo_root = getattr(self.kg, "repo_root", None)
+            self._package_root_cache = _package_root(Path(repo_root)) if repo_root else ""
+        return self._package_root_cache
 
     def _tests_corpus(self) -> str:
         """Concatenate the target repo's ``tests/`` sources for name matching.
@@ -1321,6 +1373,15 @@ class PyCodeKGAnalyzer:
                     self.public_apis.append(func)
                     already_ids.add(func.node_id)
 
+            # A provisioning script outside the installable package is not an API
+            # surface candidate even if it declares __all__; an undetermined
+            # package_root disables the filter rather than excluding everything.
+            package_root = self._get_package_root()
+            if package_root:
+                self.public_apis = [
+                    f for f in self.public_apis if f.module.startswith(package_root)
+                ]
+
             # Sort by fan-in descending
             self.public_apis.sort(key=lambda m: m.fan_in, reverse=True)
 
@@ -1577,7 +1638,12 @@ class PyCodeKGAnalyzer:
             )
             self.coderank_scores = compute_coderank(graph)
 
-            # Build top-25 real nodes (exclude sym: stubs) with node metadata
+            # Build top-25 real nodes (exclude sym: stubs) with node metadata.
+            # A provisioning script outside the installable package is real repo
+            # content, but not an "important code" candidate for this ranking; an
+            # undetermined package_root disables the filter rather than excluding
+            # everything.
+            package_root = self._get_package_root()
             sorted_nodes = sorted(self.coderank_scores.items(), key=lambda kv: kv[1], reverse=True)
             top_nodes: list[dict] = []
             for node_id, score in sorted_nodes:
@@ -1586,6 +1652,8 @@ class PyCodeKGAnalyzer:
                 attrs = graph.nodes.get(node_id, {})
                 kind = attrs.get("kind", "")
                 if kind not in ("function", "method", "class", "module"):
+                    continue
+                if package_root and not (attrs.get("module_path") or "").startswith(package_root):
                     continue
                 top_nodes.append(
                     {
@@ -1769,8 +1837,16 @@ class PyCodeKGAnalyzer:
 
             ranker = StructuralImportanceRanker(self.kg.db_path)
             # Compute all nodes (no top cap) so module aggregates are accurate,
-            # then store top-25 for node-level display.
+            # then store top-25 for node-level display.  PageRank itself runs over
+            # the full graph -- only the reported candidates are restricted to the
+            # installable package, since a provisioning script isn't a Structural
+            # Importance candidate even when it genuinely calls a lot of code.
             all_records = ranker.compute()
+            package_root = self._get_package_root()
+            if package_root:
+                all_records = [
+                    r for r in all_records if (r.module_path or "").startswith(package_root)
+                ]
             self.centrality_records = all_records[:25]
             self.centrality_modules = aggregate_module_scores(all_records)
 
@@ -2148,7 +2224,8 @@ class PyCodeKGAnalyzer:
         """Build a Markdown metadata block for the top of the report.
 
         Collects the generation timestamp, PyCodeKG package version, current Git
-        commit SHA and branch, host platform details, and a summary of the
+        commit SHA and branch, an index-freshness warning when the working tree
+        has uncommitted changes, host platform details, and a summary of the
         graph snapshot metrics (total nodes/edges).  All Git, import, and
         platform operations fail gracefully so the method is safe to call
         outside of a Git working tree or before the package is installed.
@@ -2222,6 +2299,37 @@ class PyCodeKGAnalyzer:
 
         commit_ref = f"{commit} ({branch})"
 
+        # --- index freshness (uncommitted changes since the graph was built) ---
+        # The graph indexes on-disk file contents at build time, not git state, so
+        # it cannot record "built at commit X" -- but a dirty working tree at
+        # report time means *some* files may have changed since the last build,
+        # and the report's line numbers / counts would drift accordingly.  Round
+        # 2's own audit was thrown off by exactly this: orphan-table line numbers
+        # were off by roughly 100 lines because the tree had moved on since build.
+        dirty_count: int | None = None
+        try:
+            result = subprocess.run(
+                ["git", "status", "--porcelain"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            if result.returncode == 0:
+                dirty_count = len(result.stdout.splitlines())
+        except (OSError, FileNotFoundError):
+            pass
+
+        if dirty_count is None:
+            freshness_line = "unknown (not a git repo, or git unavailable)"
+        elif dirty_count == 0:
+            freshness_line = "[OK] working tree clean"
+        else:
+            freshness_line = (
+                f"[WARN] {dirty_count} uncommitted change(s) — the index may not reflect "
+                "current file contents; line numbers and edge counts can drift. Re-run "
+                "`pycodekg build` before trusting them."
+            )
+
         # --- platform ---
         try:
             _sys = platform.system()
@@ -2269,6 +2377,7 @@ class PyCodeKGAnalyzer:
             f"> - **Generated:** {generated}  \n"
             f"> - **Version:** {version}  \n"
             f"> - **Commit:** {commit_ref}  \n"
+            f"> - **Index freshness:** {freshness_line}  \n"
             f"> - **Platform:** {plat}  \n"
             f"> - **Graph:** {graph_line}  \n"
             f"> - **Included directories:** {dirs_line}  \n"
