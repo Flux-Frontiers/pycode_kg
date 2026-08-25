@@ -9,14 +9,6 @@ Note: older entries preserve the API names used at that release (for example com
 
 ## [Unreleased]
 
-### Fixed
-
-- Raised the `kgmodule-utils` floor to `>=0.18.1`. `resolve_symbols()` only
-  reads the `receiver_class` metadata this repo's visitor writes as of
-  0.24.1 starting in that release — against 0.18.0 the stubs are tagged
-  correctly but the tag is silently ignored, so resolution stayed on the old
-  untyped trailing-name match with no error to say so.
-
 ## [0.24.1] - 2026-08-25
 
 ### Added
@@ -68,6 +60,14 @@ Note: older entries preserve the API names used at that release (for example com
   `__pycache__`, etc.), and all three read sites skip an individual
   unreadable/undecodable file with a debug log naming it, rather than
   losing the entire phase.
+- **`kgmodule-utils` floor raised to `>=0.18.1`** (from `>=0.18.0`), on both
+  the core `[semantic,viz3d]` requirement and the `viz3d` extra's
+  `[viz3d-render,viz3d-qt]` one, keeping this repo's one-floor-per-package
+  rule. `resolve_symbols()` only began reading the `receiver_class` metadata
+  in 0.18.1. Against 0.18.0 the stubs are tagged correctly but the tag is
+  silently ignored, so resolution stays on the old untyped trailing-name
+  match with no error to say so -- the failure mode is a feature that
+  appears installed and does nothing.
 - **The release workflow no longer labels this project as KGRAG.** Porting
   the PyPI publish job over from the `kgrag` repo brought two copy-paste
   values with it: the GitHub Release title was changed from

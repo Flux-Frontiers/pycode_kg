@@ -35,8 +35,17 @@ import alias — records the class name from that receiver's annotation on its
 `X | None` and `Optional[X]`, the shape a lazily-assigned local or a
 loop-accumulated match object tends to carry, and it deliberately ignores
 nested function and class scopes so an annotation inside a closure can't leak
-into the enclosing function's lookup. This is groundwork: the field is
-populated and stored, and nothing consumes it yet.
+into the enclosing function's lookup.
+
+The consumer lives in the SDK, and it is version-sensitive in a way worth
+stating plainly: `resolve_symbols()` only began reading this metadata in
+`kgmodule-utils` 0.18.1, so that is now the floor. Against 0.18.0 the stubs
+are tagged correctly and the tag is silently ignored -- the feature installs,
+reports no error, and does nothing. Indexing this repo tags 139 call stubs
+across 13 distinct receiver types; most of them (`dict`, `str`, `Plotter`,
+`DiGraph`) name types defined outside the graph, which is precisely the
+signal that stops a `d.get()` from resolving onto an unrelated first-party
+function named `get`.
 
 **Two reporting cleanups.** The console summary printed `node_counts` and
 `edge_counts` through `str()`, dumping raw Python dict reprs that wrapped
@@ -53,12 +62,16 @@ count and the reason beneath it.
 
 ## Upgrading
 
-Nothing to do beyond `pip install --upgrade pycode-kg`. The graph and vector
-index formats are unchanged and `receiver_class` defaults to `None`, so an
-existing index keeps working — but rebuild if you want the corrected report
-(`pycodekg build`), since an index built before this release carries no
-receiver types and your last analysis run may have been missing its
-public-API and dead-code sections without saying so.
+`pip install --upgrade pycode-kg` pulls the raised `kgmodule-utils >=0.18.1`
+floor with it; if you pin that package yourself, raise it, or receiver-aware
+resolution will sit inert with nothing to tell you so.
+
+The graph and vector index formats are unchanged and `receiver_class`
+defaults to `None`, so an existing index keeps working. Rebuild
+(`pycodekg build`) if you want the corrected report and the receiver types,
+since an index built before this release carries neither — and your last
+analysis run may have been missing its public-API and dead-code sections
+without saying so.
 
 ---
 
