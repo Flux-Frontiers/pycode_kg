@@ -9,6 +9,8 @@ Note: older entries preserve the API names used at that release (for example com
 
 ## [Unreleased]
 
+## [0.24.1] - 2026-08-25
+
 ### Added
 
 - **Receiver-aware resolution for dotted call stubs.** A call like
