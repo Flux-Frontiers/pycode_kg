@@ -244,6 +244,119 @@ def test_extract_repo_call_graph(tmp_path):
     assert any("helper" in e.dst for e in calls)
 
 
+def test_extract_repo_call_graph_receiver_class_from_param_annotation(tmp_path):
+    _write_repo(
+        tmp_path,
+        {
+            "log.py": "class Log:\n    def render(self): pass\n",
+            "mod.py": ("from log import Log\ndef use(plotter: Log):\n    plotter.render()\n"),
+        },
+    )
+    nodes, _ = extract_repo(tmp_path)
+    stub = next(n for n in nodes if n.id == "sym:plotter.render")
+    assert stub.receiver_class == "Log"
+
+
+def test_extract_repo_call_graph_receiver_class_from_local_annotation(tmp_path):
+    _write_repo(
+        tmp_path,
+        {
+            "log.py": "class Log:\n    def render(self): pass\n",
+            "mod.py": (
+                "from log import Log\ndef use():\n    plotter: Log = Log()\n    plotter.render()\n"
+            ),
+        },
+    )
+    nodes, _ = extract_repo(tmp_path)
+    stub = next(n for n in nodes if n.id == "sym:plotter.render")
+    assert stub.receiver_class == "Log"
+
+
+def test_extract_repo_call_graph_receiver_class_dotted_annotation_uses_last_segment(
+    tmp_path,
+):
+    _write_repo(
+        tmp_path,
+        {"mod.py": ("import pyvista as pv\ndef use(plotter: pv.Plotter):\n    plotter.render()\n")},
+    )
+    nodes, _ = extract_repo(tmp_path)
+    stub = next(n for n in nodes if n.id == "sym:plotter.render")
+    assert stub.receiver_class == "Plotter"
+
+
+def test_extract_repo_call_graph_receiver_class_unwraps_optional_union(tmp_path):
+    # re.Match | None -- the loop-accumulated-match shape that motivated this
+    # feature. expr_to_name alone can't see through the BinOp.
+    _write_repo(
+        tmp_path,
+        {
+            "mod.py": (
+                "import re\n"
+                "def use(text):\n"
+                "    last: re.Match | None = None\n"
+                "    for m in re.finditer('x', text):\n"
+                "        last = m\n"
+                "    if last and last.start() > 0:\n"
+                "        pass\n"
+            )
+        },
+    )
+    nodes, _ = extract_repo(tmp_path)
+    stub = next(n for n in nodes if n.id == "sym:last.start")
+    assert stub.receiver_class == "Match"
+
+
+def test_extract_repo_call_graph_no_annotation_leaves_receiver_class_none(tmp_path):
+    _write_repo(
+        tmp_path,
+        {"mod.py": "def use(plotter):\n    plotter.render()\n"},
+    )
+    nodes, _ = extract_repo(tmp_path)
+    stub = next(n for n in nodes if n.id == "sym:plotter.render")
+    assert stub.receiver_class is None
+
+
+def test_extract_repo_call_graph_self_receiver_not_typed(tmp_path):
+    # self./cls. calls take a different resolution branch entirely and must
+    # never pick up a receiver_class from this path.
+    _write_repo(
+        tmp_path,
+        {
+            "mod.py": (
+                "class Foo:\n"
+                "    def helper(self): pass\n"
+                "    def run(self):\n"
+                "        self.helper()\n"
+            )
+        },
+    )
+    nodes, _ = extract_repo(tmp_path)
+    symbol_stubs = [n for n in nodes if n.kind == "symbol"]
+    assert all(n.receiver_class is None for n in symbol_stubs)
+
+
+def test_extract_repo_call_graph_nested_def_annotation_not_leaked(tmp_path):
+    # An annotated local inside a nested function must not be visible to the
+    # outer function's own receiver lookup.
+    _write_repo(
+        tmp_path,
+        {
+            "mod.py": (
+                "class Log:\n    def render(self): pass\n"
+                "def outer():\n"
+                "    def inner():\n"
+                "        plotter: Log = Log()\n"
+                "        return plotter\n"
+                "    plotter = inner()\n"
+                "    plotter.render()\n"
+            )
+        },
+    )
+    nodes, _ = extract_repo(tmp_path)
+    stub = next(n for n in nodes if n.id == "sym:plotter.render")
+    assert stub.receiver_class is None
+
+
 def test_extract_repo_skips_syntax_error(tmp_path):
     _write_repo(
         tmp_path,

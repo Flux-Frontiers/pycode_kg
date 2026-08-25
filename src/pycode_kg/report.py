@@ -21,6 +21,11 @@ from pathlib import Path
 
 from pycode_kg.render import md_table
 
+# The code relationships worth reporting.  RESOLVES_TO is deliberately
+# absent: it links a ``sym:`` stub to the definition it resolved to, which is
+# the graph's own bookkeeping rather than a relationship between two pieces of
+# code.  Because it is excluded, this table does not sum to ``total_edges`` --
+# the renderer states the difference rather than leaving it unaccounted for.
 _EDGE_RELS = ("CALLS", "CONTAINS", "IMPORTS", "ATTR_ACCESS", "INHERITS")
 
 # A single depth-3 chain carries no signal — show the section only once the
@@ -179,6 +184,15 @@ def render_markdown(analyzer, *, metadata: str = "", elapsed_seconds: float | No
         [(rel, edge_counts.get(rel, 0)) for rel in _EDGE_RELS],
         aligns="lr",
     )
+    shown = sum(edge_counts.get(rel, 0) for rel in _EDGE_RELS)
+    excluded = stats.get("total_edges", shown) - shown
+    if excluded > 0:
+        out += [
+            "",
+            f"_Excludes {excluded:,} `RESOLVES_TO` edges: internal symbol-stub "
+            "resolutions, not relationships between two pieces of code. This "
+            "table therefore does not sum to Total Edges._",
+        ]
     rule()
 
     # ── Fan-In Ranking ───────────────────────────────────────────────────

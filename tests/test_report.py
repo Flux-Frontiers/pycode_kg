@@ -42,6 +42,35 @@ def test_grade_breakdown_table_is_rendered(analyzer) -> None:
         assert component in md
 
 
+def test_edge_distribution_notes_excluded_resolves_to(analyzer) -> None:
+    """The table omits RESOLVES_TO, so it says so rather than silently not summing."""
+    analyzer.stats = {
+        "total_edges": 6443,
+        "edge_counts": {
+            "CALLS": 2430,
+            "ATTR_ACCESS": 2199,
+            "IMPORTS": 488,
+            "CONTAINS": 357,
+            "INHERITS": 11,
+            "RESOLVES_TO": 958,
+        },
+    }
+    md = render_markdown(analyzer)
+    assert "Excludes 958 `RESOLVES_TO` edges" in md
+    # The row itself stays out of the table.
+    assert "| RESOLVES_TO |" not in md
+
+
+def test_edge_distribution_omits_note_when_nothing_excluded(analyzer) -> None:
+    """A graph with no RESOLVES_TO edges gets no dangling caveat."""
+    analyzer.stats = {
+        "total_edges": 2787,
+        "edge_counts": {"CALLS": 2430, "IMPORTS": 346, "INHERITS": 11},
+    }
+    md = render_markdown(analyzer)
+    assert "RESOLVES_TO" not in md
+
+
 def test_metadata_and_footer_are_optional(analyzer) -> None:
     """metadata prepends verbatim; elapsed_seconds adds the timing footer."""
     md = render_markdown(analyzer, metadata="> provenance", elapsed_seconds=1.5)

@@ -311,6 +311,19 @@ def test_architecture_analyzer_infer_project_title(
     assert title == "Test Repository"
 
 
+def test_architecture_analyzer_infer_project_title_non_utf8_readme(
+    architecture_analyzer: ArchitectureAnalyzer, repo_root: Path
+) -> None:
+    """A README that isn't valid UTF-8 falls back to the default title.
+
+    ``UnicodeDecodeError`` is a ``ValueError``, not an ``OSError``, so the
+    read has to name it explicitly or it escapes all the way out of
+    ``analyze_to_markdown()``.
+    """
+    (repo_root / "README.md").write_bytes(b"# \xa4\x40\xa8\xc7\n")
+    assert architecture_analyzer._infer_project_title() == "PyCodeKG Architecture"
+
+
 def test_architecture_analyzer_generate_summary(
     architecture_analyzer: ArchitectureAnalyzer,
 ) -> None:

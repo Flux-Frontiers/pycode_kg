@@ -118,6 +118,7 @@ class PyCodeKGExtractor(KGExtractor):
                 lineno=n.lineno,
                 end_lineno=n.end_lineno,
                 docstring=n.docstring or "",
+                metadata={"receiver_class": n.receiver_class} if n.receiver_class else {},
             )
 
         for e in edges:
