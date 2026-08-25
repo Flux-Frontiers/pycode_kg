@@ -150,7 +150,12 @@ dependencies = [
     # repo's own rule is one floor per package — a lower floor here would leave
     # a reader working out which constraint actually binds. Nothing in the core
     # install needs 0.15.0 functionally; it is a superset of 0.14.0.
-    "kgmodule-utils[semantic,viz3d]>=0.18.0",
+    #
+    # 0.18.1 because resolve_symbols() only reads the receiver_class metadata
+    # this repo's visitor writes as of 0.24.1 -- against 0.18.0 the stubs are
+    # tagged correctly but the tag is silently ignored, so resolution stays on
+    # the old untyped trailing-name match with no error to say so.
+    "kgmodule-utils[semantic,viz3d]>=0.18.1",
 ]
 
 [project.optional-dependencies]
@@ -175,7 +180,7 @@ viz3d = [
     # the four-step build/render/write/cast itself. It subsumes [viz3d-render]
     # (it declares pyvista too), but both are named so the dependency reads as
     # what it is rather than as a side effect.
-    "kgmodule-utils[viz3d-render,viz3d-qt]>=0.18.0",
+    "kgmodule-utils[viz3d-render,viz3d-qt]>=0.18.1",
     "pyvistaqt>=0.11.0",
     "trame-vtk>=2.0.0",
     # Looking Glass quilts. 0.4.0 supplies depth_report() and widened
