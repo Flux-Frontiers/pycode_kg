@@ -9,6 +9,123 @@ Note: older entries preserve the API names used at that release (for example com
 
 ## [Unreleased]
 
+## [0.24.0] - 2026-08-25
+
+### Added
+
+- **Unverifiable-override reporting.** A method overriding a class this graph
+  can't see (external base, no `mod:` node) has no positive evidence either
+  way — the caller may live in the dependency. Deleting such an override
+  doesn't raise `NameError`, it silently reverts to base-class behavior, so
+  calling it dead is the worse failure mode. These now land in their own
+  report section instead of being excused into silence or counted against
+  the quality grade.
+- **Index-freshness warning in the analysis report header.** The graph
+  indexes on-disk files at build time with no recorded build-time commit, so
+  a dirty working tree (`git status --porcelain`) is the honest signal
+  available that line numbers and edge counts may have drifted since the
+  last build.
+- **Snapshot History shows documented/total counts beside the coverage
+  percentage**, so a coverage drop caused by growth (more nodes, same
+  documented count) reads differently from a regression (documented count
+  itself fell).
+- **The pre-commit hook now gates its index rebuild and metrics snapshot to
+  the default branch**, opt-in via `PYCODEKG_SNAPSHOT=1` (default off — see
+  Fixed). Feature-branch commits, and the PRs/CI built from them, no longer
+  carry generated snapshot files or pay the 60-90s rebuild.
+
+### Changed
+
+- **`kgmodule-utils[semantic,viz3d]` floor raised to `>=0.18.0`** (from
+  `>=0.13.1`), and the `viz3d` extra's `kgmodule-utils[viz3d-render]` floor
+  unified with it as `kgmodule-utils[viz3d-render,viz3d-qt]>=0.18.0` (from
+  `>=0.12.1`) — one floor per package, matching this repo's own rule. Picks
+  up, in order: the `repo_root` read-only-property regression reverted
+  (0.13.2), `leaf_facing`/`oriented_cluster` promoted into the SDK (0.14.0),
+  the `lancedb_dir` → `vectors_path` rename (0.15.0, pulled in by the
+  `viz3d-qt` floor), `CastResult` (0.16.0, see below), and a plain currency
+  relock (0.18.0).
+- **`quiltwright` floor raised to `>=0.8.0`** (from `>=0.4.0`), through
+  `0.6.0` (`QuiltSpec.scaled()`), `0.7.0`, and a currency relock.
+- **`doc-kg` dev-group floor raised to `>=0.22.0`** (from `>=0.21.2`).
+- **The 3-D viewer's "Cast to LG" pipeline now goes through
+  `kg_utils.viz3d.qt.cast_scene_to_looking_glass`** instead of a copy of
+  gutenberg_kg's pipeline that had drifted into near-identical duplicate
+  code (same tile-rounding arithmetic, different variable names). What
+  stays local is what this repo actually owns: which nodes are drawn, where
+  the file lands, and which button greys out while it renders. Adopts the
+  SDK's `CastResult` (a frozen dataclass) in place of the old `(path,
+  error)` tuple unpack.
+- **`scene3d.py`'s `leaf_facing`/`oriented_cluster` now import from
+  `kg_utils.viz3d.organic`** instead of keeping private copies — the SDK
+  promoted both, diffed against the originals over 800 randomized cases to
+  1e-12.
+- **Public API Surface, Structural Importance (SIR), and CodeRank seeding
+  now exclude non-package directories.** A provisioning script under
+  `runpod/` or `scripts/` is real repo content but not an API-surface or
+  importance candidate. The installable package root is detected from
+  `pyproject.toml`'s declared name plus a `src/<name>/` or `<name>/`
+  directory; an undetermined root disables the filter rather than excluding
+  everything.
+- **CI's Test job installs the `viz`/`viz3d` extras and runs the full suite
+  unfiltered** (465 tests instead of 424 collected/skipped, and no more `-m
+  "not integration"` deselect hiding 14 real-embedder/index/pipeline tests
+  that run in about four seconds once the model is cached). The embedding
+  model is now cached separately (`~/.kgrag/models`, keyed on model name).
+- **Pre-commit's `ty` and `pytest` hooks call `.venv/bin/<tool>` directly
+  instead of `poetry run`**, so an inherited `VIRTUAL_ENV` from a different
+  repo can no longer silently redirect them (this surfaced as `ty`
+  "command not found" or numpy import failures that didn't look like
+  environment problems).
+- **`scripts/install-skill.sh` now runs `pycodekg build`/`update` as one
+  atomic step** instead of orchestrating the lower-level
+  `build-sqlite`/`build-index` pair with independent `--wipe`-gated
+  existence checks — see Fixed for the bug this closes.
+
+### Fixed
+
+- **Fan-in no longer double-counts self-loops.** A property body that reads
+  the attribute it backs emits a `CALLS` edge to itself, which was
+  inflating fan-in for nodes with zero real callers.
+- **The "Key Call Chains" report section is suppressed unless a chain
+  clears a depth/count threshold**, so a single depth-3 chain (a graph
+  artifact) no longer reads as a testing recommendation.
+- **Orphan detection excludes names declared via `__all__` (anywhere) or
+  re-exported by a package `__init__.py`.** Zero internal callers is their
+  expected state, not evidence of dead code.
+- **Bogus stdlib/third-party attribute-call resolutions are pruned from the
+  symbol graph.** `kg_utils.store.resolve_symbols()` matches `sym:` stubs by
+  last-segment name fallback with no receiver awareness, so
+  `subprocess.run(...)` could resolve onto any first-party function named
+  `run()`. Two new prunes remove these: one joins a dotted stub's calling
+  module back to its `IMPORTS` edges to identify genuinely external roots,
+  the other targets `self.`/`cls.` attribute-of-attribute stubs
+  (unknown-type receiver, matched by trailing name only).
+- **`scripts/install-skill.sh` no longer overwrites the user's global
+  `~/.claude/commands/`.** It copied its own `changelog-commit.md` and
+  `release.md` — fleet-wide commands, not PyCodeKG-specific — into the
+  global directory on every install, silently replacing whatever another
+  repo's install (or the user's own edits) had put there.
+- **`scripts/install-skill.sh` re-running without `--wipe` now actually
+  refreshes a stale graph.** It previously skipped the build entirely
+  whenever the output files already existed, so a repeat install was a
+  silent no-op — new or changed source never made it into the index unless
+  the user knew to pass `--wipe`. It now runs `pycodekg update`
+  (incremental) on a repeat install and `pycodekg build` (full wipe) on a
+  fresh one or when `--wipe` is requested.
+- **The pre-commit hook's `PYCODEKG_SKIP_SNAPSHOT` no longer silently skips
+  the quality checks too.** It sat above `pre-commit run`, so a variable
+  named "skip snapshot" also skipped ruff, ty, and pytest. The per-commit
+  snapshot itself is now opt-in (`PYCODEKG_SNAPSHOT=1`, default off) rather
+  than on by default: it recorded `git write-tree` and then staged that
+  snapshot into the same commit, so the recorded tree hash could never
+  equal the tree it named — an audit found 10.4% of fleet-wide snapshots
+  keyed to a tree no commit ever had.
+- **Historical snapshot `db_path` values relativized.** Snapshots are
+  committed to git; an absolute path published each recording developer's
+  home directory and username, and made snapshots from different machines
+  diff on nothing but where each keeps their checkout.
+
 ## [0.23.1] - 2026-08-15
 
 ### Fixed

@@ -36,7 +36,7 @@ Author: Eric G. Suchanek, PhD
 License: Elastic 2.0
 """
 
-__version__ = "0.23.1"
+__version__ = "0.24.0"
 __author__ = "Eric G. Suchanek, PhD"
 
 # Low-level primitives (locked v0 contract)

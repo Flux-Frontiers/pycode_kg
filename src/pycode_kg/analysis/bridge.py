@@ -4,7 +4,6 @@ Measures module interaction complexity: how many unique modules each module call
 For well-modularized codebases, identifies orchestrator and hub modules.
 
 Author: Eric G. Suchanek, PhD
-Last Revision: 2026-08-15 00:46:18
 License: Elastic 2.0
 """
 

@@ -12,7 +12,6 @@ in :mod:`quiltwright`.  What this command owns is the part quiltwright cannot
 know: which graph to grow and how to frame it.
 
 Author: Eric G. Suchanek, PhD
-Last Revision: 2026-08-14
 
 License: Elastic 2.0
 """

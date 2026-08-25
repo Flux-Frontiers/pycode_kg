@@ -1,7 +1,6 @@
 # pyproject.toml — PyCodeKG package configuration (PEP 621)
 #
 # Author: Eric G. Suchanek, PhD
-# Last Revision: 2026-08-15
 #
 # Build system : Poetry 2.x with PEP 621 [project] table
 #
@@ -71,7 +70,7 @@ torch = [
 # ---------------------------------------------------------------------------
 [project]
 name = "pycode-kg"
-version = "0.23.1"
+version = "0.24.0"
 description = "A tool to build a searchable knowledge graph from Python repositories"
 readme = "README.md"
 license = "Elastic-2.0"

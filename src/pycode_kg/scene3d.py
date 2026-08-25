@@ -33,7 +33,6 @@ or for the Qt viewer is the caller's business — see
 :mod:`pycode_kg.cli.cmd_quilt`.
 
 Author: Eric G. Suchanek, PhD
-Last Revision: 2026-08-14
 
 License: Elastic 2.0
 """
