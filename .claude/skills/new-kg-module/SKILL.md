@@ -117,11 +117,11 @@ Create `<name>/cli/cmd_snapshot.py` with domain-appropriate snapshot management:
 @cli.command("snapshot")
 @repo_option
 @db_option
-@lancedb_option
+@vectors_option
 @click.option("--list", is_flag=True, help="List saved snapshots.")
 @click.option("--show", type=str, help="Show specific snapshot details.")
 @click.option("--diff", nargs=2, help="Compare two snapshots.")
-def snapshot(repo, db, lancedb, list, show, diff):
+def snapshot(repo, db, vectors, list, show, diff):
     """Manage and analyze domain-specific snapshots.
 
     For a filesystem tree KG: track file structure changes over time
