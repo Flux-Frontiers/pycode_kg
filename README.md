@@ -200,7 +200,7 @@ src/pycode_kg/
 └── viz3d_timeline.py                # Metric history timeline
 ```
 
-The MCP server, the CLI, and the Streamlit app are thin wrappers over the same store + index + ranking core — there is exactly one code path for each capability. The latest architectural deep-dive is in [docs/analysis_v0.24.0.md](docs/analysis_v0.24.0.md), produced (of course) by `pycodekg analyze` against this very repo.
+The MCP server, the CLI, and the Streamlit app are thin wrappers over the same store + index + ranking core — there is exactly one code path for each capability. The latest architectural deep-dive is in [docs/analysis_v0.24.1.md](docs/analysis_v0.24.1.md), produced (of course) by `pycodekg analyze` against this very repo.
 
 ---
 
