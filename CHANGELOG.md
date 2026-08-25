@@ -60,6 +60,14 @@ Note: older entries preserve the API names used at that release (for example com
   `__pycache__`, etc.), and all three read sites skip an individual
   unreadable/undecodable file with a debug log naming it, rather than
   losing the entire phase.
+- **The release workflow no longer labels this project as KGRAG.** Porting
+  the PyPI publish job over from the `kgrag` repo brought two copy-paste
+  values with it: the GitHub Release title was changed from
+  `PyCodeKG $TAG` to `KGRAG $TAG`, and the publish job's environment URL
+  points at `pypi.org/p/kg-rag` -- a different, real package. The title is
+  what readers see on the Releases page, and every prior release is titled
+  `PyCodeKG vX.Y.Z`; the URL is cosmetic but links the deployment view to
+  the wrong project. Both now name this project.
 - **`architecture` no longer crashes on a non-UTF-8 README.**
   `_infer_project_title()` read `README.md` with the platform's locale
   encoding and caught only `OSError`, so an undecodable byte escaped as an

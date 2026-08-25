@@ -50,7 +50,7 @@ jobs:
             gh release upload "$TAG" dist/* --clobber
           else
             gh release create "$TAG" dist/* \
-              --title "KGRAG $TAG" \
+              --title "PyCodeKG $TAG" \
               --notes-file release-notes.md
           fi
 
@@ -60,7 +60,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: pypi
-      url: https://pypi.org/p/kg-rag
+      url: https://pypi.org/p/pycode-kg
     # Replaces the workflow-level `contents: write` for this job: publishing
     # needs to mint an OIDC token and nothing else.
     permissions:
