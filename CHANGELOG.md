@@ -9,6 +9,62 @@ Note: older entries preserve the API names used at that release (for example com
 
 ## [Unreleased]
 
+### Added
+
+- **Receiver-aware resolution for dotted call stubs.** A call like
+  `plotter.render()` where `plotter` isn't `self`/`cls` and isn't a resolved
+  module-level import now carries a `receiver_class` on its `sym:` stub node,
+  resolved from the receiver's parameter or local-variable annotation (e.g.
+  `plotter: pv.Plotter` -> `"Plotter"`). Handles `X | None` / `Optional[X]`
+  annotations by unwrapping to the non-`None` member. Nested function/class
+  scopes are excluded from the lookup so an annotation inside a closure
+  can't leak into the enclosing function's receiver resolution.
+
+### Changed
+
+- **`analyze`'s console summary renders the node and edge distributions as
+  tables instead of raw dict reprs.** `node_counts` and `edge_counts` were
+  printed through `str()`, dumping `{'class': 32, 'function': 170, ...}`
+  wrapped across the value column. They now print as a side-by-side "Nodes
+  by Kind" / "Edges by Relation" breakdown, sorted largest first. Counts
+  carry thousands separators and `docstring_coverage` reads as a
+  percentage; the per-kind `*_count` scalars, which only repeated what
+  `node_counts` already said, are folded into the breakdown. A stat key the
+  label map doesn't recognize still prints under its raw name, so a future
+  metric can't vanish silently.
+- **The report's "Edge Distribution" table now states what it excludes.**
+  It iterates a fixed relation list that omits `RESOLVES_TO`, so on this
+  repo it summed to 5,485 directly beneath a "Total Edges 6,443" row, with
+  958 edges silently unaccounted for. The exclusion is deliberate --
+  `RESOLVES_TO` links a `sym:` stub to the definition it resolved to, which
+  is the graph's own bookkeeping rather than a relationship between two
+  pieces of code -- so the table keeps its shape and the renderer now names
+  the excluded count and why beneath it.
+
+### Fixed
+
+- **Thorough analysis's dead-code scan no longer aborts on a single
+  unreadable file.** `_declared_export_names()` walked the *entire* repo
+  root with a raw `rglob("*.py")`, unfiltered by the `.pycodekg`/`.venv`
+  exclusions the graph build itself honors, and its own `_module_source()`/
+  `_tests_corpus()` helpers caught `OSError` but not `UnicodeDecodeError`
+  (a `ValueError` subclass) when reading files. Running the analysis on
+  this repo hit a vendored dependency's deliberately non-UTF-8 test
+  fixture under `.venv/`, which crashed the whole "declared exports" scan
+  and silently dropped the public-API/orphan-detection phases to a
+  near-empty result with only a generic "Dependency analysis incomplete"
+  warning naming no file. `_declared_export_names()` now walks via the
+  same `iter_python_files()` helper the graph build uses (pruning `.venv`,
+  `__pycache__`, etc.), and all three read sites skip an individual
+  unreadable/undecodable file with a debug log naming it, rather than
+  losing the entire phase.
+- **`architecture` no longer crashes on a non-UTF-8 README.**
+  `_infer_project_title()` read `README.md` with the platform's locale
+  encoding and caught only `OSError`, so an undecodable byte escaped as an
+  uncaught `UnicodeDecodeError` -- it is the sole exception handler in the
+  module, so nothing above it would have caught it either. Now reads UTF-8
+  explicitly and falls back to the default title.
+
 ## [0.24.0] - 2026-08-25
 
 ### Added

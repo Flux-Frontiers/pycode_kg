@@ -610,11 +610,11 @@ class ArchitectureAnalyzer:
         readme = self.repo_root / "README.md"
         if readme.exists():
             try:
-                with open(readme) as f:
+                with open(readme, encoding="utf-8") as f:
                     for line in f:
                         if line.startswith("#"):
                             return line.lstrip("#").strip()
-            except OSError:
+            except (OSError, UnicodeDecodeError):
                 pass
         return "PyCodeKG Architecture"
 

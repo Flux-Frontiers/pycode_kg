@@ -43,10 +43,12 @@ from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
+from rich.columns import Columns
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
+from pycode_kg.pycodekg import iter_python_files
 from pycode_kg.report import render_markdown
 from pycode_kg.resolution import BUILTIN_METHOD_NAMES
 from pycode_kg.snapshots import SnapshotManager
@@ -160,6 +162,33 @@ _PROTOCOL_ATTRS_FALLBACK = frozenset(
 )
 _protocol_attrs_cache: frozenset[str] | None = None
 
+# Console labels for the scalar baseline metrics, in display order.  Keys
+# absent here still render (under their raw name) so a new stat can never be
+# dropped silently.
+_STAT_LABELS = {
+    "total_nodes": "Total nodes",
+    "meaningful_nodes": "Meaningful nodes",
+    "total_edges": "Total edges",
+    "docstring_coverage": "Docstring coverage",
+    "snapshot_count": "Snapshots",
+    "vector_backend": "Vector backend",
+    "db_path": "Database",
+}
+
+# Rendered as their own breakout tables instead: the two ``*_counts`` dicts
+# print as raw reprs, and the per-kind ``*_count`` scalars only repeat what
+# ``node_counts`` already says.
+_STAT_BREAKOUT = frozenset(
+    {
+        "node_counts",
+        "edge_counts",
+        "module_count",
+        "class_count",
+        "function_count",
+        "method_count",
+    }
+)
+
 
 def _protocol_attr_names() -> frozenset[str]:
     """Attribute names of the framework base classes the KG SDK dispatches on.
@@ -229,10 +258,11 @@ def _declared_export_names(repo_root: Path) -> set[str]:
     import ast as _ast  # noqa: PLC0415
 
     names: set[str] = set()
-    for py_path in repo_root.rglob("*.py"):
+    for py_path in iter_python_files(repo_root):
         try:
             tree = _ast.parse(py_path.read_text(encoding="utf-8"))
-        except (OSError, SyntaxError):
+        except (OSError, SyntaxError, UnicodeDecodeError) as e:
+            logger.debug(f"Skipping {py_path} while scanning for declared exports: {e}")
             continue
         for node in _ast.walk(tree):
             if (
@@ -729,9 +759,11 @@ class PyCodeKGAnalyzer:
             text: str | None = None
             repo_root = getattr(self.kg, "repo_root", None)
             if repo_root:
+                src_path = Path(repo_root) / module_path
                 try:
-                    text = (Path(repo_root) / module_path).read_text(encoding="utf-8")
-                except OSError:
+                    text = src_path.read_text(encoding="utf-8")
+                except (OSError, UnicodeDecodeError) as e:
+                    logger.debug(f"Could not read {src_path}: {e}")
                     text = None
             self._source_cache[module_path] = text
         return self._source_cache[module_path]
@@ -767,7 +799,8 @@ class PyCodeKGAnalyzer:
         for path in sorted(tests_dir.rglob("*.py")):
             try:
                 chunks.append(path.read_text(encoding="utf-8"))
-            except OSError:
+            except (OSError, UnicodeDecodeError) as e:
+                logger.debug(f"Skipping {path} while building tests corpus: {e}")
                 continue
         return "\n".join(chunks)
 
@@ -2493,15 +2526,30 @@ class PyCodeKGAnalyzer:
         self.console.print()
 
         # Stats table
-        stats_table = Table(title="Baseline Metrics", show_header=True)
+        stats_table = Table(title="Baseline Metrics", show_header=True, title_style="bold")
         stats_table.add_column("Metric", style="dim")
         stats_table.add_column("Value")
 
-        for key, value in self.stats.items():
-            stats_table.add_row(key, str(value))
+        ordered = [k for k in _STAT_LABELS if k in self.stats]
+        extra = [k for k in self.stats if k not in _STAT_LABELS and k not in _STAT_BREAKOUT]
+        for key in (*ordered, *extra):
+            stats_table.add_row(_STAT_LABELS.get(key, key), _format_stat(key, self.stats[key]))
 
         self.console.print(stats_table)
         self.console.print()
+
+        # Node/edge distributions, side by side rather than as raw dict reprs
+        breakouts = [
+            _counts_table(title, label, counts)
+            for title, label, counts in (
+                ("Nodes by Kind", "Kind", self.stats.get("node_counts") or {}),
+                ("Edges by Relation", "Relation", self.stats.get("edge_counts") or {}),
+            )
+            if counts
+        ]
+        if breakouts:
+            self.console.print(Columns(breakouts, padding=(0, 4)))
+            self.console.print()
 
         # Most called functions
         if self.function_metrics:
@@ -2535,6 +2583,42 @@ class PyCodeKGAnalyzer:
             for strength in self.strengths:
                 self.console.print(f"  {strength}")
             self.console.print()
+
+
+def _format_stat(key: str, value: object) -> str:
+    """Render one baseline-metric value for console display.
+
+    :param key: Stat key, used to recognize the ratio-valued metrics.
+    :param value: Raw value from ``PyCodeKG.stats()``.
+    :return: Display string -- percentage for coverage ratios, thousands
+        separators for counts, ``str()`` otherwise.
+    """
+    if key == "docstring_coverage" and isinstance(value, int | float):
+        return f"{value:.1%}"
+    if isinstance(value, bool):
+        return str(value)
+    if isinstance(value, int):
+        return f"{value:,}"
+    return str(value)
+
+
+def _counts_table(title: str, label: str, counts: dict[str, int]) -> Table:
+    """Build a breakdown table for a ``{name: count}`` stat, largest first.
+
+    ``node_counts``/``edge_counts`` arrive as dicts; printing them through
+    ``str()`` dumps a raw Python repr that wraps across the value column.
+
+    :param title: Table title, e.g. ``"Nodes by Kind"``.
+    :param label: Header for the name column, e.g. ``"Kind"``.
+    :param counts: Mapping of name to count.
+    :return: Rich table sorted by count descending, then name.
+    """
+    table = Table(title=title, show_header=True, title_style="bold")
+    table.add_column(label, style="cyan")
+    table.add_column("Count", justify="right")
+    for name, count in sorted(counts.items(), key=lambda kv: (-kv[1], kv[0])):
+        table.add_row(str(name), f"{count:,}")
+    return table
 
 
 def _default_report_name(repo_root: Path) -> str:

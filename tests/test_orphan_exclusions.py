@@ -8,6 +8,7 @@ re-exports).  The 2026-08-13 analysis run flagged 31 orphans of which ~26
 were false positives in exactly these classes.
 """
 
+import io
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -16,8 +17,10 @@ import pytest
 from pycode_kg.pycodekg_thorough_analysis import (
     PyCodeKGAnalyzer,
     _console_script_targets,
+    _counts_table,
     _declared_export_names,
     _dotted_module,
+    _format_stat,
     _has_property_decorator,
     _main_guard_block,
     _protocol_attr_names,
@@ -79,6 +82,51 @@ def test_declared_export_names_ignores_reexports_outside_init(tmp_path) -> None:
     mod.parent.mkdir(parents=True)
     mod.write_text("from p.core import Widget\n")
     assert _declared_export_names(tmp_path) == set()
+
+
+def test_declared_export_names_skips_venv(tmp_path) -> None:
+    """.venv is pruned rather than walked -- installed dependencies aren't repo exports."""
+    mod = tmp_path / "src" / "p" / "core.py"
+    mod.parent.mkdir(parents=True)
+    mod.write_text('__all__ = ["Widget"]\n\nclass Widget: ...\n')
+
+    vendored = tmp_path / ".venv" / "lib" / "pkg" / "mod.py"
+    vendored.parent.mkdir(parents=True)
+    vendored.write_text('__all__ = ["Vendored"]\n\nclass Vendored: ...\n')
+
+    assert _declared_export_names(tmp_path) == {"Widget"}
+
+
+def test_declared_export_names_tolerates_non_utf8_file(tmp_path) -> None:
+    """A file that isn't valid UTF-8 is skipped, not fatal to the whole scan."""
+    mod = tmp_path / "src" / "p" / "core.py"
+    mod.parent.mkdir(parents=True)
+    mod.write_text('__all__ = ["Widget"]\n\nclass Widget: ...\n')
+
+    bogus = tmp_path / "src" / "p" / "bad_encoding.py"
+    bogus.write_bytes(b"# -*- coding: big5 -*-\n" + b"\xa4\x40" * 4)
+
+    assert _declared_export_names(tmp_path) == {"Widget"}
+
+
+def test_tests_corpus_skips_non_utf8_file(tmp_path) -> None:
+    """One undecodable test file is skipped; the rest of the corpus survives."""
+    tests_dir = tmp_path / "tests"
+    tests_dir.mkdir()
+    (tests_dir / "test_good.py").write_text("def test_widget(): helper()\n")
+    (tests_dir / "test_bad.py").write_bytes(b"# -*- coding: big5 -*-\n" + b"\xa4\x40" * 4)
+
+    analyzer = PyCodeKGAnalyzer(kg=SimpleNamespace(repo_root=str(tmp_path)))
+    assert "helper" in analyzer._tests_corpus()
+
+
+def test_module_source_returns_none_for_non_utf8_file(tmp_path) -> None:
+    """An undecodable module reads as None rather than raising."""
+    mod = tmp_path / "bad.py"
+    mod.write_bytes(b"# -*- coding: big5 -*-\n" + b"\xa4\x40" * 4)
+
+    analyzer = PyCodeKGAnalyzer(kg=SimpleNamespace(repo_root=str(tmp_path)))
+    assert analyzer._module_source("bad.py") is None
 
 
 def test_main_guard_block_returns_guarded_tail() -> None:
@@ -321,6 +369,71 @@ def test_function_mentioned_only_at_def_site_stays_candidate(analyzer, tmp_path)
     mod.write_text("def rerank(results): ...\n\ndef other(): ...\n")
     node = _node(node_id="fn:src/p/legacy.py:rerank", name="rerank", module_path="src/p/legacy.py")
     assert not analyzer._is_special_entry_point(node, EMPTY_CTX)
+
+
+# ── console summary formatting ───────────────────────────────────────────────
+
+
+def test_format_stat_renders_coverage_as_percentage() -> None:
+    """A 0-1 coverage ratio reads as a percentage, not a bare float."""
+    assert _format_stat("docstring_coverage", 0.935) == "93.5%"
+
+
+def test_format_stat_groups_large_counts() -> None:
+    """Node/edge totals get thousands separators."""
+    assert _format_stat("total_nodes", 6904) == "6,904"
+
+
+def test_format_stat_passes_strings_through() -> None:
+    """Non-numeric metrics are untouched."""
+    assert _format_stat("vector_backend", "sqlite-vec") == "sqlite-vec"
+
+
+def test_counts_table_orders_by_count_descending() -> None:
+    """The breakdown leads with the largest bucket."""
+    from rich.console import Console as _Console
+
+    table = _counts_table("Nodes by Kind", "Kind", {"class": 32, "symbol": 6491, "module": 56})
+    console = _Console(file=io.StringIO(), width=80)
+    console.print(table)
+    rendered = console.file.getvalue()
+
+    assert "6,491" in rendered
+    assert rendered.index("symbol") < rendered.index("module") < rendered.index("class")
+
+
+def test_print_summary_has_no_raw_dict_reprs(capsys) -> None:
+    """node_counts/edge_counts render as tables, not Python dict reprs.
+
+    The raw ``str(dict)`` dump wrapped across the value column and buried
+    the numbers in quotes and braces.
+    """
+    analyzer = PyCodeKGAnalyzer(kg=SimpleNamespace(repo_root=""))
+    analyzer.stats = {
+        "db_path": "/tmp/graph.sqlite",
+        "total_nodes": 6904,
+        "total_edges": 6443,
+        "docstring_coverage": 0.935,
+        "node_counts": {"symbol": 6491, "class": 32},
+        "edge_counts": {"CALLS": 2430, "INHERITS": 11},
+        "class_count": 32,
+    }
+    analyzer.print_summary()
+    out = capsys.readouterr().out
+
+    assert "{'" not in out
+    assert "Nodes by Kind" in out and "Edges by Relation" in out
+    assert "6,491" in out and "2,430" in out
+    assert "93.5%" in out
+
+
+def test_print_summary_shows_unrecognized_stats(capsys) -> None:
+    """A stat key with no label still appears rather than vanishing."""
+    analyzer = PyCodeKGAnalyzer(kg=SimpleNamespace(repo_root=""))
+    analyzer.stats = {"total_nodes": 5, "some_future_metric": 42}
+    analyzer.print_summary()
+    out = capsys.readouterr().out
+    assert "some_future_metric" in out and "42" in out
 
 
 # ── internal fan-out counting ────────────────────────────────────────────────

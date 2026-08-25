@@ -61,6 +61,11 @@ class Node:
     :param lineno: Starting line number
     :param end_lineno: Ending line number (if available)
     :param docstring: Extracted docstring (may be None)
+    :param receiver_class: For a dotted call stub (``kind == "symbol"``), the
+        class name resolved from the receiver's parameter or local variable
+        annotation, if any — e.g. ``"Plotter"`` for a call site
+        ``plotter.render()`` where ``plotter: pv.Plotter``. ``None`` when the
+        receiver has no known annotation, or the node isn't a call stub.
     """
 
     id: str
@@ -71,6 +76,7 @@ class Node:
     lineno: int | None
     end_lineno: int | None
     docstring: str | None
+    receiver_class: str | None = None
 
 
 @dataclass(frozen=True)
@@ -209,6 +215,91 @@ def _owner_id(
     if isinstance(p, ast.ClassDef):
         return module_locals[module].get(f"{p.name}.{fn.name}")
     return module_locals[module].get(fn.name)
+
+
+def _own_scope_nodes(node: ast.AST) -> Iterable[ast.AST]:
+    """Yield descendants of *node*, not descending into nested function/class scopes.
+
+    A nested ``def``/``class``/``lambda`` introduces its own name binding for
+    any local it declares, so an ``AnnAssign`` inside one does not describe a
+    name in *node*'s own scope.
+
+    :param node: Root AST node (typically a function body).
+    :return: Iterator over descendants in *node*'s own scope.
+    """
+    for child in ast.iter_child_nodes(node):
+        if isinstance(child, ast.FunctionDef | ast.AsyncFunctionDef | ast.Lambda | ast.ClassDef):
+            continue
+        yield child
+        yield from _own_scope_nodes(child)
+
+
+def _annotation_class_name(expr: ast.AST) -> str | None:
+    """Extract a class name from a type annotation, unwrapping ``Optional`` shapes.
+
+    ``X | None`` (PEP 604) and ``Optional[X]``/``typing.Optional[X]`` are the
+    common "this local starts as ``None``, gets assigned later" shape --
+    exactly the pattern a loop-accumulated match object or lazily-built
+    instance tends to carry. Neither is a class name on its own, so both are
+    unwrapped to the non-``None`` member before falling back to
+    :func:`expr_to_name`, which does not know about either.
+
+    :param expr: The annotation expression.
+    :return: Dotted class name, or ``None`` if it can't be determined.
+    """
+    if isinstance(expr, ast.BinOp) and isinstance(expr.op, ast.BitOr):
+        for side in (expr.left, expr.right):
+            if isinstance(side, ast.Constant) and side.value is None:
+                continue
+            resolved = _annotation_class_name(side)
+            if resolved:
+                return resolved
+        return None
+
+    if isinstance(expr, ast.Subscript):
+        base = expr_to_name(expr.value)
+        if base and base.rsplit(".", 1)[-1] == "Optional":
+            return _annotation_class_name(expr.slice)
+        return expr_to_name(expr)
+
+    if isinstance(expr, ast.Constant) and expr.value is None:
+        return None
+
+    return expr_to_name(expr)
+
+
+def _receiver_annotation(
+    fn: ast.FunctionDef | ast.AsyncFunctionDef, receiver_name: str
+) -> str | None:
+    """Resolve a call receiver's class name from its parameter or local annotation.
+
+    Looks at *fn*'s own parameters, then any ``AnnAssign`` in *fn*'s own body
+    (see :func:`_own_scope_nodes`), for a name matching *receiver_name*. The
+    first annotation found wins -- no reassignment or narrowing is tracked,
+    matching the conservative stance the rest of this module takes toward
+    ambiguity.
+
+    :param fn: Enclosing function or async function definition.
+    :param receiver_name: Bare name of the call's receiver, e.g. ``"plotter"``.
+    :return: The annotation's last dotted segment (e.g. ``"Plotter"`` for a
+        ``pv.Plotter`` annotation, or ``"Match"`` for ``re.Match | None``), or
+        ``None`` if *receiver_name* has no known annotation.
+    """
+    for a in (*fn.args.posonlyargs, *fn.args.args, *fn.args.kwonlyargs):
+        if a.arg == receiver_name and a.annotation is not None:
+            cls = _annotation_class_name(a.annotation)
+            return cls.rsplit(".", 1)[-1] if cls else None
+
+    for stmt in _own_scope_nodes(fn):
+        if (
+            isinstance(stmt, ast.AnnAssign)
+            and isinstance(stmt.target, ast.Name)
+            and stmt.target.id == receiver_name
+        ):
+            cls = _annotation_class_name(stmt.annotation)
+            return cls.rsplit(".", 1)[-1] if cls else None
+
+    return None
 
 
 # ============================================================================
@@ -466,6 +557,8 @@ def extract_repo(
             if not callee:
                 continue
 
+            receiver_class: str | None = None
+
             # resolution rules (LOCKED)
             if callee in module_locals[module]:
                 dst_id = module_locals[module][callee]
@@ -480,6 +573,15 @@ def extract_repo(
                 dst_id = module_class_methods[module].get(meth) or f"sym:{callee}"
             else:
                 dst_id = f"sym:{callee}"
+                # A plain local variable/parameter receiver, not self/cls and
+                # not a module-level import alias -- the one case an
+                # annotation can disambiguate. self./cls. never reach here.
+                if (
+                    isinstance(n.func, ast.Attribute)
+                    and isinstance(n.func.value, ast.Name)
+                    and n.func.value.id not in ("self", "cls")
+                ):
+                    receiver_class = _receiver_annotation(fn, n.func.value.id)
 
             if dst_id.startswith("sym:"):
                 nodes.setdefault(
@@ -493,6 +595,7 @@ def extract_repo(
                         None,
                         None,
                         None,
+                        receiver_class,
                     ),
                 )
 
