@@ -1534,14 +1534,14 @@ referencing = ">=0.31.0"
 
 [[package]]
 name = "kgmodule-utils"
-version = "0.18.0"
+version = "0.18.1"
 description = "Shared types, graph store, semantic index, and pipeline base for the KGModule SDK"
 optional = false
 python-versions = "<3.14,>=3.12"
 groups = ["main", "kg"]
 files = [
-    {file = "kgmodule_utils-0.18.0-py3-none-any.whl", hash = "sha256:230adc9bdeb517867c18d9f357d25f619f66a64aee7fef0ee9a7cc125553a818"},
-    {file = "kgmodule_utils-0.18.0.tar.gz", hash = "sha256:b8b02d1f5397e39d1459b8f05af0ae29b218ea183ad21f2a37b533fbe75725c7"},
+    {file = "kgmodule_utils-0.18.1-py3-none-any.whl", hash = "sha256:f79c3894dbff47c25880f8d8164dcccabf06354b9142ea3ef3a6dca1dea27827"},
+    {file = "kgmodule_utils-0.18.1.tar.gz", hash = "sha256:cd6e67029d428c1085e6ad018c9d78205f6e6c9c0a46c6f747f507b78a72f4a5"},
 ]
 
 [package.dependencies]
@@ -1551,7 +1551,7 @@ numpy = [
 ]
 PyQt5 = {version = ">=5.15.0", optional = true, markers = "extra == \"viz3d-qt\""}
 pyvista = {version = ">=0.44.0", optional = true, markers = "extra == \"viz3d-qt\" or extra == \"viz3d-render\""}
-quiltwright = {version = ">=0.6.0", optional = true, markers = "extra == \"viz3d-qt\""}
+quiltwright = {version = ">=0.7.0", optional = true, markers = "extra == \"viz3d-qt\""}
 rich = {version = ">=13.0.0,<15.0.0", optional = true, markers = "extra == \"semantic\""}
 sentence-transformers = {version = ">=5.4.1", optional = true, markers = "extra == \"semantic\""}
 sqlite-vec = {version = "0.1.9", optional = true, markers = "extra == \"semantic\""}
@@ -1567,7 +1567,7 @@ synthesis = ["httpx (>=0.27.0)", "openai (>=1.30.0)", "pillow (>=10.0.0)"]
 synthesis-mflux = ["httpx (>=0.27.0)", "mflux (>=0.9.0)", "openai (>=1.30.0)", "pillow (>=10.0.0)"]
 viz = ["pyvis (>=0.3.2)"]
 viz3d = ["numpy (>=1.24.0)"]
-viz3d-qt = ["PyQt5 (>=5.15.0)", "numpy (>=1.24.0)", "pyvista (>=0.44.0)", "quiltwright (>=0.6.0)"]
+viz3d-qt = ["PyQt5 (>=5.15.0)", "numpy (>=1.24.0)", "pyvista (>=0.44.0)", "quiltwright (>=0.7.0)"]
 viz3d-render = ["numpy (>=1.24.0)", "pyvista (>=0.44.0)"]
 
 [[package]]
@@ -5213,4 +5213,4 @@ viz3d = ["PyQt5", "kgmodule-utils", "markdown", "param", "pyvistaqt", "quiltwrig
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12,<3.14"
-content-hash = "0d4f34543a14dc36c91cbcdc57d6e27e437d2e52f6ff2d7bc818badba1fb2258"
+content-hash = "a1c70e58f65fa0da90b608310b6f2bfb5a08e130e310c4e0fc090989412ffcbe"

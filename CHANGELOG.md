@@ -9,6 +9,14 @@ Note: older entries preserve the API names used at that release (for example com
 
 ## [Unreleased]
 
+### Fixed
+
+- Raised the `kgmodule-utils` floor to `>=0.18.1`. `resolve_symbols()` only
+  reads the `receiver_class` metadata this repo's visitor writes as of
+  0.24.1 starting in that release — against 0.18.0 the stubs are tagged
+  correctly but the tag is silently ignored, so resolution stayed on the old
+  untyped trailing-name match with no error to say so.
+
 ## [0.24.1] - 2026-08-25
 
 ### Added
