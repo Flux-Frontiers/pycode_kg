@@ -183,7 +183,7 @@ viz3d = [
     # requires-python to <3.14, which retires the old marker gate. 0.6.0 adds
     # QuiltSpec.scaled(), which replaces the tile-grid rounding this repo used
     # to open-code, and save_and_cast_quilt() underneath the SDK cast helper.
-    "quiltwright>=0.7.0",
+    "quiltwright>=0.8.0",
 ]
 
 # Cross-KG sibling packages (doc-kg, pycode-kg, agent-kg, kg-rag) are NOT
@@ -208,7 +208,7 @@ all = [
     "pyvis>=0.3.2",
     "pyvista>=0.44.0",
     "pyvistaqt>=0.11.0",
-    "quiltwright>=0.7.0",
+    "quiltwright>=0.8.0",
     "streamlit>=1.56.0",
     "trame-vtk>=2.0.0",
 ]

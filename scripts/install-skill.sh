@@ -21,23 +21,25 @@
 #
 # Flags:
 #   --providers <list>   Comma-separated provider names, or "all" (default: all)
-#   --wipe               Force rebuild of SQLite graph and sqlite-vec index
+#   --wipe               Force a full rebuild (pycodekg build) even if a graph
+#                        already exists; otherwise a repeat install refreshes
+#                        it incrementally (pycodekg update)
 #   --dry-run            Print what would be done without making any changes
 #
 # What it does:
 #   1. Creates skill directories for Claude Code, Kilo Code, and other agents
 #      and installs SKILL.md + references/installation.md into each
-#   2. Installs Claude Code slash commands (pycodekg, setup-pycodekg-mcp, changelog-commit,
-#      release) to ~/.claude/commands/
+#   2. Installs Claude Code slash commands (pycodekg, setup-pycodekg-mcp) to
+#      ~/.claude/commands/
 #   3. Installs the /pycodekg slash command into the target repo for Cline
 #   4. Installs pycode-kg if pycodekg is not found:
 #        a. pip install from latest GitHub release wheel (preferred, no git needed)
 #        b. pip install from git+https (fallback, needs git)
 #        c. poetry add (fallback for Poetry-managed repos)
-#   5. Builds the SQLite knowledge graph (skips if already present, unless --wipe)
-#   6. Builds the sqlite-vec vector index  (skips if already present, unless --wipe)
-#   7. Writes provider MCP configs as requested
-#   8. Prints a final summary
+#   5. Builds the knowledge graph: full rebuild on first install or --wipe,
+#      incremental refresh on a repeat install (pycodekg build / update)
+#   6. Writes provider MCP configs as requested
+#   7. Prints a final summary
 #
 # Author: Eric G. Suchanek, PhD
 # Last Revision: 2026-07-15 22:44:37
@@ -119,11 +121,12 @@ SKILL_DIRS=(
 )
 
 # Global Claude Code command files to install to ~/.claude/commands/
+# PyCodeKG-specific commands only. changelog-commit and release are fleet-wide
+# and live in ~/.claude/commands already — shipping repo copies meant every
+# install overwrote the global ones with a stale fork.
 CLAUDE_COMMAND_FILES=(
     "pycodekg.md"
     "setup-pycodekg-mcp.md"
-    "changelog-commit.md"
-    "release.md"
 )
 
 # ── Detect if we're running from inside the repo ─────────────────────────────
@@ -404,58 +407,48 @@ else
     echo "  – Skipped (cline not selected)"
 fi
 
-# ── Step 4: Build the SQLite knowledge graph ──────────────────────────────────
+# ── Step 5: Build the knowledge graph (SQLite graph + sqlite-vec index) ───────
+# Uses the atomic `pycodekg build`/`update` pipeline commands, not the
+# lower-level `build-sqlite`/`build-index` pair.  `build` always wipes both
+# stores; `update` never wipes either — neither takes a --wipe flag, so
+# there is exactly one existence check here instead of one per store, and no
+# way for the two stores to drift out of sync with each other.  `build` runs
+# on a fresh install or when --wipe was requested; `update` runs on a repeat
+# install, so re-running this script actually refreshes a stale graph
+# instead of silently doing nothing.
 echo ""
-echo "── Step 5: Building SQLite knowledge graph ──────────"
+echo "── Step 5: Building the knowledge graph ─────────────"
 echo ""
 
-if [ -f "$SQLITE_DB" ] && [ -z "$WIPE_FLAG" ]; then
-    echo "  ✓ SQLite graph already exists: ${SQLITE_DB} — skipping build"
-    echo "    (Run with --wipe to force rebuild)"
+GRAPH_EXISTS=0
+[ -f "$SQLITE_DB" ] && [ -f "$VECTORS_PATH" ] && GRAPH_EXISTS=1
+
+if [ "$GRAPH_EXISTS" = "1" ] && [ -z "$WIPE_FLAG" ]; then
+    BUILD_SUBCMD="update"
+    BUILD_LABEL="Refreshing (incremental)"
 else
-    if [ -n "$DRY_RUN" ]; then
-        echo "  [dry-run] would run: pycodekg build-sqlite --repo ${TARGET_REPO}${WIPE_FLAG:+ --wipe}"
+    BUILD_SUBCMD="build"
+    BUILD_LABEL="Building (full)"
+fi
+
+if [ -n "$DRY_RUN" ]; then
+    echo "  [dry-run] would run: pycodekg ${BUILD_SUBCMD} --repo ${TARGET_REPO}"
+else
+    _exec mkdir -p "$(dirname "$SQLITE_DB")"
+    echo "  → ${BUILD_LABEL} knowledge graph at: ${TARGET_REPO}/.pycodekg/"
+    (cd "${TARGET_REPO}" && "${PYCODEKG_BIN}" "${BUILD_SUBCMD}" --repo "${TARGET_REPO}")
+    if [ -f "$SQLITE_DB" ] && [ -f "$VECTORS_PATH" ]; then
+        echo "  ✓ Built: ${SQLITE_DB}"
+        echo "  ✓ Built: ${VECTORS_PATH}"
     else
-        _exec mkdir -p "$(dirname "$SQLITE_DB")"
-        echo "  → Building SQLite graph at: ${SQLITE_DB}"
-        _WIPE_ARG=${WIPE_FLAG:+--wipe}
-        (cd "${TARGET_REPO}" && "${PYCODEKG_BIN}" build-sqlite --repo "${TARGET_REPO}" ${_WIPE_ARG})
-        if [ -f "$SQLITE_DB" ]; then
-            echo "  ✓ Built: ${SQLITE_DB}"
-        else
-            echo "  ✗ Build failed — ${SQLITE_DB} not created"
-            exit 1
-        fi
+        echo "  ✗ Build failed — graph or vector index not created"
+        exit 1
     fi
 fi
 
-# ── Step 5: Build the sqlite-vec vector index ─────────────────────────────────
+# ── Step 6: Write .mcp.json (Claude Code + Kilo Code) ────────────────────────
 echo ""
-echo "── Step 6: Building sqlite-vec vector index ────────"
-echo ""
-
-if [ -f "$VECTORS_PATH" ] && [ -z "$WIPE_FLAG" ]; then
-    echo "  ✓ sqlite-vec index already exists: ${VECTORS_PATH} — skipping build"
-    echo "    (Run with --wipe to force rebuild)"
-else
-    if [ -n "$DRY_RUN" ]; then
-        echo "  [dry-run] would run: pycodekg build-index --repo ${TARGET_REPO}${WIPE_FLAG:+ --wipe}"
-    else
-        echo "  → Building sqlite-vec index at: ${VECTORS_PATH}"
-        _WIPE_ARG=${WIPE_FLAG:+--wipe}
-        (cd "${TARGET_REPO}" && "${PYCODEKG_BIN}" build-index --repo "${TARGET_REPO}" ${_WIPE_ARG})
-        if [ -f "$VECTORS_PATH" ]; then
-            echo "  ✓ Built: ${VECTORS_PATH}"
-        else
-            echo "  ✗ Build failed — ${VECTORS_PATH} not populated"
-            exit 1
-        fi
-    fi
-fi
-
-# ── Step 7: Write .mcp.json (Claude Code + Kilo Code) ────────────────────────
-echo ""
-echo "── Step 7: Configuring .mcp.json (Claude Code + Kilo Code) ──"
+echo "── Step 6: Configuring .mcp.json (Claude Code + Kilo Code) ──"
 echo ""
 
 MCP_JSON="${TARGET_REPO}/.mcp.json"
@@ -500,9 +493,9 @@ PYEOF
     echo "  ✓ Updated pycodekg entry in ${MCP_JSON}"
 fi
 
-# ── Step 8: Write .vscode/mcp.json (GitHub Copilot) ──────────────────────────
+# ── Step 7: Write .vscode/mcp.json (GitHub Copilot) ──────────────────────────
 echo ""
-echo "── Step 8: Configuring .vscode/mcp.json (GitHub Copilot) ──"
+echo "── Step 7: Configuring .vscode/mcp.json (GitHub Copilot) ──"
 echo ""
 
 VSCODE_DIR="${TARGET_REPO}/.vscode"
@@ -579,8 +572,6 @@ echo ""
 echo "  Claude commands installed:"
 echo "    ✓ ~/.claude/commands/pycodekg.md"
 echo "    ✓ ~/.claude/commands/setup-pycodekg-mcp.md"
-echo "    ✓ ~/.claude/commands/changelog-commit.md"
-echo "    ✓ ~/.claude/commands/release.md"
 echo ""
 echo "  Providers configured:"
 ( [ "$DO_CLAUDE" = "1" ] || [ "$DO_KILO" = "1" ] ) && echo "    ✓ Claude Code + Kilo Code  (.mcp.json)"
