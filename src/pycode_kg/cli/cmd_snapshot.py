@@ -61,7 +61,13 @@ def snapshot() -> None:
     "--tree-hash",
     default="",
     type=str,
-    help="Git tree hash; auto-detected if not provided.",
+    help="Git tree hash, recorded as provenance; auto-detected if not provided.",
+)
+@click.option(
+    "--subject",
+    default="",
+    type=str,
+    help="What was measured, e.g. 'repo:pycode-kg' or 'corpus:pepys'.",
 )
 def save_snapshot(
     version: str | None,
@@ -70,16 +76,25 @@ def save_snapshot(
     snapshots_dir: str | None,
     branch: str | None,
     tree_hash: str,
+    subject: str,
 ) -> None:
     """
     Capture current PyCodeKG metrics and save as a temporal snapshot.
 
     Reads graph statistics, docstring coverage, and complexity metrics from
-    the SQLite graph, then saves a snapshot tagged with the given VERSION.
-    The tree hash is auto-detected from git when not provided.
+    the SQLite graph, then saves a snapshot keyed on VERSION.
 
-    Snapshots are stored in .pycodekg/snapshots/{tree_hash}.json, with a
-    manifest.json tracking all snapshots and their metrics.
+    **Pass VERSION explicitly at release time.** An omitted VERSION is
+    auto-detected from the installed pycode-kg package, which names the
+    measuring tool rather than the repo being measured -- in any repo other
+    than this one that is the wrong number, so it is recorded as the version
+    but never used as the key. Omitting it keys the snapshot on a UTC
+    timestamp instead, which is the right answer for a corpus.
+
+    Snapshots are stored in .pycodekg/snapshots/{key}.json, with a
+    manifest.json tracking all snapshots and their metrics. The git tree hash
+    is recorded as provenance and is no longer the key: it is read before
+    `git add` stages the snapshot, so it names a tree that is never committed.
 
     Example:
         pycodekg snapshot save 0.5.1 --repo .
@@ -149,6 +164,10 @@ def save_snapshot(
         hotspots=hotspots,
         issues=issue_strings,
         tree_hash=tree_hash,
+        # An explicit VERSION is a release tag and becomes the key. An
+        # auto-detected one is the measuring tool's version and must not be.
+        key=version or "",
+        subject=subject or "",
     )
 
     snapshot_file = snap_mgr.save_snapshot(snapshot_obj)

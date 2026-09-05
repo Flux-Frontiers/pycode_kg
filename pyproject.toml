@@ -155,7 +155,7 @@ dependencies = [
     # this repo's visitor writes as of 0.24.1 -- against 0.18.0 the stubs are
     # tagged correctly but the tag is silently ignored, so resolution stays on
     # the old untyped trailing-name match with no error to say so.
-    "kgmodule-utils[semantic,viz3d]>=0.18.1",
+    "kgmodule-utils[semantic,viz3d]>=0.19.0",
 ]
 
 [project.optional-dependencies]

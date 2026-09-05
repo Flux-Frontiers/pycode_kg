@@ -1560,3 +1560,59 @@ def test_diff_snapshots_issues_delta_resolved(snapshot_dir: Path) -> None:
     diff = mgr.diff_snapshots("a", "b")
     assert "high coupling: bar" in diff["issues_delta"]["resolved"]
     assert "orphan module: foo" not in diff["issues_delta"]["resolved"]
+
+
+# ---------------------------------------------------------------------------
+# Key scheme (kgmodule-utils >= 0.19.0)
+# ---------------------------------------------------------------------------
+
+
+def test_capture_does_not_key_on_the_tree_hash(snapshot_dir: Path) -> None:
+    """The tree hash is provenance, not an identifier.
+
+    It is read before ``git add`` stages the snapshot, so it names a tree that
+    is never committed.
+    """
+    mgr = SnapshotManager(snapshot_dir)
+    snap = mgr.capture(
+        version="0.25.0",
+        branch="main",
+        graph_stats_dict={"total_nodes": 3, "total_edges": 2},
+        tree_hash="a" * 40,
+    )
+    assert snap.key != "a" * 40
+    assert snap.tree_hash == "a" * 40
+
+
+def test_capture_forwards_an_explicit_release_key(snapshot_dir: Path) -> None:
+    mgr = SnapshotManager(snapshot_dir)
+    snap = mgr.capture(
+        version="0.25.0",
+        branch="main",
+        graph_stats_dict={"total_nodes": 3, "total_edges": 2},
+        key="v0.25.0",
+        subject="repo:pycode-kg",
+    )
+    assert snap.key == "v0.25.0"
+    assert snap.subject == "repo:pycode-kg"
+
+
+def test_to_dict_is_not_overridden_and_uses_the_current_key(snapshot_dir: Path) -> None:
+    """The base to_dict is what supplies the key scheme.
+
+    An override here would keep writing tree-hash keys no matter what the SDK
+    does, which is the reason this class no longer has one.
+    """
+    assert "to_dict" not in Snapshot.__dict__
+
+    mgr = SnapshotManager(snapshot_dir)
+    snap = mgr.capture(
+        version="0.25.0",
+        branch="main",
+        graph_stats_dict={"total_nodes": 3, "total_edges": 2},
+        coverage=0.5,
+        key="v0.25.0",
+    )
+    d = snap.to_dict()
+    assert d["key"] == "v0.25.0"
+    assert d["metrics"]["docstring_coverage"] == 0.5  # typed property still serializes
