@@ -181,6 +181,12 @@ class Snapshot(_BaseSnapshot):
     The underlying ``metrics``, ``vs_previous``, and ``vs_baseline`` fields
     remain plain dicts on disk; the properties are view-only adapters.
 
+    ``to_dict`` is **not** overridden. The base reads those three fields out of
+    ``__dict__`` rather than through these properties (kgmodule-utils 0.19.0),
+    which is what the override used to exist for -- and the base is also what
+    supplies the current key scheme, so an override here would silently keep
+    writing tree-hash keys.
+
     Implementation note
     -------------------
     Python dataclass fields are stored in ``__dict__`` under their field name.
@@ -224,20 +230,6 @@ class Snapshot(_BaseSnapshot):
             self.__dict__["vs_baseline"] = delta_to_dict(value)
         else:
             self.__dict__["vs_baseline"] = value
-
-    def to_dict(self) -> dict[str, Any]:
-        """Convert snapshot to a JSON-serializable dictionary."""
-        return {
-            "key": self.tree_hash,
-            "branch": self.branch,
-            "timestamp": self.timestamp,
-            "version": self.version,
-            "metrics": self.__dict__["metrics"],
-            "hotspots": self.hotspots,
-            "issues": self.issues,
-            "vs_previous": self.__dict__["vs_previous"],
-            "vs_baseline": self.__dict__["vs_baseline"],
-        }
 
     @staticmethod
     def from_dict(data: dict[str, Any]) -> Snapshot:  # type: ignore[override]
@@ -302,6 +294,8 @@ class SnapshotManager(_BaseSnapshotManager):
         hotspots: list[dict[str, Any]] | None = None,
         issues: list[str] | None = None,
         tree_hash: str = "",
+        key: str = "",
+        subject: str = "",
     ) -> Snapshot:
         """Capture a pycode-kg snapshot.
 
@@ -324,7 +318,11 @@ class SnapshotManager(_BaseSnapshotManager):
         :param complexity_median: Median fan-in across functions.
         :param hotspots: Top hotspot entries.
         :param issues: Issue description strings.
-        :param tree_hash: Git tree hash; auto-detected if not provided.
+        :param tree_hash: Git tree hash, recorded as provenance; auto-detected
+            if not provided. It is not the snapshot's key.
+        :param key: Snapshot identifier. Pass the release tag at release time;
+            omit it and the base assigns a UTC timestamp.
+        :param subject: What was measured, e.g. ``repo:pycode-kg``.
         :return: New :class:`Snapshot` instance (not yet persisted).
         """
         module_node_counts = self._collect_module_node_counts()
@@ -334,6 +332,8 @@ class SnapshotManager(_BaseSnapshotManager):
             branch=branch,
             graph_stats_dict=graph_stats_dict,
             tree_hash=tree_hash,
+            key=key,
+            subject=subject,
             hotspots=hotspots,
             issues=issues,
             docstring_coverage=coverage,
