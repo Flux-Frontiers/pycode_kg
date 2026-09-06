@@ -158,6 +158,24 @@ def test_has_property_decorator_ignores_other_decorators() -> None:
     assert not _has_property_decorator(lines, def_lineno=3)
 
 
+def test_has_property_decorator_survives_a_line_number_past_eof() -> None:
+    """A stale graph names lines the current file no longer has.
+
+    ``def_lineno`` comes from the graph and the source from disk, so any edit
+    that shortens a module puts the two out of step. Indexing on that raised
+    IndexError and aborted the dependency phase for the whole repo.
+    """
+    lines = ["class C:", "    def key(self):", "        return 1"]
+    assert not _has_property_decorator(lines, def_lineno=400)
+    assert not _has_property_decorator([], def_lineno=1)
+
+
+def test_has_property_decorator_reads_the_line_above_the_last_def() -> None:
+    """The in-range boundary still resolves: a def on the final line."""
+    lines = ["class C:", "    @property", "    def key(self):"]
+    assert _has_property_decorator(lines, def_lineno=3)
+
+
 # ── _is_special_entry_point ──────────────────────────────────────────────────
 
 
