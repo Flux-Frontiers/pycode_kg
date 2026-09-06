@@ -70,7 +70,7 @@ torch = [
 # ---------------------------------------------------------------------------
 [project]
 name = "pycode-kg"
-version = "0.24.1"
+version = "0.25.0"
 description = "A tool to build a searchable knowledge graph from Python repositories"
 readme = "README.md"
 license = "Elastic-2.0"

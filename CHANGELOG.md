@@ -9,6 +9,8 @@ Note: older entries preserve the API names used at that release (for example com
 
 ## [Unreleased]
 
+## [0.25.0] - 2026-09-05
+
 ### Changed
 
 - **Snapshots are keyed on a release tag or timestamp, not a git tree hash.**
