@@ -9,6 +9,8 @@ Note: older entries preserve the API names used at that release (for example com
 
 ## [Unreleased]
 
+## [0.26.0] - 2026-09-06
+
 ### Fixed
 
 - **A stale graph crashed the dependency-analysis phase instead of degrading.**
