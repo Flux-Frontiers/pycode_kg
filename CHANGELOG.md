@@ -9,6 +9,18 @@ Note: older entries preserve the API names used at that release (for example com
 
 ## [Unreleased]
 
+### Fixed
+
+- **A stale graph crashed the dependency-analysis phase instead of degrading.**
+  `_has_property_decorator` takes a line number from the graph and the source
+  from the file on disk. Those disagree whenever the graph is older than the
+  working tree, which is the normal state between an edit and a rebuild, and
+  any edit that shortens a module put the index past the end of the list. The
+  result was an `IndexError` out of `analyze`, not a wrong answer. The scan
+  now treats an out-of-range line number as "no property decorator", so the
+  worst case is a node wrongly listed as an orphan in a report that is already
+  known to be stale.
+
 ### Changed
 
 - **`pycode_kg.snapshots.Snapshot` is now the shared `kg_utils.snapshots.Snapshot`,

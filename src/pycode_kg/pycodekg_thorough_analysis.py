@@ -333,12 +333,19 @@ def _has_property_decorator(source_lines: list[str], def_lineno: int) -> bool:
     found, matching ``@property``, ``@cached_property`` (bare or via
     ``functools``), and ``@<name>.setter/getter/deleter``.
 
+    ``def_lineno`` comes from the graph and ``source_lines`` from the file on
+    disk, so the two disagree whenever the graph is stale: a line number past
+    the end of the current file is normal after an edit, not a bug. Treat that
+    as "no property decorator" rather than indexing past the end -- a node
+    wrongly listed as an orphan is a report to re-read, an ``IndexError`` here
+    aborts the whole analysis phase.
+
     :param source_lines: Module source split into lines.
     :param def_lineno: 1-based line number of the ``def`` statement.
     :return: True when a property-family decorator precedes the definition.
     """
     i = def_lineno - 2  # 0-based index of the line above the def
-    while i >= 0:
+    while 0 <= i < len(source_lines):
         stripped = source_lines[i].strip()
         if not stripped.startswith("@"):
             break
