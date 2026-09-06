@@ -9,6 +9,8 @@ Note: older entries preserve the API names used at that release (for example com
 
 ## [Unreleased]
 
+## [0.25.1] - 2026-09-05
+
 ### Fixed
 
 - **Saved snapshots lost their key, subject, and tool provenance.** v0.25.0
