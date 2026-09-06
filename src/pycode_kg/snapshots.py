@@ -472,6 +472,10 @@ class SnapshotManager(_BaseSnapshotManager):
                 vs_previous=snapshot.__dict__["vs_previous"],
                 vs_baseline=snapshot.__dict__["vs_baseline"],
                 tree_hash=snapshot.tree_hash,
+                snapshot_key=snapshot.snapshot_key,
+                subject=snapshot.subject,
+                tool=snapshot.tool,
+                tool_version=snapshot.tool_version,
             )
             return super().save_snapshot(raw, force=force)
         return super().save_snapshot(snapshot, force=force)

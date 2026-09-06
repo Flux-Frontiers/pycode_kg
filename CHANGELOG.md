@@ -9,6 +9,17 @@ Note: older entries preserve the API names used at that release (for example com
 
 ## [Unreleased]
 
+### Fixed
+
+- **Saved snapshots lost their key, subject, and tool provenance.** v0.25.0
+  keyed snapshots on the release tag in memory, but `SnapshotManager.save_snapshot`
+  rebuilt a bare base `Snapshot` before writing and did not copy `snapshot_key`,
+  `subject`, `tool`, or `tool_version`. Every file on disk therefore fell back
+  to a tree-hash-derived key with empty provenance regardless of what the
+  caller passed to `capture()` -- the release's headline fix never actually
+  reached disk. The rebuild now copies all four fields, and a round-trip test
+  reads the file and manifest back to confirm it.
+
 ## [0.25.0] - 2026-09-05
 
 ### Changed

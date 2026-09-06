@@ -1331,12 +1331,19 @@ def test_snapshot_metrics_setter_accepts_dict() -> None:
 
 
 def _minimal_snap(
-    mgr: SnapshotManager, *, nodes: int, tree_hash: str, version: str = "1.0", branch: str = "main"
+    mgr: SnapshotManager,
+    *,
+    nodes: int,
+    tree_hash: str,
+    version: str = "1.0",
+    branch: str = "main",
+    key: str = "",
 ) -> Snapshot:
     return mgr.capture(
         version=version,
         branch=branch,
         tree_hash=tree_hash,
+        key=key,
         graph_stats_dict={
             "total_nodes": nodes,
             "total_edges": nodes * 2,
@@ -1348,15 +1355,40 @@ def _minimal_snap(
 
 
 def test_save_dedup_refresh_same_version_same_metrics(snapshot_dir: Path) -> None:
-    """Saving identical version+metrics under a new hash refreshes the manifest entry."""
+    """Saving identical version+metrics under a new key refreshes the manifest entry."""
     mgr = SnapshotManager(snapshot_dir)
-    s1 = _minimal_snap(mgr, nodes=100, tree_hash="h1")
+    s1 = _minimal_snap(mgr, nodes=100, tree_hash="h1", key="k1")
     mgr.save_snapshot(s1)
-    s2 = _minimal_snap(mgr, nodes=100, tree_hash="h2")  # same metrics
+    s2 = _minimal_snap(mgr, nodes=100, tree_hash="h2", key="k2")  # same metrics
     mgr.save_snapshot(s2)
     manifest = mgr.load_manifest()
     assert len(manifest.snapshots) == 1, "dedup must keep only one entry"
-    assert manifest.snapshots[0]["key"] == "h2"
+    assert manifest.snapshots[0]["key"] == "k2"
+
+
+def test_save_snapshot_preserves_key_subject_and_tool(snapshot_dir: Path) -> None:
+    """save_snapshot must not drop snapshot_key/subject/tool/tool_version.
+
+    Regression test: save_snapshot rebuilds a bare ``_BaseSnapshot`` to
+    normalize typed properties back to raw dicts before delegating to the
+    base implementation. That rebuild used to list every base field except
+    these four, so every saved file silently fell back to a tree-hash key
+    with empty provenance regardless of what the caller passed to capture().
+    """
+    mgr = SnapshotManager(snapshot_dir)
+    snap = _minimal_snap(mgr, nodes=100, tree_hash="h1", key="v0.25.0")
+    snap.subject = "repo:pycode-kg"
+    mgr.save_snapshot(snap)
+
+    on_disk = json.loads((snapshot_dir / "v0.25.0.json").read_text())
+    assert on_disk["key"] == "v0.25.0"
+    assert on_disk["subject"] == "repo:pycode-kg"
+    assert on_disk["tool"] == "pycode-kg"
+    assert on_disk["tool_version"]
+
+    manifest = mgr.load_manifest()
+    assert manifest.snapshots[0]["key"] == "v0.25.0"
+    assert manifest.snapshots[0]["subject"] == "repo:pycode-kg"
 
 
 def test_save_force_bypasses_dedup(snapshot_dir: Path) -> None:
