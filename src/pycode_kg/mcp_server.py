@@ -1653,7 +1653,7 @@ def snapshot_show(key: str = "latest") -> str:
     if snapshot is None:
         return json.dumps({"error": f"Snapshot not found for key: {key!r}"})
     out = snapshot.to_dict()
-    out["freshness"] = _snapshot_freshness(snapshot.metrics.total_nodes)
+    out["freshness"] = _snapshot_freshness(snapshot.metrics.get("total_nodes", 0))
     return json.dumps(out, indent=2, ensure_ascii=False)
 
 

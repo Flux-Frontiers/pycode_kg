@@ -1,38 +1,39 @@
 """
 snapshots.py — Temporal Snapshots of PyCodeKG Metrics
 
-Thin compatibility layer over the shared ``kg_utils.snapshots`` module.
+Thin layer over the shared ``kg_utils.snapshots`` module.
 
-The shared module provides canonical ``Snapshot``, ``SnapshotManifest``, and
-``SnapshotManager`` backed by free-form dicts.  This module re-exports those
-types and adds:
+``Snapshot``, ``SnapshotManifest`` and ``PruneResult`` are re-exported from
+``kg_utils.snapshots`` unchanged.  A snapshot's ``metrics``, ``vs_previous``
+and ``vs_baseline`` are plain dicts, which is what the shared manager reads
+and writes.
 
-  - ``SnapshotMetrics`` — domain-specific dataclass (used by CLI and tests)
-  - ``SnapshotDelta``   — domain-specific dataclass (used by CLI and tests)
-  - ``SnapshotManager`` subclass that:
-      * sets ``package_name="pycode-kg"`` by default
-      * overrides ``capture()`` to accept the legacy per-field kwargs
-        (``coverage``, ``critical_issues``, ``complexity_median``) and
-        build the structured ``metrics`` dict
-      * overrides ``_compute_delta_from_metrics`` to include
-        ``coverage_delta`` and ``critical_issues_delta``
-      * adds ``_collect_module_node_counts()`` — SQLite per-module counts
-  - ``metrics_to_dict`` / ``metrics_from_dict`` — helpers for converting
-    between ``SnapshotMetrics`` dataclass and the underlying dict
-  - ``delta_to_dict`` / ``delta_from_dict`` — same for ``SnapshotDelta``
+This module adds:
 
-``Snapshot`` is re-exported from ``kg_utils.snapshots``.  For backwards
-compatibility ``snapshot.metrics`` returns a ``SnapshotMetrics``-shaped
-view object when the snapshot was constructed via this module's helpers.
+  - ``SnapshotMetrics`` / ``SnapshotDelta`` — domain dataclasses, used as
+    converters by callers that want attribute access.  Convert with
+    ``metrics_from_dict`` / ``metrics_to_dict`` and ``delta_from_dict`` /
+    ``delta_to_dict``; a ``Snapshot`` never holds one.
+  - a ``SnapshotManager`` subclass that sets ``package_name="pycode-kg"``,
+    names the pycode-kg metric fields in ``capture()``, adds
+    ``coverage_delta`` and ``critical_issues_delta`` to deltas, collects
+    per-module node counts from SQLite, and extends a diff with
+    ``module_node_counts_delta``, ``issues_delta`` and ``timestamp``.
+
+Do not subclass ``Snapshot`` here.  A subclass that exposes ``metrics``,
+``vs_previous`` or ``vs_baseline`` as properties breaks every shared manager
+method that reads those fields by attribute, and each one then needs a
+hand-written copy.  One such copy dropped ``snapshot_key``, ``subject`` and
+``tool`` on the way to disk, which shipped in 0.25.0.
 
 Usage
 -----
->>> from pycode_kg.snapshots import SnapshotManager
+>>> from pycode_kg.snapshots import SnapshotManager, metrics_from_dict
 >>> mgr = SnapshotManager(".pycodekg/snapshots")
->>> snapshot = mgr.capture("v0.5.1", "develop", graph_stats_dict)
+>>> snapshot = mgr.capture(version="0.5.1", key="v0.5.1", subject="repo:pycode-kg")
 >>> mgr.save_snapshot(snapshot)
->>> manifest = mgr.load_manifest()
->>> prev = mgr.get_previous(tree_hash)
+>>> metrics_from_dict(snapshot.metrics).docstring_coverage
+0.0
 
 Author: Eric G. Suchanek, PhD
 
@@ -51,9 +52,9 @@ from typing import Any
 # ---------------------------------------------------------------------------
 from kg_utils.snapshots import (
     PruneResult,  # noqa: F401  re-exported
+    Snapshot,  # noqa: F401  re-exported
     SnapshotManifest,  # noqa: F401  re-exported
 )
-from kg_utils.snapshots import Snapshot as _BaseSnapshot
 from kg_utils.snapshots import SnapshotManager as _BaseSnapshotManager
 
 __all__ = [
@@ -166,79 +167,6 @@ def delta_from_dict(d: dict[str, Any] | None) -> SnapshotDelta | None:
 
 
 # ---------------------------------------------------------------------------
-# Snapshot — thin compatibility wrapper around the shared dict-based model
-# ---------------------------------------------------------------------------
-
-
-class Snapshot(_BaseSnapshot):
-    """pycode-kg Snapshot with attribute-style access to metrics and deltas.
-
-    Extends the shared ``kg_utils.snapshots.Snapshot`` (which stores metrics
-    as a free-form dict) with ``@property`` accessors that return the typed
-    ``SnapshotMetrics`` and ``SnapshotDelta`` objects that the CLI and tests
-    expect.
-
-    The underlying ``metrics``, ``vs_previous``, and ``vs_baseline`` fields
-    remain plain dicts on disk; the properties are view-only adapters.
-
-    ``to_dict`` is **not** overridden. The base reads those three fields out of
-    ``__dict__`` rather than through these properties (kgmodule-utils 0.19.0),
-    which is what the override used to exist for -- and the base is also what
-    supplies the current key scheme, so an override here would silently keep
-    writing tree-hash keys.
-
-    Implementation note
-    -------------------
-    Python dataclass fields are stored in ``__dict__`` under their field name.
-    The properties below always read and write the raw dict stored in
-    ``self.__dict__`` directly so that the shared base-class infrastructure
-    (which expects plain dicts) continues to work without modification.
-    """
-
-    @property  # type: ignore[override]
-    def metrics(self) -> SnapshotMetrics:  # type: ignore[override]
-        """Return metrics as a ``SnapshotMetrics`` dataclass view."""
-        return metrics_from_dict(self.__dict__["metrics"])
-
-    @metrics.setter
-    def metrics(self, value: SnapshotMetrics | dict[str, Any]) -> None:
-        if isinstance(value, SnapshotMetrics):
-            self.__dict__["metrics"] = metrics_to_dict(value)
-        else:
-            self.__dict__["metrics"] = value
-
-    @property  # type: ignore[override]
-    def vs_previous(self) -> SnapshotDelta | None:  # type: ignore[override]
-        """Return vs_previous as a ``SnapshotDelta`` dataclass view."""
-        return delta_from_dict(self.__dict__["vs_previous"])
-
-    @vs_previous.setter
-    def vs_previous(self, value: SnapshotDelta | dict[str, Any] | None) -> None:
-        if isinstance(value, SnapshotDelta):
-            self.__dict__["vs_previous"] = delta_to_dict(value)
-        else:
-            self.__dict__["vs_previous"] = value
-
-    @property  # type: ignore[override]
-    def vs_baseline(self) -> SnapshotDelta | None:  # type: ignore[override]
-        """Return vs_baseline as a ``SnapshotDelta`` dataclass view."""
-        return delta_from_dict(self.__dict__["vs_baseline"])
-
-    @vs_baseline.setter
-    def vs_baseline(self, value: SnapshotDelta | dict[str, Any] | None) -> None:
-        if isinstance(value, SnapshotDelta):
-            self.__dict__["vs_baseline"] = delta_to_dict(value)
-        else:
-            self.__dict__["vs_baseline"] = value
-
-    @staticmethod
-    def from_dict(data: dict[str, Any]) -> Snapshot:  # type: ignore[override]
-        """Reconstruct a pycode-kg ``Snapshot`` from a dictionary."""
-        base = _BaseSnapshot.from_dict(data)
-        return _rewrap(base)
-
-
-# ---------------------------------------------------------------------------
 # SnapshotManager — pycode-kg specialisation of the shared manager
 # ---------------------------------------------------------------------------
 
@@ -249,14 +177,19 @@ class SnapshotManager(_BaseSnapshotManager):
     Subclasses the shared ``kg_utils.snapshots.SnapshotManager`` and adds:
 
     * ``package_name="pycode-kg"`` default for version detection.
-    * Legacy ``capture()`` kwargs: ``coverage``, ``critical_issues``,
-      ``complexity_median`` — merged into the metrics dict.
+    * A ``capture()`` naming the pycode-kg metric fields (``coverage``,
+      ``critical_issues``, ``complexity_median`` and the coverage numerator
+      and denominator) and collecting per-module node counts.
     * ``_compute_delta_from_metrics`` extended with ``coverage_delta`` and
       ``critical_issues_delta``.
-    * ``_collect_module_node_counts()`` — SQLite per-module node counts stored
-      in snapshot metrics under ``"module_node_counts"``.
-    * Returns ``pycode_kg.snapshots.Snapshot`` instances (with typed-accessor
-      properties) from all load/capture methods.
+    * ``diff_snapshots`` extended with ``module_node_counts_delta``,
+      ``issues_delta`` and ``timestamp``.
+    * ``_collect_module_node_counts()`` — SQLite per-module node counts.
+
+    Everything else -- saving, loading, listing, pruning, key handling -- is
+    inherited unchanged.  Overriding those to convert between dicts and the
+    domain dataclasses is what this module used to do, and is what let the
+    0.25.0 snapshot key regression through.
     """
 
     def __init__(
@@ -278,7 +211,7 @@ class SnapshotManager(_BaseSnapshotManager):
         super().__init__(snapshots_dir, package_name=package_name, db_path=db_path)
 
     # ------------------------------------------------------------------
-    # capture — backwards-compat wrapper
+    # capture — name the pycode-kg metric fields
     # ------------------------------------------------------------------
 
     def capture(  # ty: ignore[invalid-method-override]
@@ -299,15 +232,14 @@ class SnapshotManager(_BaseSnapshotManager):
     ) -> Snapshot:
         """Capture a pycode-kg snapshot.
 
-        Accepts the legacy per-field kwargs (``coverage``, ``critical_issues``,
-        ``complexity_median``) in addition to the dict-based
-        ``graph_stats_dict`` from the base class, and builds the full metrics
-        dict expected by the shared infrastructure.
+        Names the pycode-kg metric fields explicitly rather than taking them
+        through ``**extra_metrics``, and adds per-module node counts, then
+        delegates to the shared implementation.
 
         :param version: Version string (e.g., "0.5.1").
         :param branch: Git branch name; auto-detected if None.
         :param graph_stats_dict: Output from ``graph_stats()`` / ``store.stats()``.
-        :param coverage: Docstring coverage fraction (0.0–1.0).
+        :param coverage: Docstring coverage fraction (0.0-1.0).
         :param coverage_documented: Nodes with a non-empty docstring — the
             numerator behind ``coverage``.  Shown beside the percentage in
             Snapshot History so a coverage drop caused by adding undocumented
@@ -323,11 +255,9 @@ class SnapshotManager(_BaseSnapshotManager):
         :param key: Snapshot identifier. Pass the release tag at release time;
             omit it and the base assigns a UTC timestamp.
         :param subject: What was measured, e.g. ``repo:pycode-kg``.
-        :return: New :class:`Snapshot` instance (not yet persisted).
+        :return: New :class:`~kg_utils.snapshots.Snapshot` (not yet persisted).
         """
-        module_node_counts = self._collect_module_node_counts()
-
-        base_snap = super().capture(
+        return super().capture(
             version=version,
             branch=branch,
             graph_stats_dict=graph_stats_dict,
@@ -341,96 +271,54 @@ class SnapshotManager(_BaseSnapshotManager):
             coverage_total=coverage_total,
             critical_issues=critical_issues,
             complexity_median=complexity_median,
-            module_node_counts=module_node_counts,
+            module_node_counts=self._collect_module_node_counts(),
         )
 
-        return _rewrap(base_snap)
-
     # ------------------------------------------------------------------
-    # diff_snapshots — adds module_node_counts_delta and issues_delta
+    # diff_snapshots — adds module_node_counts_delta, issues_delta, timestamp
     # ------------------------------------------------------------------
 
     def diff_snapshots(self, key_a: str, key_b: str) -> dict[str, Any]:
         """Compare two snapshots side-by-side.
 
-        Extends the base diff with ``module_node_counts_delta`` and
-        ``issues_delta`` (introduced / resolved issue strings).
+        Extends the shared diff with ``module_node_counts_delta``,
+        ``issues_delta`` (introduced / resolved issue strings) and the
+        ``timestamp`` of each side, which the CLI prints.
 
-        :param key_a: First snapshot key (tree hash).
-        :param key_b: Second snapshot key (tree hash).
-        :return: Dict with metrics from both, computed deltas.
+        :param key_a: Earlier snapshot key.
+        :param key_b: Later snapshot key.
+        :return: The shared diff result with the pycode-kg additions.
         """
-        snap_a = _BaseSnapshotManager.load_snapshot(self, key_a)
-        snap_b = _BaseSnapshotManager.load_snapshot(self, key_b)
+        result = super().diff_snapshots(key_a, key_b)
+        if "error" in result:
+            return result
 
-        if not snap_a or not snap_b:
-            return {"error": "One or both snapshots not found"}
+        for side, key in (("a", key_a), ("b", key_b)):
+            snap = self.load_snapshot(key)
+            if snap is not None:
+                result[side]["timestamp"] = snap.timestamp
 
-        m_a = snap_a.metrics
-        m_b = snap_b.metrics
-
-        all_node_kinds = set(m_a.get("node_counts", {})) | set(m_b.get("node_counts", {}))
-        all_edge_rels = set(m_a.get("edge_counts", {})) | set(m_b.get("edge_counts", {}))
-
-        node_counts_delta = {
-            k: m_b.get("node_counts", {}).get(k, 0) - m_a.get("node_counts", {}).get(k, 0)
-            for k in all_node_kinds
-        }
-        edge_counts_delta = {
-            k: m_b.get("edge_counts", {}).get(k, 0) - m_a.get("edge_counts", {}).get(k, 0)
-            for k in all_edge_rels
+        m_a: dict[str, Any] = result["a"]["metrics"]
+        m_b: dict[str, Any] = result["b"]["metrics"]
+        counts_a: dict[str, int] = m_a.get("module_node_counts", {})
+        counts_b: dict[str, int] = m_b.get("module_node_counts", {})
+        result["module_node_counts_delta"] = {
+            mod: counts_b.get(mod, 0) - counts_a.get(mod, 0)
+            for mod in set(counts_a) | set(counts_b)
+            if counts_b.get(mod, 0) != counts_a.get(mod, 0)
         }
 
-        all_modules = set(m_a.get("module_node_counts", {})) | set(
-            m_b.get("module_node_counts", {})
-        )
-        module_node_counts_delta = {
-            mod: m_b.get("module_node_counts", {}).get(mod, 0)
-            - m_a.get("module_node_counts", {}).get(mod, 0)
-            for mod in all_modules
-            if m_b.get("module_node_counts", {}).get(mod, 0)
-            != m_a.get("module_node_counts", {}).get(mod, 0)
+        issues_a = set(result["a"]["issues"])
+        issues_b = set(result["b"]["issues"])
+        result["issues_delta"] = {
+            "introduced": list(issues_b - issues_a),
+            "resolved": list(issues_a - issues_b),
         }
-
-        issues_a = set(snap_a.issues)
-        issues_b = set(snap_b.issues)
-
-        return {
-            "a": {
-                "key": snap_a.key,
-                "metrics": m_a,
-                "issues": snap_a.issues,
-                "timestamp": snap_a.timestamp,
-            },
-            "b": {
-                "key": snap_b.key,
-                "metrics": m_b,
-                "issues": snap_b.issues,
-                "timestamp": snap_b.timestamp,
-            },
-            "delta": self._compute_delta_from_metrics(m_b, m_a),
-            "node_counts_delta": node_counts_delta,
-            "edge_counts_delta": edge_counts_delta,
-            "module_node_counts_delta": module_node_counts_delta,
-            "issues_delta": {
-                "introduced": list(issues_b - issues_a),
-                "resolved": list(issues_a - issues_b),
-            },
-        }
+        return result
 
     # ------------------------------------------------------------------
     # Delta computation — adds coverage_delta and critical_issues_delta
     # ------------------------------------------------------------------
-
-    def _compute_delta(self, snap_new: _BaseSnapshot, snap_old: _BaseSnapshot) -> dict[str, Any]:
-        """Compute delta, extracting raw metric dicts to avoid the typed-property layer."""
-        new_m = snap_new.__dict__.get("metrics", snap_new.metrics)
-        old_m = snap_old.__dict__.get("metrics", snap_old.metrics)
-        if isinstance(new_m, SnapshotMetrics):
-            new_m = metrics_to_dict(new_m)
-        if isinstance(old_m, SnapshotMetrics):
-            old_m = metrics_to_dict(old_m)
-        return self._compute_delta_from_metrics(new_m, old_m)
 
     def _compute_delta_from_metrics(
         self, new_m: dict[str, Any], old_m: dict[str, Any]
@@ -446,58 +334,6 @@ class SnapshotManager(_BaseSnapshotManager):
                 new_m.get("critical_issues", 0) - old_m.get("critical_issues", 0)
             ),
         }
-
-    # ------------------------------------------------------------------
-    # save_snapshot — normalise typed properties back to raw dicts first
-    # ------------------------------------------------------------------
-
-    def save_snapshot(self, snapshot: _BaseSnapshot, *, force: bool = False) -> Any:
-        """Persist snapshot, normalising any typed-property values to raw dicts.
-
-        The base ``save_snapshot`` inspects ``snapshot.metrics`` (expects a
-        dict) and ``snapshot.vs_previous`` / ``snapshot.vs_baseline`` (expects
-        dicts or None) directly.  If ``snapshot`` is a pycode-kg ``Snapshot``
-        the properties return typed dataclasses instead; we substitute a plain
-        ``_BaseSnapshot`` carrying the raw dicts so the base implementation
-        can serialise without modification.
-        """
-        if isinstance(snapshot, Snapshot):
-            raw = _BaseSnapshot(
-                branch=snapshot.branch,
-                timestamp=snapshot.timestamp,
-                version=snapshot.version,
-                metrics=snapshot.__dict__["metrics"],
-                hotspots=snapshot.hotspots,
-                issues=snapshot.issues,
-                vs_previous=snapshot.__dict__["vs_previous"],
-                vs_baseline=snapshot.__dict__["vs_baseline"],
-                tree_hash=snapshot.tree_hash,
-                snapshot_key=snapshot.snapshot_key,
-                subject=snapshot.subject,
-                tool=snapshot.tool,
-                tool_version=snapshot.tool_version,
-            )
-            return super().save_snapshot(raw, force=force)
-        return super().save_snapshot(snapshot, force=force)
-
-    # ------------------------------------------------------------------
-    # Load helpers — re-wrap base Snapshot instances as pycode-kg Snapshots
-    # ------------------------------------------------------------------
-
-    def load_snapshot(self, key: str) -> Snapshot | None:  # type: ignore[override]
-        """Load a snapshot by key and re-wrap it as a pycode-kg ``Snapshot`` with typed-accessor properties. Returns ``None`` if no snapshot matches."""
-        snap = super().load_snapshot(key)
-        return _rewrap(snap) if snap is not None else None
-
-    def get_previous(self, key: str) -> Snapshot | None:  # type: ignore[override]
-        """Return the snapshot immediately preceding ``key`` in manifest chronology, re-wrapped as a pycode-kg ``Snapshot``. ``None`` when ``key`` is the earliest."""
-        snap = super().get_previous(key)
-        return _rewrap(snap) if snap is not None else None
-
-    def get_baseline(self) -> Snapshot | None:  # type: ignore[override]
-        """Return the earliest (baseline) snapshot in the manifest, re-wrapped as a pycode-kg ``Snapshot``. ``None`` if no snapshots exist."""
-        snap = super().get_baseline()
-        return _rewrap(snap) if snap is not None else None
 
     # ------------------------------------------------------------------
     # SQLite per-module node counts
@@ -519,17 +355,3 @@ class SnapshotManager(_BaseSnapshotManager):
             return {row[0]: row[1] for row in rows if row[0]}
         except sqlite3.Error:
             return {}
-
-
-# ---------------------------------------------------------------------------
-# Internal helper
-# ---------------------------------------------------------------------------
-
-
-def _rewrap(base: _BaseSnapshot) -> Snapshot:
-    """Re-wrap a base Snapshot as a pycode-kg Snapshot (no data copying)."""
-    if isinstance(base, Snapshot):
-        return base
-    snap = Snapshot.__new__(Snapshot)
-    snap.__dict__.update(base.__dict__)
-    return snap

@@ -9,6 +9,37 @@ Note: older entries preserve the API names used at that release (for example com
 
 ## [Unreleased]
 
+### Changed
+
+- **`pycode_kg.snapshots.Snapshot` is now the shared `kg_utils.snapshots.Snapshot`,
+  not a subclass.** The subclass replaced `metrics`, `vs_previous` and
+  `vs_baseline` with properties returning `SnapshotMetrics` and `SnapshotDelta`.
+  Every shared manager method that reads those fields by attribute then needed a
+  hand-written copy, and this module carried nine: `capture`, `save_snapshot`,
+  `load_snapshot`, `get_previous`, `get_baseline`, `diff_snapshots`,
+  `_compute_delta`, `to_dict` and `from_dict`. The `save_snapshot` copy is what
+  dropped the key and provenance in 0.25.0, fixed in 0.25.1 by patching the copy
+  rather than removing it. Removing the subclass removes the whole class of bug:
+  `save_snapshot`, `load_snapshot`, `get_previous`, `get_baseline`,
+  `_compute_delta` and the `Snapshot` class itself are all gone, and the shared
+  implementations run unmodified.
+
+  A snapshot's `metrics`, `vs_previous` and `vs_baseline` are plain dicts.
+  `SnapshotMetrics` and `SnapshotDelta` remain exported as converters for
+  callers that want attribute access, along with `metrics_to_dict`,
+  `metrics_from_dict`, `delta_to_dict` and `delta_from_dict`. Read a metric as
+  `snap.metrics["total_nodes"]`, or as
+  `metrics_from_dict(snap.metrics).module_node_counts` when you want the
+  converter's defaults for keys a legacy snapshot does not carry.
+
+  `SnapshotManager` keeps only what is genuinely PyCodeKG-specific: the
+  `package_name` default, the `capture()` naming the pycode-kg metric fields and
+  collecting per-module node counts, `coverage_delta` and
+  `critical_issues_delta` in `_compute_delta_from_metrics`, a `diff_snapshots`
+  adding `module_node_counts_delta`, `issues_delta` and `timestamp`, and
+  `_collect_module_node_counts()`. Snapshot files, manifests, the CLI output and
+  the `snapshot_show` / `snapshot_diff` MCP tools are unchanged.
+
 ## [0.25.1] - 2026-09-05
 
 ### Fixed

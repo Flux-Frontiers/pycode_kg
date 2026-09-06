@@ -10,9 +10,11 @@ from __future__ import annotations
 import json
 import subprocess
 from pathlib import Path
+from typing import Any
 from unittest.mock import patch
 
 import pytest
+from kg_utils.snapshots import Snapshot as _SharedSnapshot
 
 from pycode_kg.snapshots import (
     Snapshot,
@@ -20,7 +22,21 @@ from pycode_kg.snapshots import (
     SnapshotManager,
     SnapshotManifest,
     SnapshotMetrics,
+    delta_from_dict,
+    delta_to_dict,
+    metrics_from_dict,
+    metrics_to_dict,
 )
+
+
+def _metrics_dict(**kwargs: Any) -> dict[str, Any]:
+    """Build the metrics dict a Snapshot stores.
+
+    A Snapshot holds plain dicts; ``SnapshotMetrics`` is a converter for
+    callers that want attribute access, never the stored value.
+    """
+    return metrics_to_dict(SnapshotMetrics(**kwargs))
+
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -57,7 +73,7 @@ def sample_snapshot(sample_metrics: SnapshotMetrics) -> Snapshot:
         branch="develop",
         timestamp="2026-03-07T12:00:00+00:00",
         version="0.5.1",
-        metrics=sample_metrics,
+        metrics=metrics_to_dict(sample_metrics),
         hotspots=[{"name": "func_a", "callers": 5}, {"name": "func_b", "callers": 3}],
         tree_hash="abc123def456",  # pragma: allowlist secret
     )
@@ -126,7 +142,7 @@ def test_snapshot_creation(sample_snapshot: Snapshot) -> None:
     assert sample_snapshot.key == "abc123def456"  # pragma: allowlist secret
     assert sample_snapshot.branch == "develop"
     assert sample_snapshot.version == "0.5.1"
-    assert sample_snapshot.metrics.total_nodes == 100
+    assert sample_snapshot.metrics["total_nodes"] == 100
     assert len(sample_snapshot.hotspots) == 2
 
 
@@ -148,7 +164,7 @@ def test_snapshot_from_dict(sample_snapshot: Snapshot) -> None:
     assert restored.tree_hash == sample_snapshot.tree_hash
     assert restored.branch == sample_snapshot.branch
     assert restored.version == sample_snapshot.version
-    assert restored.metrics.total_nodes == sample_snapshot.metrics.total_nodes
+    assert restored.metrics["total_nodes"] == sample_snapshot.metrics["total_nodes"]
 
 
 def test_snapshot_roundtrip(sample_snapshot: Snapshot) -> None:
@@ -163,7 +179,7 @@ def test_snapshot_roundtrip(sample_snapshot: Snapshot) -> None:
 
 def test_snapshot_with_deltas() -> None:
     """Test Snapshot with delta information."""
-    metrics = SnapshotMetrics(
+    metrics = _metrics_dict(
         total_nodes=100,
         total_edges=150,
         meaningful_nodes=80,
@@ -181,8 +197,8 @@ def test_snapshot_with_deltas() -> None:
         timestamp="2026-03-07T12:00:00+00:00",
         version="0.5.1",
         metrics=metrics,
-        vs_previous=vs_prev,
-        vs_baseline=vs_base,
+        vs_previous=delta_to_dict(vs_prev),
+        vs_baseline=delta_to_dict(vs_base),
         tree_hash="abc123",
     )
 
@@ -193,7 +209,7 @@ def test_snapshot_with_deltas() -> None:
     restored = Snapshot.from_dict(snap_dict)
     assert restored.vs_previous is not None
     assert restored.vs_baseline is not None
-    assert restored.vs_previous.nodes == 10
+    assert restored.vs_previous["nodes"] == 10
 
 
 # ---------------------------------------------------------------------------
@@ -247,7 +263,7 @@ def test_snapshot_manager_capture(snapshot_dir: Path, sample_metrics: SnapshotMe
     assert snap.tree_hash == "abc123tree"  # pragma: allowlist secret
     assert snap.branch == "develop"
     assert snap.version == "0.5.1"
-    assert snap.metrics.total_nodes == 100
+    assert snap.metrics["total_nodes"] == 100
 
 
 def test_snapshot_manager_capture_coverage_counts(
@@ -274,8 +290,8 @@ def test_snapshot_manager_capture_coverage_counts(
                 complexity_median=1.0,
             )
 
-    assert snap.metrics.coverage_documented == 68
-    assert snap.metrics.coverage_total == 80
+    assert snap.metrics["coverage_documented"] == 68
+    assert snap.metrics["coverage_total"] == 80
 
 
 def test_snapshot_metrics_coverage_counts_default_to_zero() -> None:
@@ -337,7 +353,7 @@ def test_snapshot_manager_list_snapshots(snapshot_dir: Path) -> None:
     """Test listing snapshots."""
     mgr = SnapshotManager(snapshot_dir)
 
-    metrics = SnapshotMetrics(
+    metrics = _metrics_dict(
         total_nodes=100,
         total_edges=150,
         meaningful_nodes=80,
@@ -377,7 +393,7 @@ def test_snapshot_manager_diff_snapshots(snapshot_dir: Path) -> None:
     """Test snapshot diff."""
     mgr = SnapshotManager(snapshot_dir)
 
-    metrics1 = SnapshotMetrics(
+    metrics1 = _metrics_dict(
         total_nodes=100,
         total_edges=150,
         meaningful_nodes=80,
@@ -387,7 +403,7 @@ def test_snapshot_manager_diff_snapshots(snapshot_dir: Path) -> None:
         critical_issues=2,
         complexity_median=3.5,
     )
-    metrics2 = SnapshotMetrics(
+    metrics2 = _metrics_dict(
         total_nodes=120,
         total_edges=170,
         meaningful_nodes=95,
@@ -429,7 +445,7 @@ def test_snapshot_manager_get_previous(snapshot_dir: Path) -> None:
     """Test getting previous snapshot."""
     mgr = SnapshotManager(snapshot_dir)
 
-    metrics = SnapshotMetrics(
+    metrics = _metrics_dict(
         total_nodes=100,
         total_edges=150,
         meaningful_nodes=80,
@@ -467,7 +483,7 @@ def test_snapshot_manager_get_baseline(snapshot_dir: Path) -> None:
     """Test getting baseline (oldest) snapshot."""
     mgr = SnapshotManager(snapshot_dir)
 
-    metrics = SnapshotMetrics(
+    metrics = _metrics_dict(
         total_nodes=100,
         total_edges=150,
         meaningful_nodes=80,
@@ -505,7 +521,7 @@ def test_snapshot_manager_delta_computation(snapshot_dir: Path) -> None:
     """Test automatic delta computation on capture."""
     mgr = SnapshotManager(snapshot_dir)
 
-    metrics1 = SnapshotMetrics(
+    metrics1 = _metrics_dict(
         total_nodes=100,
         total_edges=150,
         meaningful_nodes=80,
@@ -545,10 +561,10 @@ def test_snapshot_manager_delta_computation(snapshot_dir: Path) -> None:
     # But since capture uses current time, we need to check vs_baseline instead
     # which is computed regardless
     assert snap2.vs_baseline is not None
-    assert snap2.vs_baseline.nodes == 10
-    assert snap2.vs_baseline.edges == 10
-    assert abs(snap2.vs_baseline.coverage_delta - 0.02) < 0.01
-    assert snap2.vs_baseline.critical_issues_delta == -1
+    assert snap2.vs_baseline["nodes"] == 10
+    assert snap2.vs_baseline["edges"] == 10
+    assert abs(snap2.vs_baseline["coverage_delta"] - 0.02) < 0.01
+    assert snap2.vs_baseline["critical_issues_delta"] == -1
 
 
 # ---------------------------------------------------------------------------
@@ -639,7 +655,7 @@ def test_save_snapshot_manifest_has_full_metrics(
 def test_save_snapshot_zero_nodes_raises(snapshot_dir: Path) -> None:
     """save_snapshot raises ValueError for a degenerate (0-node) snapshot."""
     mgr = SnapshotManager(snapshot_dir)
-    empty_metrics = SnapshotMetrics(
+    empty_metrics = _metrics_dict(
         total_nodes=0,
         total_edges=0,
         meaningful_nodes=0,
@@ -670,7 +686,7 @@ def test_save_snapshot_same_key_updates_manifest_entry(
         branch="develop",
         timestamp="2026-03-07T12:00:00+00:00",
         version="0.5.0",
-        metrics=sample_metrics,
+        metrics=metrics_to_dict(sample_metrics),
         tree_hash="samehash",
     )
     mgr.save_snapshot(snap_v1)
@@ -679,7 +695,7 @@ def test_save_snapshot_same_key_updates_manifest_entry(
         branch="develop",
         timestamp="2026-03-07T12:00:00+00:00",
         version="0.5.1",  # updated version
-        metrics=sample_metrics,
+        metrics=metrics_to_dict(sample_metrics),
         tree_hash="samehash",  # same key
     )
     mgr.save_snapshot(snap_v2)
@@ -694,7 +710,7 @@ def test_save_snapshot_same_key_updates_manifest_entry(
 def test_list_snapshots_with_limit(snapshot_dir: Path) -> None:
     """list_snapshots(limit=N) returns at most N entries."""
     mgr = SnapshotManager(snapshot_dir)
-    metrics = SnapshotMetrics(
+    metrics = _metrics_dict(
         total_nodes=100,
         total_edges=150,
         meaningful_nodes=80,
@@ -722,7 +738,7 @@ def test_list_snapshots_with_limit(snapshot_dir: Path) -> None:
 def test_list_snapshots_branch_filter(snapshot_dir: Path) -> None:
     """list_snapshots(branch=...) returns only snapshots for that branch."""
     mgr = SnapshotManager(snapshot_dir)
-    metrics = SnapshotMetrics(
+    metrics = _metrics_dict(
         total_nodes=100,
         total_edges=150,
         meaningful_nodes=80,
@@ -784,7 +800,7 @@ def test_diff_snapshots_node_edge_kind_breakdown(snapshot_dir: Path) -> None:
         branch="develop",
         timestamp="2026-03-07T10:00:00+00:00",
         version="0.5.0",
-        metrics=SnapshotMetrics(
+        metrics=_metrics_dict(
             total_nodes=100,
             total_edges=150,
             meaningful_nodes=80,
@@ -800,7 +816,7 @@ def test_diff_snapshots_node_edge_kind_breakdown(snapshot_dir: Path) -> None:
         branch="develop",
         timestamp="2026-03-07T12:00:00+00:00",
         version="0.5.1",
-        metrics=SnapshotMetrics(
+        metrics=_metrics_dict(
             total_nodes=120,
             total_edges=160,
             meaningful_nodes=90,
@@ -826,7 +842,7 @@ def test_diff_snapshots_node_edge_kind_breakdown(snapshot_dir: Path) -> None:
 def test_get_previous_oldest_returns_none(snapshot_dir: Path) -> None:
     """get_previous on the oldest snapshot returns None (no predecessor)."""
     mgr = SnapshotManager(snapshot_dir)
-    metrics = SnapshotMetrics(
+    metrics = _metrics_dict(
         total_nodes=100,
         total_edges=150,
         meaningful_nodes=80,
@@ -862,7 +878,7 @@ def test_capture_none_graph_stats_defaults_to_empty(snapshot_dir: Path) -> None:
     ):
         with patch("pycode_kg.snapshots.SnapshotManager._get_current_branch", return_value="main"):
             snap = mgr.capture(version="0.5.0", graph_stats_dict=None, coverage=0.9)
-    assert snap.metrics.total_nodes == 0
+    assert metrics_from_dict(snap.metrics).total_nodes == 0
     assert snap.tree_hash == "treehashX"
 
 
@@ -871,7 +887,7 @@ def test_capture_computes_vs_previous_when_prior_snapshot_exists(
 ) -> None:
     """capture sets vs_previous delta when a snapshot with matching tree_hash exists."""
     mgr = SnapshotManager(snapshot_dir)
-    metrics = SnapshotMetrics(
+    metrics = _metrics_dict(
         total_nodes=100,
         total_edges=150,
         meaningful_nodes=80,
@@ -915,8 +931,8 @@ def test_capture_computes_vs_previous_when_prior_snapshot_exists(
                 )
 
     assert snap.vs_previous is not None
-    assert snap.vs_previous.nodes == 10
-    assert snap.vs_previous.edges == 10
+    assert snap.vs_previous["nodes"] == 10
+    assert snap.vs_previous["edges"] == 10
 
 
 def test_get_current_tree_hash_git_failure_returns_empty(snapshot_dir: Path) -> None:
@@ -939,7 +955,7 @@ def test_get_current_branch_git_failure_returns_unknown(snapshot_dir: Path) -> N
 def test_load_snapshot_backfills_missing_vs_previous(snapshot_dir: Path) -> None:
     """load_snapshot computes vs_previous from manifest ordering when missing in file."""
     mgr = SnapshotManager(snapshot_dir)
-    metrics_old = SnapshotMetrics(
+    metrics_old = _metrics_dict(
         total_nodes=100,
         total_edges=150,
         meaningful_nodes=80,
@@ -949,7 +965,7 @@ def test_load_snapshot_backfills_missing_vs_previous(snapshot_dir: Path) -> None
         critical_issues=2,
         complexity_median=3.5,
     )
-    metrics_new = SnapshotMetrics(
+    metrics_new = _metrics_dict(
         total_nodes=120,
         total_edges=170,
         meaningful_nodes=95,
@@ -981,8 +997,8 @@ def test_load_snapshot_backfills_missing_vs_previous(snapshot_dir: Path) -> None
     loaded = mgr.load_snapshot("newer")
     assert loaded is not None
     assert loaded.vs_previous is not None
-    assert loaded.vs_previous.nodes == 20
-    assert loaded.vs_previous.edges == 20
+    assert loaded.vs_previous["nodes"] == 20
+    assert loaded.vs_previous["edges"] == 20
 
 
 # ---------------------------------------------------------------------------
@@ -991,7 +1007,7 @@ def test_load_snapshot_backfills_missing_vs_previous(snapshot_dir: Path) -> None
 
 
 def _make_pycodekg_snapshot(tree_hash: str, timestamp: str, nodes: int = 10) -> Snapshot:
-    metrics = SnapshotMetrics(
+    metrics = _metrics_dict(
         total_nodes=nodes,
         total_edges=nodes * 2,
         meaningful_nodes=nodes,
@@ -1056,8 +1072,8 @@ def test_diff_snapshots_coverage_delta(snapshot_dir: Path) -> None:
     """diff_snapshots includes coverage_delta and critical_issues_delta."""
     mgr = SnapshotManager(snapshot_dir)
 
-    def _metrics(cov: float, issues: int) -> SnapshotMetrics:
-        return SnapshotMetrics(
+    def _metrics(cov: float, issues: int) -> dict[str, Any]:
+        return _metrics_dict(
             total_nodes=50,
             total_edges=80,
             meaningful_nodes=50,
@@ -1153,15 +1169,15 @@ def test_module_node_counts_from_dict_legacy() -> None:
         "vs_baseline": None,
     }
     snap = Snapshot.from_dict(data)
-    assert snap.metrics.module_node_counts == {}
+    assert metrics_from_dict(snap.metrics).module_node_counts == {}
 
 
 def test_diff_snapshots_module_node_counts_delta(snapshot_dir: Path) -> None:
     """diff_snapshots returns module_node_counts_delta with only changed modules."""
     mgr = SnapshotManager(snapshot_dir)
 
-    def _m(module_counts: dict) -> SnapshotMetrics:
-        return SnapshotMetrics(
+    def _m(module_counts: dict) -> dict[str, Any]:
+        return _metrics_dict(
             total_nodes=sum(module_counts.values()),
             total_edges=10,
             meaningful_nodes=sum(module_counts.values()),
@@ -1237,32 +1253,51 @@ def test_collect_module_node_counts_from_sqlite(snapshot_dir: Path, tmp_path: Pa
 
 
 # ---------------------------------------------------------------------------
-# Typed-property layer: Snapshot.metrics / .vs_previous / .vs_baseline
+# Converter layer: a Snapshot holds dicts, SnapshotMetrics/Delta convert them
 # ---------------------------------------------------------------------------
 
 
-def test_snapshot_metrics_property_returns_typed_dataclass(sample_metrics: SnapshotMetrics) -> None:
-    """Snapshot.metrics must return a SnapshotMetrics dataclass, not a raw dict."""
+def test_snapshot_stores_metrics_as_a_plain_dict(sample_metrics: SnapshotMetrics) -> None:
+    """A Snapshot stores what it was given; there is no property layer."""
+    stored = metrics_to_dict(sample_metrics)
     snap = Snapshot(
         branch="main",
         timestamp="2026-01-01T00:00:00+00:00",
         version="1.0",
-        metrics=sample_metrics,
+        metrics=stored,
         tree_hash="h1",
     )
-    assert isinstance(snap.metrics, SnapshotMetrics)
-    assert snap.metrics.total_nodes == sample_metrics.total_nodes
-    assert snap.metrics.docstring_coverage == pytest.approx(sample_metrics.docstring_coverage)
+    assert snap.metrics is stored
+    assert snap.metrics["total_nodes"] == sample_metrics.total_nodes
 
 
-def test_snapshot_vs_previous_property_returns_typed_delta() -> None:
-    """Snapshot.vs_previous must return a SnapshotDelta, not a raw dict."""
+def test_metrics_from_dict_gives_attribute_access(sample_metrics: SnapshotMetrics) -> None:
+    """Callers that want attribute access convert, and get the dataclass defaults."""
+    snap = Snapshot(
+        branch="main",
+        timestamp="2026-01-01T00:00:00+00:00",
+        version="1.0",
+        metrics={"total_nodes": 10},
+        tree_hash="h1",
+    )
+    m = metrics_from_dict(snap.metrics)
+    assert isinstance(m, SnapshotMetrics)
+    assert m.total_nodes == 10
+    assert m.module_node_counts == {}
+    assert m.docstring_coverage == 0.0
+
+    roundtripped = metrics_from_dict(metrics_to_dict(sample_metrics))
+    assert roundtripped == sample_metrics
+
+
+def test_delta_from_dict_gives_attribute_access() -> None:
+    """Deltas convert the same way, and None stays None."""
     delta_dict = {"nodes": 5, "edges": 10, "coverage_delta": 0.05, "critical_issues_delta": -1}
     snap = Snapshot(
         branch="main",
         timestamp="2026-01-01T00:00:00+00:00",
         version="1.0",
-        metrics=SnapshotMetrics(
+        metrics=_metrics_dict(
             total_nodes=10,
             total_edges=20,
             meaningful_nodes=8,
@@ -1275,54 +1310,15 @@ def test_snapshot_vs_previous_property_returns_typed_delta() -> None:
         tree_hash="h1",
         vs_previous=delta_dict,
     )
-    assert isinstance(snap.vs_previous, SnapshotDelta)
-    assert snap.vs_previous.nodes == 5
-    assert snap.vs_previous.coverage_delta == pytest.approx(0.05)
-    assert snap.vs_previous.critical_issues_delta == -1
+    assert snap.vs_previous is delta_dict
+    delta = delta_from_dict(snap.vs_previous)
+    assert isinstance(delta, SnapshotDelta)
+    assert delta.nodes == 5
+    assert delta.coverage_delta == pytest.approx(0.05)
+    assert delta.critical_issues_delta == -1
 
-
-def test_snapshot_vs_baseline_none_when_unset() -> None:
-    """Snapshot.vs_baseline must be None when not provided."""
-    snap = Snapshot(
-        branch="main",
-        timestamp="2026-01-01T00:00:00+00:00",
-        version="1.0",
-        metrics=SnapshotMetrics(
-            total_nodes=10,
-            total_edges=20,
-            meaningful_nodes=8,
-            docstring_coverage=0.9,
-            node_counts={},
-            edge_counts={},
-            critical_issues=0,
-            complexity_median=1.0,
-        ),
-        tree_hash="h1",
-    )
     assert snap.vs_baseline is None
-
-
-def test_snapshot_metrics_setter_accepts_dict() -> None:
-    """Setting Snapshot.metrics to a plain dict stores it transparently."""
-    snap = Snapshot(
-        branch="main",
-        timestamp="2026-01-01T00:00:00+00:00",
-        version="1.0",
-        metrics={
-            "total_nodes": 5,
-            "total_edges": 8,
-            "meaningful_nodes": 4,
-            "docstring_coverage": 0.5,
-            "node_counts": {},
-            "edge_counts": {},
-            "critical_issues": 0,
-            "complexity_median": 0.0,
-            "module_node_counts": {},
-        },
-        tree_hash="h1",
-    )
-    assert isinstance(snap.metrics, SnapshotMetrics)
-    assert snap.metrics.total_nodes == 5
+    assert delta_from_dict(snap.vs_baseline) is None
 
 
 # ---------------------------------------------------------------------------
@@ -1423,7 +1419,7 @@ def _save_seq(mgr: SnapshotManager, specs: list[dict]) -> None:
             branch="main",
             timestamp=spec["ts"],
             version=spec.get("version", "1.0"),
-            metrics=SnapshotMetrics(
+            metrics=_metrics_dict(
                 total_nodes=spec["nodes"],
                 total_edges=spec["nodes"] * 2,
                 meaningful_nodes=spec["nodes"],
@@ -1533,7 +1529,7 @@ def test_diff_snapshots_issues_delta_introduced(snapshot_dir: Path) -> None:
             branch="main",
             timestamp=ts,
             version="1.0",
-            metrics=SnapshotMetrics(
+            metrics=_metrics_dict(
                 total_nodes=nodes,
                 total_edges=nodes * 2,
                 meaningful_nodes=nodes,
@@ -1569,7 +1565,7 @@ def test_diff_snapshots_issues_delta_resolved(snapshot_dir: Path) -> None:
             branch="main",
             timestamp=ts,
             version="1.0",
-            metrics=SnapshotMetrics(
+            metrics=_metrics_dict(
                 total_nodes=nodes,
                 total_edges=nodes * 2,
                 meaningful_nodes=nodes,
@@ -1629,13 +1625,14 @@ def test_capture_forwards_an_explicit_release_key(snapshot_dir: Path) -> None:
     assert snap.subject == "repo:pycode-kg"
 
 
-def test_to_dict_is_not_overridden_and_uses_the_current_key(snapshot_dir: Path) -> None:
-    """The base to_dict is what supplies the key scheme.
+def test_snapshot_is_the_shared_class_and_uses_the_current_key(snapshot_dir: Path) -> None:
+    """A local Snapshot subclass is what let the 0.25.0 key regression through.
 
-    An override here would keep writing tree-hash keys no matter what the SDK
-    does, which is the reason this class no longer has one.
+    Subclassing it here to expose typed properties forces a hand-written copy
+    of every shared manager method that reads those fields, and one of those
+    copies dropped the key on the way to disk.
     """
-    assert "to_dict" not in Snapshot.__dict__
+    assert Snapshot is _SharedSnapshot
 
     mgr = SnapshotManager(snapshot_dir)
     snap = mgr.capture(
@@ -1647,4 +1644,4 @@ def test_to_dict_is_not_overridden_and_uses_the_current_key(snapshot_dir: Path) 
     )
     d = snap.to_dict()
     assert d["key"] == "v0.25.0"
-    assert d["metrics"]["docstring_coverage"] == 0.5  # typed property still serializes
+    assert d["metrics"]["docstring_coverage"] == 0.5
