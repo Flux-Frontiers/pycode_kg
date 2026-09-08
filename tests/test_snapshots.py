@@ -255,7 +255,7 @@ def test_snapshot_manager_capture(snapshot_dir: Path, sample_metrics: SnapshotMe
                     "node_counts": {},
                     "edge_counts": {},
                 },
-                coverage=0.85,
+                docstring_coverage=0.85,
                 critical_issues=2,
                 complexity_median=3.5,
             )
@@ -283,7 +283,7 @@ def test_snapshot_manager_capture_coverage_counts(
             snap = mgr.capture(
                 version="0.5.1",
                 graph_stats_dict={"total_nodes": 100, "total_edges": 150},
-                coverage=0.85,
+                docstring_coverage=0.85,
                 coverage_documented=68,
                 coverage_total=80,
                 critical_issues=0,
@@ -552,7 +552,7 @@ def test_snapshot_manager_delta_computation(snapshot_dir: Path) -> None:
             "node_counts": {},
             "edge_counts": {},
         },
-        coverage=0.87,
+        docstring_coverage=0.87,
         critical_issues=1,
         complexity_median=3.7,
     )
@@ -877,7 +877,7 @@ def test_capture_none_graph_stats_defaults_to_empty(snapshot_dir: Path) -> None:
         return_value="treehashX",
     ):
         with patch("pycode_kg.snapshots.SnapshotManager._get_current_branch", return_value="main"):
-            snap = mgr.capture(version="0.5.0", graph_stats_dict=None, coverage=0.9)
+            snap = mgr.capture(version="0.5.0", graph_stats_dict=None, docstring_coverage=0.9)
     assert metrics_from_dict(snap.metrics).total_nodes == 0
     assert snap.tree_hash == "treehashX"
 
@@ -925,7 +925,7 @@ def test_capture_computes_vs_previous_when_prior_snapshot_exists(
                         "node_counts": {},
                         "edge_counts": {},
                     },
-                    coverage=0.87,
+                    docstring_coverage=0.87,
                     critical_issues=1,
                     complexity_median=3.7,
                 )
@@ -1639,9 +1639,165 @@ def test_snapshot_is_the_shared_class_and_uses_the_current_key(snapshot_dir: Pat
         version="0.25.0",
         branch="main",
         graph_stats_dict={"total_nodes": 3, "total_edges": 2},
-        coverage=0.5,
+        docstring_coverage=0.5,
         key="v0.25.0",
     )
     d = snap.to_dict()
     assert d["key"] == "v0.25.0"
     assert d["metrics"]["docstring_coverage"] == 0.5
+
+
+# ---------------------------------------------------------------------------
+# The deleted overrides: each behaviour now comes from a base extension point
+#
+# 0.27.0 removed __init__, capture and diff_snapshots from this module. These
+# tests pin the behaviour those overrides used to provide, so a regression in
+# the shared SDK surfaces here rather than in a released snapshot file.
+# ---------------------------------------------------------------------------
+
+
+def test_package_name_comes_from_the_class_attribute(snapshot_dir: Path) -> None:
+    """Replaces the deleted __init__, whose only job was this string."""
+    mgr = SnapshotManager(snapshot_dir)
+    assert mgr.package_name == "pycode-kg"
+    assert mgr.capture(graph_stats_dict={"total_nodes": 1}, key="k").tool == "pycode-kg"
+
+
+def test_save_and_reload_persists_key_subject_and_tool(snapshot_dir: Path) -> None:
+    """The round trip the 0.25.0 regression would have failed.
+
+    save_snapshot used to rebuild the base Snapshot field by field, dropping
+    key, subject, tool and tool_version on the way to disk. Assert them from
+    the file, not from the in-memory object, and again after a reload.
+    """
+    mgr = SnapshotManager(snapshot_dir)
+    snap = mgr.capture(
+        version="9.9.9",
+        branch="main",
+        graph_stats_dict={"total_nodes": 3, "total_edges": 2},
+        tree_hash="e" * 40,
+        key="v9.9.9",
+        subject="repo:pycode-kg",
+    )
+    saved = mgr.save_snapshot(snap)
+    assert saved is not None and saved.name == "v9.9.9.json"
+
+    on_disk = json.loads(saved.read_text(encoding="utf-8"))
+    assert on_disk["key"] == "v9.9.9"
+    assert on_disk["subject"] == "repo:pycode-kg"
+    assert on_disk["tree_hash"] == "e" * 40
+    assert on_disk["tool"] == "pycode-kg"
+    assert on_disk["tool_version"]
+
+    reloaded = mgr.load_snapshot("v9.9.9")
+    assert reloaded is not None
+    assert reloaded.key == "v9.9.9"
+    assert reloaded.subject == "repo:pycode-kg"
+    assert reloaded.tool == "pycode-kg"
+
+
+def test_domain_metrics_collects_module_node_counts(snapshot_dir: Path, tmp_path: Path) -> None:
+    """Replaces the collection the deleted capture() did inline."""
+    import sqlite3
+
+    db = tmp_path / "graph.sqlite"
+    with sqlite3.connect(db) as conn:
+        conn.execute("CREATE TABLE nodes (module_path TEXT)")
+        conn.executemany("INSERT INTO nodes VALUES (?)", [("src/a.py",), ("src/a.py",)])
+
+    snap = SnapshotManager(snapshot_dir, db_path=db).capture(
+        graph_stats_dict={"total_nodes": 2}, key="k"
+    )
+    assert snap.metrics["module_node_counts"] == {"src/a.py": 2}
+
+
+def test_capture_signature_is_the_base_signature(snapshot_dir: Path) -> None:
+    """The trap the _domain_metrics hook exists to close.
+
+    A capture() override restating the signature is what let ``key=`` fall into
+    **extra_metrics and ship 0.25.0 keyed on a tree hash. With no override, an
+    unnamed keyword cannot shadow a named base parameter.
+    """
+    mgr = SnapshotManager(snapshot_dir)
+    snap = mgr.capture(graph_stats_dict={"total_nodes": 1}, key="v1.2.3", subject="repo:x")
+    assert snap.key == "v1.2.3"
+    assert snap.subject == "repo:x"
+    assert "key" not in snap.metrics
+    assert "subject" not in snap.metrics
+
+
+def _save_pair(mgr: SnapshotManager, m_a: dict, m_b: dict, i_a: list, i_b: list) -> None:
+    """Save two snapshots. Metric dicts are passed as extra_metrics keywords.
+
+    Not through ``graph_stats_dict``: ``_domain_metrics`` runs between the two
+    and overwrites ``module_node_counts`` with what SQLite reports, which is
+    empty in a test with no database. An explicit keyword wins over both, which
+    is the documented precedence.
+    """
+    for key, metrics, issues in (("dl_a", m_a, i_a), ("dl_b", m_b, i_b)):
+        mgr.save_snapshot(mgr.capture(key=key, issues=issues, **metrics), force=True)
+
+
+def test_diff_carries_timestamp_and_issues_delta(snapshot_dir: Path) -> None:
+    """Replaces two of the three things the deleted diff_snapshots added."""
+    mgr = SnapshotManager(snapshot_dir)
+    _save_pair(
+        mgr,
+        {"total_nodes": 1},
+        {"total_nodes": 2},
+        ["kept", "gone"],
+        ["kept", "new"],
+    )
+    result = mgr.diff_snapshots("dl_a", "dl_b")
+    assert result["a"]["timestamp"] and result["b"]["timestamp"]
+    assert result["issues_delta"] == {"introduced": ["new"], "resolved": ["gone"]}
+
+
+def test_diff_carries_module_node_counts_delta(snapshot_dir: Path) -> None:
+    """Replaces the third: the hand-rolled changed-keys-only dict diff."""
+    mgr = SnapshotManager(snapshot_dir)
+    _save_pair(
+        mgr,
+        {"total_nodes": 1, "module_node_counts": {"a.py": 5, "same.py": 2, "gone.py": 4}},
+        {"total_nodes": 2, "module_node_counts": {"a.py": 8, "same.py": 2, "new.py": 1}},
+        [],
+        [],
+    )
+    result = mgr.diff_snapshots("dl_a", "dl_b")
+    assert result["module_node_counts_delta"] == {"a.py": 3, "gone.py": -4, "new.py": 1}
+
+
+def test_domain_metrics_overrides_a_stale_stats_value(snapshot_dir: Path, tmp_path: Path) -> None:
+    """SQLite is the source of truth for module_node_counts, not graph stats.
+
+    Precedence is graph_stats_dict, then _domain_metrics, then extra_metrics.
+    """
+    import sqlite3
+
+    db = tmp_path / "graph.sqlite"
+    with sqlite3.connect(db) as conn:
+        conn.execute("CREATE TABLE nodes (module_path TEXT)")
+        conn.execute("INSERT INTO nodes VALUES ('src/real.py')")
+
+    mgr = SnapshotManager(snapshot_dir, db_path=db)
+    snap = mgr.capture(
+        graph_stats_dict={"total_nodes": 1, "module_node_counts": {"stale.py": 99}}, key="k"
+    )
+    assert snap.metrics["module_node_counts"] == {"src/real.py": 1}
+
+    explicit = mgr.capture(key="k2", module_node_counts={"caller.py": 7})
+    assert explicit.metrics["module_node_counts"] == {"caller.py": 7}
+
+
+def test_legacy_coverage_keyword_still_works_and_warns(snapshot_dir: Path) -> None:
+    """``coverage=`` was this class's public keyword until 0.27.0.
+
+    The capture() override that renamed it is gone. Without capture_aliases the
+    old name would land in metrics as a dead ``coverage`` key with no error and
+    ``docstring_coverage`` missing entirely.
+    """
+    mgr = SnapshotManager(snapshot_dir)
+    with pytest.warns(DeprecationWarning, match="docstring_coverage"):
+        snap = mgr.capture(graph_stats_dict={"total_nodes": 1}, key="k", coverage=0.85)
+    assert snap.metrics["docstring_coverage"] == 0.85
+    assert "coverage" not in snap.metrics

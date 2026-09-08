@@ -277,7 +277,7 @@ def init(
                 version=version,
                 branch=branch,
                 graph_stats_dict=stats,
-                coverage=coverage,
+                docstring_coverage=coverage,
                 coverage_documented=coverage_documented,
                 coverage_total=coverage_total,
                 critical_issues=critical_issues,

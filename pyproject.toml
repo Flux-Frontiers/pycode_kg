@@ -155,7 +155,21 @@ dependencies = [
     # this repo's visitor writes as of 0.24.1 -- against 0.18.0 the stubs are
     # tagged correctly but the tag is silently ignored, so resolution stays on
     # the old untyped trailing-name match with no error to say so.
-    "kgmodule-utils[semantic,viz3d]>=0.19.0",
+    #
+    # 0.19.1 because SnapshotManager.load_snapshot back-fills a missing
+    # vs_previous through _compute_delta_from_metrics as of that release.
+    # Against 0.19.0 the backfill uses a hardcoded nodes/edges dict, so
+    # coverage_delta and critical_issues_delta read as zero in `snapshot show`
+    # for every snapshot whose deltas were not persisted at capture -- which is
+    # the normal path, not a legacy one.
+    #
+    # 0.20.0 is a hard requirement, not a preference: snapshots.py has no
+    # __init__, capture or diff_snapshots of its own any more. It configures
+    # the base through the package_name and dict_metric_deltas class attributes
+    # and the _domain_metrics() hook, none of which exist before 0.20.0.
+    # Against 0.19.x the manager silently reports itself as "kg-utils" and
+    # drops module_node_counts entirely.
+    "kgmodule-utils[semantic,viz3d]>=0.20.0",
 ]
 
 [project.optional-dependencies]
@@ -180,7 +194,7 @@ viz3d = [
     # the four-step build/render/write/cast itself. It subsumes [viz3d-render]
     # (it declares pyvista too), but both are named so the dependency reads as
     # what it is rather than as a side effect.
-    "kgmodule-utils[viz3d-render,viz3d-qt]>=0.18.1",
+    "kgmodule-utils[viz3d-render,viz3d-qt]>=0.20.0",
     "pyvistaqt>=0.11.0",
     "trame-vtk>=2.0.0",
     # Looking Glass quilts. 0.4.0 supplies depth_report() and widened

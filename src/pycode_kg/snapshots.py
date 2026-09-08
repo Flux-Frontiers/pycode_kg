@@ -15,7 +15,7 @@ This module adds:
     ``metrics_from_dict`` / ``metrics_to_dict`` and ``delta_from_dict`` /
     ``delta_to_dict``; a ``Snapshot`` never holds one.
   - a ``SnapshotManager`` subclass that sets ``package_name="pycode-kg"``,
-    names the pycode-kg metric fields in ``capture()``, adds
+    collects the pycode-kg metric fields in ``_domain_metrics()``, adds
     ``coverage_delta`` and ``critical_issues_delta`` to deltas, collects
     per-module node counts from SQLite, and extends a diff with
     ``module_node_counts_delta``, ``issues_delta`` and ``timestamp``.
@@ -44,7 +44,6 @@ from __future__ import annotations
 
 import sqlite3
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import Any
 
 # ---------------------------------------------------------------------------
@@ -174,147 +173,64 @@ def delta_from_dict(d: dict[str, Any] | None) -> SnapshotDelta | None:
 class SnapshotManager(_BaseSnapshotManager):
     """pycode-kg snapshot manager.
 
-    Subclasses the shared ``kg_utils.snapshots.SnapshotManager`` and adds:
+    Subclasses the shared ``kg_utils.snapshots.SnapshotManager``. Three of the
+    four additions are class attributes rather than methods, because the base
+    supplies the behaviour and this module only names the domain values:
 
-    * ``package_name="pycode-kg"`` default for version detection.
-    * A ``capture()`` naming the pycode-kg metric fields (``coverage``,
-      ``critical_issues``, ``complexity_median`` and the coverage numerator
-      and denominator) and collecting per-module node counts.
+    * ``package_name = "pycode-kg"`` for version detection.
+    * ``dict_metric_deltas`` naming ``module_node_counts``, which the base
+      turns into ``module_node_counts_delta`` in ``diff_snapshots``.
+    * ``_domain_metrics()`` collecting per-module node counts at capture time.
     * ``_compute_delta_from_metrics`` extended with ``coverage_delta`` and
-      ``critical_issues_delta``.
-    * ``diff_snapshots`` extended with ``module_node_counts_delta``,
-      ``issues_delta`` and ``timestamp``.
+      ``critical_issues_delta`` — the one genuinely domain-specific method.
     * ``_collect_module_node_counts()`` — SQLite per-module node counts.
 
-    Everything else -- saving, loading, listing, pruning, key handling -- is
-    inherited unchanged.  Overriding those to convert between dicts and the
-    domain dataclasses is what this module used to do, and is what let the
-    0.25.0 snapshot key regression through.
+    Everything else -- capture, saving, loading, listing, pruning, diffing, key
+    handling -- is inherited unchanged. Overriding those is what this module
+    used to do, and is what let the 0.25.0 snapshot key regression through.
+
+    Note that ``capture()`` takes the coverage fraction as
+    ``docstring_coverage``, the name it is stored under. Until 0.27.0 this
+    class overrode ``capture()`` to accept it as ``coverage`` and rename it on
+    the way through; that override is gone, and with it the signature-restating
+    pattern that let a ``key=`` go missing. ``coverage=`` still works and warns
+    -- see ``capture_aliases`` below.
     """
 
-    def __init__(
-        self,
-        snapshots_dir: Path | str,
-        *,
-        db_path: Path | str | None = None,
-        package_name: str = "pycode-kg",
-    ) -> None:
-        """Initialize the manager rooted at ``snapshots_dir``.
+    #: Version detection reads this; the base uses it as the snapshot's ``tool``.
+    package_name = "pycode-kg"
 
-        :param snapshots_dir: Directory where snapshot JSON files live; created
-            on first save if it does not exist.
-        :param db_path: PyCodeKG SQLite graph path; required for collecting
-            per-module node counts during ``capture()``. Optional otherwise.
-        :param package_name: Package name used for version detection in saved
-            snapshots. Defaults to ``"pycode-kg"``.
+    #: ``diff_snapshots`` emits ``module_node_counts_delta`` from this, holding
+    #: only the modules whose node count actually changed.
+    dict_metric_deltas = ("module_node_counts",)
+
+    #: Until 0.27.0 this class overrode ``capture()`` to accept the docstring
+    #: coverage fraction as ``coverage`` and rename it on the way through. The
+    #: override is gone, and the stored name is the only name. Without this
+    #: entry a caller still passing ``coverage=`` would get no error: the base
+    #: ``**extra_metrics`` would record a ``coverage`` metric nobody reads and
+    #: leave ``docstring_coverage`` absent.
+    capture_aliases = {"coverage": "docstring_coverage"}
+
+    # ------------------------------------------------------------------
+    # Capture-time metrics collected by this module
+    # ------------------------------------------------------------------
+
+    def _domain_metrics(self, stats: dict[str, Any]) -> dict[str, Any]:
+        """Collect the metrics this module gathers for itself.
+
+        Called by the inherited ``capture()``. Overriding this rather than
+        ``capture()`` is deliberate: a ``capture()`` override has to restate the
+        base signature, and restating it is what let ``key=`` fall into
+        ``**extra_metrics`` and ship 0.25.0 with every snapshot keyed on a tree
+        hash.
+
+        :param stats: Graph stats passed to ``capture()``; unused here, the
+            counts come from SQLite.
+        :return: ``{"module_node_counts": {module_path: node_count}}``, empty
+                 if no SQLite graph is configured.
         """
-        super().__init__(snapshots_dir, package_name=package_name, db_path=db_path)
-
-    # ------------------------------------------------------------------
-    # capture — name the pycode-kg metric fields
-    # ------------------------------------------------------------------
-
-    def capture(  # ty: ignore[invalid-method-override]
-        self,
-        version: str | None = None,
-        branch: str | None = None,
-        graph_stats_dict: dict[str, Any] | None = None,
-        coverage: float = 0.0,
-        coverage_documented: int = 0,
-        coverage_total: int = 0,
-        critical_issues: int = 0,
-        complexity_median: float = 0.0,
-        hotspots: list[dict[str, Any]] | None = None,
-        issues: list[str] | None = None,
-        tree_hash: str = "",
-        key: str = "",
-        subject: str = "",
-    ) -> Snapshot:
-        """Capture a pycode-kg snapshot.
-
-        Names the pycode-kg metric fields explicitly rather than taking them
-        through ``**extra_metrics``, and adds per-module node counts, then
-        delegates to the shared implementation.
-
-        :param version: Version string (e.g., "0.5.1").
-        :param branch: Git branch name; auto-detected if None.
-        :param graph_stats_dict: Output from ``graph_stats()`` / ``store.stats()``.
-        :param coverage: Docstring coverage fraction (0.0-1.0).
-        :param coverage_documented: Nodes with a non-empty docstring — the
-            numerator behind ``coverage``.  Shown beside the percentage in
-            Snapshot History so a coverage drop caused by adding undocumented
-            nodes reads differently from one caused by removing docstrings.
-        :param coverage_total: Nodes eligible for docstring coverage — the
-            denominator behind ``coverage``.
-        :param critical_issues: Number of critical issues detected.
-        :param complexity_median: Median fan-in across functions.
-        :param hotspots: Top hotspot entries.
-        :param issues: Issue description strings.
-        :param tree_hash: Git tree hash, recorded as provenance; auto-detected
-            if not provided. It is not the snapshot's key.
-        :param key: Snapshot identifier. Pass the release tag at release time;
-            omit it and the base assigns a UTC timestamp.
-        :param subject: What was measured, e.g. ``repo:pycode-kg``.
-        :return: New :class:`~kg_utils.snapshots.Snapshot` (not yet persisted).
-        """
-        return super().capture(
-            version=version,
-            branch=branch,
-            graph_stats_dict=graph_stats_dict,
-            tree_hash=tree_hash,
-            key=key,
-            subject=subject,
-            hotspots=hotspots,
-            issues=issues,
-            docstring_coverage=coverage,
-            coverage_documented=coverage_documented,
-            coverage_total=coverage_total,
-            critical_issues=critical_issues,
-            complexity_median=complexity_median,
-            module_node_counts=self._collect_module_node_counts(),
-        )
-
-    # ------------------------------------------------------------------
-    # diff_snapshots — adds module_node_counts_delta, issues_delta, timestamp
-    # ------------------------------------------------------------------
-
-    def diff_snapshots(self, key_a: str, key_b: str) -> dict[str, Any]:
-        """Compare two snapshots side-by-side.
-
-        Extends the shared diff with ``module_node_counts_delta``,
-        ``issues_delta`` (introduced / resolved issue strings) and the
-        ``timestamp`` of each side, which the CLI prints.
-
-        :param key_a: Earlier snapshot key.
-        :param key_b: Later snapshot key.
-        :return: The shared diff result with the pycode-kg additions.
-        """
-        result = super().diff_snapshots(key_a, key_b)
-        if "error" in result:
-            return result
-
-        for side, key in (("a", key_a), ("b", key_b)):
-            snap = self.load_snapshot(key)
-            if snap is not None:
-                result[side]["timestamp"] = snap.timestamp
-
-        m_a: dict[str, Any] = result["a"]["metrics"]
-        m_b: dict[str, Any] = result["b"]["metrics"]
-        counts_a: dict[str, int] = m_a.get("module_node_counts", {})
-        counts_b: dict[str, int] = m_b.get("module_node_counts", {})
-        result["module_node_counts_delta"] = {
-            mod: counts_b.get(mod, 0) - counts_a.get(mod, 0)
-            for mod in set(counts_a) | set(counts_b)
-            if counts_b.get(mod, 0) != counts_a.get(mod, 0)
-        }
-
-        issues_a = set(result["a"]["issues"])
-        issues_b = set(result["b"]["issues"])
-        result["issues_delta"] = {
-            "introduced": list(issues_b - issues_a),
-            "resolved": list(issues_a - issues_b),
-        }
-        return result
+        return {"module_node_counts": self._collect_module_node_counts()}
 
     # ------------------------------------------------------------------
     # Delta computation — adds coverage_delta and critical_issues_delta
