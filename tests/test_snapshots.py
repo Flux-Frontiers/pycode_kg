@@ -16,6 +16,7 @@ from unittest.mock import patch
 import pytest
 from kg_utils.snapshots import Snapshot as _SharedSnapshot
 
+from pycode_kg.cli.options import sqlite_option
 from pycode_kg.snapshots import (
     Snapshot,
     SnapshotDelta,
@@ -1801,3 +1802,64 @@ def test_legacy_coverage_keyword_still_works_and_warns(snapshot_dir: Path) -> No
         snap = mgr.capture(graph_stats_dict={"total_nodes": 1}, key="k", coverage=0.85)
     assert snap.metrics["docstring_coverage"] == 0.85
     assert "coverage" not in snap.metrics
+
+
+# ---------------------------------------------------------------------------
+# --sqlite must anchor to --repo, not to the working directory
+# ---------------------------------------------------------------------------
+
+
+def test_graph_default_anchors_to_repo_not_cwd(tmp_path: Path) -> None:
+    """``--repo`` decides the graph read, not the directory you happen to be in.
+
+    ``--sqlite`` defaults to the relative ``.pycodekg/graph.sqlite``, which
+    click resolves against the cwd, while ``--repo`` decides where the snapshot
+    is filed. Before this was anchored, running
+    ``pycodekg snapshot save 1.0.0 --repo /other/project`` from inside this repo
+    read *this* repo's graph and wrote the result into */other/project*'s
+    snapshots directory: metrics from one project, provenance claiming another,
+    and no error either way.
+    """
+    from pycode_kg.cli.cmd_snapshot import _graph_for_repo
+
+    repo_root = tmp_path / "other-project"
+    repo_root.mkdir()
+    assert _graph_for_repo(".pycodekg/graph.sqlite", repo_root) == (
+        repo_root / ".pycodekg" / "graph.sqlite"
+    )
+
+
+def test_graph_default_is_repo_relative_through_the_cli(tmp_path: Path) -> None:
+    """Same rule, exercised through click so the parameter source is real."""
+    import click
+    from click.testing import CliRunner
+
+    seen: dict[str, Path] = {}
+
+    @click.command()
+    @click.option("--repo", default=".")
+    @sqlite_option
+    def probe(repo: str, sqlite: str) -> None:
+        from pycode_kg.cli.cmd_snapshot import _graph_for_repo
+
+        seen["path"] = _graph_for_repo(sqlite, Path(repo).resolve())
+
+    other = tmp_path / "other-project"
+    other.mkdir()
+    runner = CliRunner()
+
+    # Default: anchored to --repo.
+    assert runner.invoke(probe, ["--repo", str(other)]).exit_code == 0
+    assert seen["path"] == other / ".pycodekg" / "graph.sqlite"
+
+    # Explicit: honoured verbatim, even when it matches the default string.
+    assert (
+        runner.invoke(probe, ["--repo", str(other), "--sqlite", ".pycodekg/graph.sqlite"]).exit_code
+        == 0
+    )
+    assert seen["path"] == Path(".pycodekg/graph.sqlite")
+
+    # Explicit absolute path elsewhere: honoured.
+    elsewhere = tmp_path / "elsewhere.sqlite"
+    assert runner.invoke(probe, ["--repo", str(other), "--sqlite", str(elsewhere)]).exit_code == 0
+    assert seen["path"] == elsewhere
