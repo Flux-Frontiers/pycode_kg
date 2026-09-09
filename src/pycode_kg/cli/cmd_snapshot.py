@@ -19,6 +19,7 @@ import json
 from pathlib import Path
 
 import click
+from click.core import ParameterSource
 
 from pycode_kg.cli.main import cli
 from pycode_kg.cli.options import sqlite_option
@@ -32,6 +33,33 @@ from pycode_kg.snapshots import (
     metrics_from_dict,
 )
 from pycode_kg.store import GraphStore
+
+
+def _graph_for_repo(sqlite: str, repo_root: Path) -> Path:
+    """Resolve the graph path, anchoring the default to ``--repo``.
+
+    ``--sqlite`` defaults to the relative ``.pycodekg/graph.sqlite``, which
+    click resolves against the *current working directory*, while
+    ``--repo`` decides where the snapshot is filed. Left alone, the two
+    disagree: ``pycodekg snapshot save 1.0.0 --repo /other/project`` run from
+    inside this repo reads *this* repo's graph and writes the result into
+    */other/project*'s snapshots directory -- a snapshot whose metrics belong
+    to one project and whose provenance claims another, with no error.
+
+    An explicitly passed ``--sqlite`` is always honoured as given; only the
+    default is re-anchored. The other commands sharing ``sqlite_option``
+    (``query``, ``explain``) take no ``--repo``, so cwd is the right base for
+    them and they are unaffected.
+
+    :param sqlite: The ``--sqlite`` value, explicit or default.
+    :param repo_root: The resolved ``--repo`` path.
+    :return: The graph database path to read.
+    """
+    ctx = click.get_current_context(silent=True)
+    source = ctx.get_parameter_source("sqlite") if ctx is not None else None
+    if source is not None and source is not ParameterSource.DEFAULT:
+        return Path(sqlite)
+    return repo_root / ".pycodekg" / "graph.sqlite"
 
 
 @cli.group("snapshot")
@@ -105,7 +133,7 @@ def save_snapshot(
         pycodekg snapshot save 0.5.1 --repo .
     """
     repo_root = Path(repo).resolve()
-    db_path = Path(sqlite)
+    db_path = _graph_for_repo(sqlite, repo_root)
     snapshots_path = (
         Path(snapshots_dir).resolve() if snapshots_dir else (repo_root / ".pycodekg" / "snapshots")
     )
@@ -161,7 +189,7 @@ def save_snapshot(
         version=version,
         branch=branch,
         graph_stats_dict=stats,
-        coverage=coverage,
+        docstring_coverage=coverage,
         coverage_documented=coverage_documented,
         coverage_total=coverage_total,
         critical_issues=critical_issues,
