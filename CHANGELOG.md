@@ -9,6 +9,35 @@ Note: older entries preserve the API names used at that release (for example com
 
 ## [Unreleased]
 
+## [0.27.0] - 2026-09-08
+
+### Fixed
+
+- **`snapshot save` could read one repo's graph and file it under another
+  repo's identity, reporting success either way.** `--repo` decides where the
+  snapshot is written, but `--sqlite` defaulted to the relative string
+  `.pycodekg/graph.sqlite`, which click resolves against the current working
+  directory. The two only agreed when cwd and `--repo` happened to be the same
+  place, so running the command from this repo against a `--repo` elsewhere
+  read pycode_kg's own graph and wrote it into the other project's snapshots
+  directory, keyed and subject-labelled as if it described that project. The
+  default now resolves against `--repo`; an explicitly passed `--sqlite` is
+  still honoured verbatim. `query` and `explain` share the same option but
+  take no `--repo`, so they are unaffected.
+
+### Changed
+
+- **`pycode_kg.snapshots` configures the shared `kg_utils` snapshot manager
+  instead of overriding it.** `__init__`, `capture`, and `diff_snapshots` are
+  gone, replaced by `kgmodule-utils` 0.20.0 extension points
+  (`package_name`, `_domain_metrics()`, `dict_metric_deltas`). The
+  `capture()` override's removal renames the docstring-coverage keyword from
+  `coverage` to `docstring_coverage`; a `capture_aliases` entry keeps the old
+  name working with a warning. Raises the `kgmodule-utils` floor to `>=0.20.0`
+  — against 0.19.x the manager reports itself as `kg-utils` and drops
+  `module_node_counts` entirely, so this is a hard requirement, not a
+  preference.
+
 ## [0.26.0] - 2026-09-06
 
 ### Fixed

@@ -1,17 +1,17 @@
 > **Analysis Report Metadata**
-> - **Generated:** 2026-09-06T21:10:11Z
-> - **Version:** pycode-kg 0.26.0
-> - **Commit:** c244726 (main)
-> - **Index freshness:** [WARN] 6 uncommitted change(s) — the index may not reflect current file contents; line numbers and edge counts can drift. Re-run `pycodekg build` before trusting them.
+> - **Generated:** 2026-09-09T00:44:45Z
+> - **Version:** pycode-kg 0.27.0
+> - **Commit:** 38226a6 (main)
+> - **Index freshness:** [WARN] 5 uncommitted change(s) — the index may not reflect current file contents; line numbers and edge counts can drift. Re-run `pycodekg build` before trusting them.
 > - **Platform:** macOS 27.0 | arm64 (arm) | turing | Python 3.12.13
-> - **Graph:** 6931 nodes · 6418 edges (406 meaningful)
+> - **Graph:** 6904 nodes · 6395 edges (405 meaningful)
 > - **Included directories:** src
 > - **Excluded directories:** none
 > - **Elapsed time:** 3s
 
 # pycode_kg Analysis
 
-**Generated:** 2026-09-06 21:10:11 UTC
+**Generated:** 2026-09-09 00:44:45 UTC
 
 ---
 
@@ -28,7 +28,7 @@ Score components:
 | Component | Points | Max | Basis |
 | :--- | ---: | ---: | :--- |
 | Docstring coverage | 40.0 | 40 | 95.1% documented (full marks at 90%) |
-| Dead code | 25.0 | 25 | 0 candidates / 350 definitions scanned (0.0%; zero points at 5%) |
+| Dead code | 25.0 | 25 | 0 candidates / 349 definitions scanned (0.0%; zero points at 5%) |
 | High fan-out | 20.0 | 20 | 0 orchestrator(s); −4 pts each |
 | Circular dependencies | 15.0 | 15 | 0 cycle(s); −5 pts each |
 
@@ -38,24 +38,24 @@ Score components:
 
 | Metric | Value |
 | :--- | :--- |
-| **Total Nodes** | 6931 |
-| **Total Edges** | 6418 |
+| **Total Nodes** | 6904 |
+| **Total Edges** | 6395 |
 | **Modules** | 56 (of 56 total) |
-| **Functions** | 174 |
+| **Functions** | 175 |
 | **Classes** | 31 |
-| **Methods** | 145 |
+| **Methods** | 143 |
 
 ### Edge Distribution
 
 | Relationship Type | Count |
 | :--- | ---: |
-| CALLS | 2430 |
-| CONTAINS | 350 |
+| CALLS | 2421 |
+| CONTAINS | 349 |
 | IMPORTS | 493 |
-| ATTR_ACCESS | 2212 |
+| ATTR_ACCESS | 2209 |
 | INHERITS | 10 |
 
-_Excludes 923 `RESOLVES_TO` edges: internal symbol-stub resolutions, not relationships between two pieces of code. This table therefore does not sum to Total Edges._
+_Excludes 913 `RESOLVES_TO` edges: internal symbol-stub resolutions, not relationships between two pieces of code. This table therefore does not sum to Total Edges._
 
 ---
 
@@ -111,8 +111,8 @@ Cohesion = incoming / (incoming + outgoing + 1); higher = more internally focuse
 | `src/pycode_kg/app.py` | 14 | 0 | 0 | 2 | 0.00 | externally driven |
 | `src/pycode_kg/analysis/centrality.py` | 1 | 5 | 3 | 0 | 0.75 |  |
 | `src/pycode_kg/ranking/coderank.py` | 12 | 1 | 1 | 0 | 0.50 |  |
-| `src/pycode_kg/snapshots.py` | 4 | 3 | 6 | 0 | 0.86 |  |
 | `src/pycode_kg/pycodekg.py` | 8 | 2 | 3 | 2 | 0.50 |  |
+| `src/pycode_kg/snapshots.py` | 4 | 3 | 6 | 0 | 0.86 |  |
 
 ---
 
@@ -159,11 +159,11 @@ Docstring coverage directly determines semantic retrieval quality. Nodes without
 
 | Kind | Documented | Total | Coverage |
 | :--- | ---: | ---: | :--- |
-| `function` | 161 | 174 | [OK] 92.5% |
-| `method` | 140 | 145 | [OK] 96.6% |
+| `function` | 162 | 175 | [OK] 92.6% |
+| `method` | 138 | 143 | [OK] 96.5% |
 | `class` | 29 | 31 | [OK] 93.5% |
 | `module` | 56 | 56 | [OK] 100.0% |
-| **total** | **386** | **406** | **[OK] 95.1%** |
+| **total** | **385** | **405** | **[OK] 95.1%** |
 
 ---
 
@@ -173,21 +173,21 @@ Weighted PageRank aggregated by module — reveals architectural spine. Cross-mo
 
 | Rank | Score | Members | Module |
 | ---: | ---: | ---: | :--- |
-| 1 | 0.111575 | 57 | `src/pycode_kg/viz3d.py` |
-| 2 | 0.090311 | 53 | `src/pycode_kg/pycodekg_thorough_analysis.py` |
-| 3 | 0.067931 | 11 | `src/pycode_kg/pycodekg.py` |
-| 4 | 0.059946 | 13 | `src/pycode_kg/snapshots.py` |
-| 5 | 0.059030 | 26 | `src/pycode_kg/mcp_server.py` |
-| 6 | 0.051449 | 14 | `src/pycode_kg/analysis/centrality.py` |
-| 7 | 0.041148 | 20 | `src/pycode_kg/visitor.py` |
-| 8 | 0.039548 | 9 | `src/pycode_kg/graph.py` |
-| 9 | 0.037350 | 18 | `src/pycode_kg/architecture.py` |
-| 10 | 0.031877 | 4 | `src/pycode_kg/graph_html.py` |
-| 11 | 0.030747 | 3 | `src/pycode_kg/ranking/cli_rank.py` |
-| 12 | 0.030235 | 14 | `src/pycode_kg/ranking/coderank.py` |
-| 13 | 0.023296 | 9 | `src/pycode_kg/kg.py` |
-| 14 | 0.022237 | 15 | `src/pycode_kg/app.py` |
-| 15 | 0.021863 | 7 | `src/pycode_kg/module/extractor.py` |
+| 1 | 0.113622 | 57 | `src/pycode_kg/viz3d.py` |
+| 2 | 0.092385 | 53 | `src/pycode_kg/pycodekg_thorough_analysis.py` |
+| 3 | 0.069616 | 11 | `src/pycode_kg/pycodekg.py` |
+| 4 | 0.060671 | 26 | `src/pycode_kg/mcp_server.py` |
+| 5 | 0.051905 | 14 | `src/pycode_kg/analysis/centrality.py` |
+| 6 | 0.045819 | 11 | `src/pycode_kg/snapshots.py` |
+| 7 | 0.041949 | 20 | `src/pycode_kg/visitor.py` |
+| 8 | 0.040398 | 9 | `src/pycode_kg/graph.py` |
+| 9 | 0.038033 | 18 | `src/pycode_kg/architecture.py` |
+| 10 | 0.032654 | 4 | `src/pycode_kg/graph_html.py` |
+| 11 | 0.031503 | 3 | `src/pycode_kg/ranking/cli_rank.py` |
+| 12 | 0.030980 | 14 | `src/pycode_kg/ranking/coderank.py` |
+| 13 | 0.023624 | 9 | `src/pycode_kg/kg.py` |
+| 14 | 0.022785 | 15 | `src/pycode_kg/app.py` |
+| 15 | 0.021980 | 7 | `src/pycode_kg/module/extractor.py` |
 
 ---
 
@@ -247,10 +247,10 @@ Recent snapshots in reverse chronological order. Δ columns show change vs. the 
 
 | # | Timestamp | Branch | Version | Nodes | Edges | Coverage | Δ Nodes | Δ Edges | Δ Coverage |
 | ---: | :--- | :--- | :--- | ---: | ---: | ---: | ---: | ---: | ---: |
-| 1 | 2026-08-25 15:45:25 | main | 0.24.1 | 7000 | 6515 | 94.5% (395/418) | +207 | +175 | +0.2% |
-| 6 | 2026-08-18 12:55:57 | main | 0.23.1 | 6793 | 6340 | 94.3% | -19 | -21 | +0.0% |
-| 8 | 2026-08-17 01:03:31 | refactor/promoted-leaf-helpers | 0.23.1 | 6812 | 6361 | 94.3% | -20 | -15 | -0.1% |
-| 10 | 2026-08-15 14:09:43 | main | 0.23.0 | 6832 | 6376 | 94.4% | +401 | +364 | +1.5% |
+| 1 | 2026-09-06 21:11:19 | main | 0.26.0 | 6931 | 6418 | 95.1% (386/406) | -69 | -97 | +0.6% |
+| 2 | 2026-08-25 15:45:25 | main | 0.24.1 | 7000 | 6515 | 94.5% (395/418) | +207 | +175 | +0.2% |
+| 7 | 2026-08-18 12:55:57 | main | 0.23.1 | 6793 | 6340 | 94.3% | -19 | -21 | +0.0% |
+| 9 | 2026-08-17 01:03:31 | refactor/promoted-leaf-helpers | 0.23.1 | 6812 | 6361 | 94.3% | -20 | -15 | -0.1% |
 
 ---
 
@@ -267,11 +267,12 @@ No dead-code candidates detected.
 | `color_for()` | function | src/pycode_kg/theme.py | 6 |
 | `shape_for()` | function | src/pycode_kg/theme.py | 6 |
 
-2 further methods override a base class outside the indexed graph — the caller may live in that dependency, so these cannot be judged dead or alive.  Not counted against the quality grade.
+3 further methods override a base class outside the indexed graph — the caller may live in that dependency, so these cannot be judged dead or alive.  Not counted against the quality grade.
 
 | Name | Kind | Module | Lines |
 | :--- | :--- | :--- | ---: |
 | `visualize()` | method | src/pycode_kg/viz3d.py | 20 |
+| `_domain_metrics()` | method | src/pycode_kg/snapshots.py | 14 |
 | `_compute_delta_from_metrics()` | method | src/pycode_kg/snapshots.py | 13 |
 
 ---
@@ -282,26 +283,26 @@ Weighted PageRank over CALLS + IMPORTS + INHERITS edges (test paths excluded). S
 
 | Rank | Score | Kind | Name | Module |
 | ---: | ---: | :--- | :--- | :--- |
-| 1 | 0.000577 | function | `_get_kg()` | src/pycode_kg/mcp_server.py |
-| 2 | 0.000521 | method | `CodeGraph.extract()` | src/pycode_kg/graph.py |
-| 3 | 0.000477 | function | `expr_to_name()` | src/pycode_kg/pycodekg.py |
-| 4 | 0.000372 | function | `_load_dir_list()` | src/pycode_kg/config.py |
-| 5 | 0.000325 | method | `PyCodeKGVisitor._get_node_id()` | src/pycode_kg/visitor.py |
-| 6 | 0.000325 | method | `PyCodeKGVisitor._add_edge()` | src/pycode_kg/visitor.py |
-| 7 | 0.000309 | function | `_own_scope_nodes()` | src/pycode_kg/pycodekg.py |
-| 8 | 0.000294 | function | `_run_pipeline()` | src/pycode_kg/cli/cmd_build_full.py |
-| 9 | 0.000287 | function | `_format_table()` | src/pycode_kg/cli/cmd_centrality.py |
-| 10 | 0.000264 | method | `PyCodeKGVisitor._add_var_edge()` | src/pycode_kg/visitor.py |
-| 11 | 0.000260 | function | `_load_store()` | src/pycode_kg/app.py |
-| 12 | 0.000252 | function | `load_snapshots_timeline()` | src/pycode_kg/viz3d_timeline.py |
-| 13 | 0.000248 | function | `_annotation_class_name()` | src/pycode_kg/pycodekg.py |
-| 14 | 0.000237 | method | `MainWindow._h2()` | src/pycode_kg/viz3d.py |
-| 15 | 0.000235 | method | `PyCodeKGVisitor._extract_reads()` | src/pycode_kg/visitor.py |
-| 16 | 0.000229 | function | `_remove_highlight_actors()` | src/pycode_kg/viz3d.py |
-| 17 | 0.000227 | method | `KGVisualizer._load_scores()` | src/pycode_kg/viz3d.py |
-| 18 | 0.000225 | method | `CodeGraph.nodes()` | src/pycode_kg/graph.py |
-| 19 | 0.000225 | method | `CodeGraph.edges()` | src/pycode_kg/graph.py |
-| 20 | 0.000225 | function | `create_kg_visualization()` | src/pycode_kg/viz3d.py |
+| 1 | 0.000580 | function | `_get_kg()` | src/pycode_kg/mcp_server.py |
+| 2 | 0.000523 | method | `CodeGraph.extract()` | src/pycode_kg/graph.py |
+| 3 | 0.000479 | function | `expr_to_name()` | src/pycode_kg/pycodekg.py |
+| 4 | 0.000373 | function | `_load_dir_list()` | src/pycode_kg/config.py |
+| 5 | 0.000326 | method | `PyCodeKGVisitor._get_node_id()` | src/pycode_kg/visitor.py |
+| 6 | 0.000326 | method | `PyCodeKGVisitor._add_edge()` | src/pycode_kg/visitor.py |
+| 7 | 0.000310 | function | `_own_scope_nodes()` | src/pycode_kg/pycodekg.py |
+| 8 | 0.000295 | function | `_run_pipeline()` | src/pycode_kg/cli/cmd_build_full.py |
+| 9 | 0.000288 | function | `_format_table()` | src/pycode_kg/cli/cmd_centrality.py |
+| 10 | 0.000265 | method | `PyCodeKGVisitor._add_var_edge()` | src/pycode_kg/visitor.py |
+| 11 | 0.000261 | function | `_load_store()` | src/pycode_kg/app.py |
+| 12 | 0.000256 | method | `SnapshotManager._collect_module_node_counts()` | src/pycode_kg/snapshots.py |
+| 13 | 0.000253 | function | `load_snapshots_timeline()` | src/pycode_kg/viz3d_timeline.py |
+| 14 | 0.000249 | function | `_annotation_class_name()` | src/pycode_kg/pycodekg.py |
+| 15 | 0.000238 | method | `MainWindow._h2()` | src/pycode_kg/viz3d.py |
+| 16 | 0.000236 | method | `PyCodeKGVisitor._extract_reads()` | src/pycode_kg/visitor.py |
+| 17 | 0.000230 | function | `_remove_highlight_actors()` | src/pycode_kg/viz3d.py |
+| 18 | 0.000228 | method | `KGVisualizer._load_scores()` | src/pycode_kg/viz3d.py |
+| 19 | 0.000226 | method | `CodeGraph.nodes()` | src/pycode_kg/graph.py |
+| 20 | 0.000226 | method | `CodeGraph.edges()` | src/pycode_kg/graph.py |
 
 ---
 
@@ -313,8 +314,8 @@ Top structurally-dominant nodes per architectural concern (0.60 × semantic + 0.
 
 | Rank | Score | Kind | Name | Module |
 | ---: | ---: | :--- | :--- | :--- |
-| 1 | 0.7529 | function | `_load_kg()` | src/pycode_kg/app.py |
-| 2 | 0.7523 | function | `_init_state()` | src/pycode_kg/app.py |
+| 1 | 0.7528 | function | `_load_kg()` | src/pycode_kg/app.py |
+| 2 | 0.7522 | function | `_init_state()` | src/pycode_kg/app.py |
 | 3 | 0.7461 | method | `PyCodeKGExtractor.__init__()` | src/pycode_kg/module/extractor.py |
 | 4 | 0.7457 | function | `main()` | src/pycode_kg/mcp_server.py |
 | 5 | 0.7396 | method | `MainWindow.__init__()` | src/pycode_kg/viz3d.py |
@@ -323,10 +324,10 @@ Top structurally-dominant nodes per architectural concern (0.60 × semantic + 0.
 
 | Rank | Score | Kind | Name | Module |
 | ---: | ---: | :--- | :--- | :--- |
-| 1 | 0.7755 | function | `_load_store()` | src/pycode_kg/app.py |
-| 2 | 0.7329 | function | `_get_store()` | src/pycode_kg/app.py |
+| 1 | 0.7749 | function | `_load_store()` | src/pycode_kg/app.py |
+| 2 | 0.7328 | function | `_get_store()` | src/pycode_kg/app.py |
 | 3 | 0.7306 | method | `ArchitectureAnalyzer.__init__()` | src/pycode_kg/architecture.py |
-| 4 | 0.7258 | function | `_load_kg()` | src/pycode_kg/app.py |
+| 4 | 0.7257 | function | `_load_kg()` | src/pycode_kg/app.py |
 | 5 | 0.7249 | function | `persist_metric_scores()` | src/pycode_kg/ranking/coderank.py |
 
 ### Query Search Retrieval Semantic
