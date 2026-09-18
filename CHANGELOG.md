@@ -9,6 +9,8 @@ Note: older entries preserve the API names used at that release (for example com
 
 ## [Unreleased]
 
+## [0.27.1] - 2026-09-18
+
 ### Changed
 
 - **`kgmodule-utils` floor raised to `>=0.22.0`** (was `>=0.20.0`), and
