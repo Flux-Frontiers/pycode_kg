@@ -9,6 +9,23 @@ Note: older entries preserve the API names used at that release (for example com
 
 ## [Unreleased]
 
+### Changed
+
+- **`kgmodule-utils` floor raised to `>=0.22.0`** (was `>=0.20.0`), and
+  `quiltwright` to `>=0.14.1` (was `>=0.8.0`) in the `viz3d` and `all` extras.
+  0.22.0 makes the Cast button sweep quiltwright's standard 35-degree view
+  cone instead of the preset's full cone, which for the 16" landscape is 50 --
+  wider than reliably fuses, so hard edges ghosted where a quilt rendered by
+  `pycodekg viz3d` itself held. Nothing in this repo changes; the fix arrives
+  through `kg_utils.viz3d.qt.cast_scene_to_looking_glass`, which
+  `pycode_kg.viz3d` calls.
+
+  The quiltwright pin moves because `kgmodule-utils[viz3d-qt]>=0.22.0`
+  requires `quiltwright>=0.14.1` transitively. Poetry would have resolved that
+  regardless; declaring it keeps `pyproject.toml` honest about the real floor
+  rather than claiming 0.8.0 still works.
+
+
 ## [0.27.0] - 2026-09-08
 
 ### Fixed

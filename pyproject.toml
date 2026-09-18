@@ -169,7 +169,7 @@ dependencies = [
     # and the _domain_metrics() hook, none of which exist before 0.20.0.
     # Against 0.19.x the manager silently reports itself as "kg-utils" and
     # drops module_node_counts entirely.
-    "kgmodule-utils[semantic,viz3d]>=0.20.0",
+    "kgmodule-utils[semantic,viz3d]>=0.22.0",
 ]
 
 [project.optional-dependencies]
@@ -194,14 +194,17 @@ viz3d = [
     # the four-step build/render/write/cast itself. It subsumes [viz3d-render]
     # (it declares pyvista too), but both are named so the dependency reads as
     # what it is rather than as a side effect.
-    "kgmodule-utils[viz3d-render,viz3d-qt]>=0.20.0",
+    "kgmodule-utils[viz3d-render,viz3d-qt]>=0.22.0",
     "pyvistaqt>=0.11.0",
     "trame-vtk>=2.0.0",
     # Looking Glass quilts. 0.4.0 supplies depth_report() and widened
     # requires-python to <3.14, which retires the old marker gate. 0.6.0 adds
     # QuiltSpec.scaled(), which replaces the tile-grid rounding this repo used
     # to open-code, and save_and_cast_quilt() underneath the SDK cast helper.
-    "quiltwright>=0.8.0",
+    # 0.14.1 is what kgmodule-utils[viz3d-qt] >=0.22.0 needs transitively, for
+    # resolve_view_cone; declared here so this file states the real floor
+    # rather than leaving it to the resolver to discover.
+    "quiltwright>=0.14.1",
 ]
 
 # Cross-KG sibling packages (doc-kg, pycode-kg, agent-kg, kg-rag) are NOT
@@ -226,7 +229,7 @@ all = [
     "pyvis>=0.3.2",
     "pyvista>=0.44.0",
     "pyvistaqt>=0.11.0",
-    "quiltwright>=0.8.0",
+    "quiltwright>=0.14.1",
     "streamlit>=1.56.0",
     "trame-vtk>=2.0.0",
 ]
