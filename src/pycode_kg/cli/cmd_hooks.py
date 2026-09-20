@@ -105,10 +105,17 @@ DEFAULT_BRANCH="${DEFAULT_BRANCH#origin/}"
 [ "$BRANCH" != "${DEFAULT_BRANCH:-main}" ] && exit 0
 
 # Rebuild the local index to keep it in sync with staged content.
-"$REPO_ROOT/.venv/bin/pycodekg" build --repo "$REPO_ROOT" || exit 1
+# pycodekg is a tool this repo runs, not a dependency it declares: the fleet
+# installs it once, globally (uv tool install pycode-kg), so PATH is the normal
+# case. A .venv copy is honoured if present, for a checkout that still has one.
+PYCODEKG="$(command -v pycodekg 2>/dev/null || true)"
+[ -n "$PYCODEKG" ] || PYCODEKG="$REPO_ROOT/.venv/bin/pycodekg"
+[ -x "$PYCODEKG" ] || { echo "[pycodekg] not found on PATH or in .venv; uv tool install pycode-kg" >&2; exit 1; }
+
+"$PYCODEKG" build --repo "$REPO_ROOT" || exit 1
 
 # Snapshot PyCodeKG (version auto-detected from installed package).
-"$REPO_ROOT/.venv/bin/pycodekg" snapshot save \\
+"$PYCODEKG" snapshot save \\
     --repo . \\
     --tree-hash "$TREE_HASH" \\
     --branch "$BRANCH" \\

@@ -1,7 +1,7 @@
 {
   "mcpServers": {
     "pycodekg_pycodekg": {
-      "command": "/absolute/path/to/.venv/bin/pycodekg-mcp",
+      "command": "pycodekg-mcp",
       "args": [
         "--repo",
         "/absolute/path/to/repo",
@@ -12,7 +12,7 @@
       ]
     },
     "dockg_pycodekg": {
-      "command": "/absolute/path/to/.venv/bin/dockg-mcp",
+      "command": "dockg-mcp",
       "args": [
         "--repo",
         "/absolute/path/to/repo",

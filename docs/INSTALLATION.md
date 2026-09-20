@@ -243,7 +243,7 @@ The Quick Start installer (`curl ... | bash`) writes all MCP config files automa
   "servers": {
     "pycodekg": {
       "type": "stdio",
-      "command": "/absolute/path/to/.venv/bin/pycodekg-mcp",
+      "command": "pycodekg-mcp",
       "args": [
         "--repo", "/absolute/path/to/repo",
         "--db", "/absolute/path/to/repo/.pycodekg/graph.sqlite",
