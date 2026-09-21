@@ -45,11 +45,13 @@ poetry run pycodekg --version 2>&1
 ```
 
 If that prints a version, set `RUNNER="poetry run"`. If it errors with a Python version
-conflict, set `RUNNER=""` and use `.venv/bin/pycodekg` directly for all subsequent calls:
+conflict, or the target repo has no venv, set `RUNNER=""` and use the global tool for all
+subsequent calls. `pycodekg` is installed once per machine with `uv tool install pycode-kg`
+and resolved from `PATH`; it is never a dependency of the target repo:
 
 ```bash
-# Fallback — use .venv binary directly
-$REPO_ROOT/.venv/bin/pycodekg --version
+# Fallback -- the global tool
+pycodekg --version
 ```
 
 Use whichever runner succeeds for all remaining steps. Document which runner was used in
@@ -57,11 +59,11 @@ the final report.
 
 1. Check that the `pycodekg` entry point resolves:
    ```bash
-   $RUNNER pycodekg --version   # or $REPO_ROOT/.venv/bin/pycodekg --version
+   $RUNNER pycodekg --version   # or plain `pycodekg --version` from the global tool
    ```
 2. If not found, check whether the package is installed:
    ```bash
-   $RUNNER python -m pip show pycode-kg 2>/dev/null   # or .venv/bin/pip show pycode-kg
+   $RUNNER python -m pip show pycode-kg 2>/dev/null   # or `uv tool list | grep pycode-kg`
    ```
 3. If missing, instruct the user to install it:
    ```bash
@@ -287,7 +289,7 @@ Present a summary of everything that was done:
 
 ```
 ✓ PyCodeKG version:       <version>
-✓ Runner used:          poetry run  OR  .venv/bin/pycodekg (fallback)
+✓ Runner used:          poetry run  OR  the global pycodekg tool (fallback)
 ✓ Repository indexed:   <REPO_ROOT>
 ✓ SQLite graph:         <REPO_ROOT>/.pycodekg/graph.sqlite  (<N> nodes, <M> edges)
 ✓ Vector index:         <REPO_ROOT>/.pycodekg/vectors.sqlite  (<V> vectors)
@@ -320,15 +322,15 @@ Suggested first query after restart:
 - **Do NOT modify source files** in the target repository.
 - **Do NOT run `git commit`** or any destructive git operations.
 - Use **absolute paths** everywhere — relative paths will break MCP clients.
-- Prefer `poetry run` for CLI calls; fall back to `.venv/bin/pycodekg` if Poetry reports a Python version conflict.
+- Prefer `poetry run` for CLI calls; fall back to the global `pycodekg` on `PATH` if Poetry reports a Python version conflict or the repo has no venv.
 - `mcp` is a **required main dependency** of PyCodeKG — there is no `[mcp]` extra to add.
 - If any step fails, stop and report the error clearly before proceeding.
 - If the user's repo is very large (>50k lines of Python), warn that the build and embedding steps may take several minutes.
 
 | Error | Fix |
 |-------|-----|
-| `Current Python version is not allowed by the project` | Use `.venv/bin/pycodekg` directly instead of `poetry run pycodekg` |
-| `pycodekg: command not found` | Run `poetry install`; if venv exists use `.venv/bin/pycodekg` |
+| `Current Python version is not allowed by the project` | Use the global `pycodekg` on `PATH` instead of `poetry run pycodekg` |
+| `pycodekg: command not found` | `uv tool install pycode-kg`; the tool is global, not a repo dependency |
 | `error: the following arguments are required: --sqlite` | Use `--sqlite`, not `--db`, for `pycodekg build-index` |
 | `ModuleNotFoundError: No module named 'mcp'` | Run `poetry install` — `mcp` is a required dep, not an extra |
 | `WARNING: SQLite database not found` | Run both build commands first |

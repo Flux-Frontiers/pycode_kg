@@ -9,7 +9,48 @@ Note: older entries preserve the API names used at that release (for example com
 
 ## [Unreleased]
 
+### Added
+
+- **`pycodekg-mcp` closes the graph on shutdown** via `FastMCP(lifespan=...)`,
+  the pattern `genealogy_kg` set and `kgrag_priv`'s `FLEET_STANDARDS.md`
+  records (sweep item 5). One hook covers both the stdio and SSE transports.
+  Verified through `mcp.shared.memory`'s in-process transport, which drives a
+  real lifespan cycle rather than a mocked `close`.
+- **A test for the pre-commit hook template**, which had none.
+
 ### Changed
+
+- **`PyCodeKG.query()` and `pack()` now reject bad arguments** -- an empty
+  query, `k` outside 1-100, `hop` outside 0-5 or `max_nodes` outside 1-500
+  raises `ValueError` naming the parameter. Nothing changed in this repo for
+  it: `PyCodeKG` inherits both methods from `KGModule`, and kgmodule-utils
+  0.23.0 checks them in the base class. The floor moves to `>=0.23.0` in both
+  places it is declared. `hop=0` and `pack(max_nodes=None)` stay valid.
+- **The hook `pycodekg install-hooks` writes resolves `pycodekg` from `PATH`
+  first**, falling back to `.venv/bin/pycodekg` only if that exists, and fails
+  with a message naming the fix if neither does. It had hard-wired the venv
+  path with `|| exit 1`. Re-run `pycodekg install-hooks --force` in any repo
+  to pick this up. `kgrag_priv` sweep item 50, phase 0.
+- **`.mcp.json` and `.claude/settings.json` name the tools bare** (`pycodekg`,
+  `dockg`) instead of paths into this machine's `.venv`, which also makes
+  `.mcp.json` portable.
+- **Docs no longer point users at a repo venv for the MCP server.** The
+  worked examples in `docs/INSTALLATION.md`, `docs/claude_chat_global_mcp.json`
+  and the `dockg` skill say `pycodekg-mcp` / `dockg-mcp` / `dockg` now -- the
+  global `uv tool` installs -- and the `setup-pycodekg-mcp` command no longer
+  hunts for a venv binary.
+- **CHANGELOG `[0.10.0]` and `[0.9.1]` are in date order.** `[0.9.1]`
+  (2026-03-17) had sat above `[0.10.0]` (2026-03-14), a string-sort artifact
+  recorded as `kgrag_priv` sweep item 26.
+
+### Removed
+
+- **The `kg` Poetry group.** It held `doc-kg`, a tool this repo runs for
+  `.mcp.json` but never imports. Under the fleet's "tools are global" rule
+  (decided 2026-09-20, `kgrag_priv` sweep item 50) a tool is installed once
+  with `uv tool` and is never a dependency of the repo. Twenty of twenty-two
+  fleet clones carried their own copy of `dockg` this way, and every copy was
+  a lock entry that drifted on each release.
 
 - **Fleet dependency floors raised and relocked** (`kgrag_priv` sweep item 49,
   tier 1): `quiltwright` to `>=0.15.0` in both places it is declared,
@@ -1418,6 +1459,18 @@ Anyone who installed 0.21.0 from PyPI should upgrade.
 
 - **`poetry-check` pre-commit hook** (`.pre-commit-config.yaml`) — Runs `poetry install --check` before mypy and pytest, failing fast if the installed environment is out of sync with `poetry.lock`. Catches dependency version mismatches (e.g., a `poetry lock` downgrade) before tests run.
 
+## [0.10.0] - 2026-03-14
+
+### Added
+
+- **KGModule SDK** (`src/pycode_kg/module/`) — A base infrastructure layer for building production-grade knowledge graphs for any domain. Implement a single `KGExtractor` class and get SQLite persistence, LanceDB vector indexing, hybrid query, snapshot management, and MCP server automatically. Includes `KGModule` (base class), `KGExtractor` (extraction interface), `NodeSpec`/`EdgeSpec` (declarative schema), and `PyCodeKGExtractor` (Python-specific implementation).
+- **KGModule Developer Guide** (`docs/KGMODULE.md`) — Comprehensive guide for building custom knowledge graphs with the new KGModule SDK, including quick-start example and architecture overview.
+
+### Changed
+
+- **PyCodeKG refactored to inherit from KGModule** (`src/pycode_kg/kg.py`) — `PyCodeKG` now inherits from `KGModule` instead of reimplementing all infrastructure. Focuses on Python-specific extraction (CodeGraph / AST parsing) while delegating SQLite, LanceDB, query engine, and snapshot management to the base class. Result types (`BuildStats`, `QueryResult`, `Snippet`, `SnippetPack`) moved to `pycode_kg.module.types` and re-exported from `kg.py` for backwards compatibility.
+- **Exports updated** (`src/pycode_kg/__init__.py`) — Added KGModule SDK classes to the public API: `KGModule`, `KGExtractor`, `PyCodeKGExtractor`, `NodeSpec`, `EdgeSpec`. Documentation updated to highlight the new SDK import pattern.
+
 ## [0.9.1] - 2026-03-17
 
 ### Added
@@ -1437,18 +1490,6 @@ Anyone who installed 0.21.0 from PyPI should upgrade.
 ### Changed
 
 - **Richer platform info in analysis report metadata** (`_get_report_metadata`) — Platform line now includes macOS version, architecture, processor family, and hostname in addition to Python version. Enables distinguishing reports generated on different machines.
-
-## [0.10.0] - 2026-03-14
-
-### Added
-
-- **KGModule SDK** (`src/pycode_kg/module/`) — A base infrastructure layer for building production-grade knowledge graphs for any domain. Implement a single `KGExtractor` class and get SQLite persistence, LanceDB vector indexing, hybrid query, snapshot management, and MCP server automatically. Includes `KGModule` (base class), `KGExtractor` (extraction interface), `NodeSpec`/`EdgeSpec` (declarative schema), and `PyCodeKGExtractor` (Python-specific implementation).
-- **KGModule Developer Guide** (`docs/KGMODULE.md`) — Comprehensive guide for building custom knowledge graphs with the new KGModule SDK, including quick-start example and architecture overview.
-
-### Changed
-
-- **PyCodeKG refactored to inherit from KGModule** (`src/pycode_kg/kg.py`) — `PyCodeKG` now inherits from `KGModule` instead of reimplementing all infrastructure. Focuses on Python-specific extraction (CodeGraph / AST parsing) while delegating SQLite, LanceDB, query engine, and snapshot management to the base class. Result types (`BuildStats`, `QueryResult`, `Snippet`, `SnippetPack`) moved to `pycode_kg.module.types` and re-exported from `kg.py` for backwards compatibility.
-- **Exports updated** (`src/pycode_kg/__init__.py`) — Added KGModule SDK classes to the public API: `KGModule`, `KGExtractor`, `PyCodeKGExtractor`, `NodeSpec`, `EdgeSpec`. Documentation updated to highlight the new SDK import pattern.
 
 ## [0.9.0] - 2026-03-14
 

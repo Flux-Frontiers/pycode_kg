@@ -142,6 +142,8 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from mcp.server.fastmcp import FastMCP
@@ -265,6 +267,22 @@ def _snapshot_freshness(snapshot_total_nodes: int) -> dict:
 # ---------------------------------------------------------------------------
 # MCP server
 # ---------------------------------------------------------------------------
+
+
+@asynccontextmanager
+async def _lifespan(_server: FastMCP) -> AsyncIterator[None]:
+    """Close the graph's SQLite connection(s) when the server shuts down.
+
+    ``main()`` sets the module-level ``_kg`` before ``mcp.run()`` calls into
+    this, and both the stdio and SSE transports route through the same
+    underlying ``Server.run()``, so this fires on either one.
+    """
+    try:
+        yield
+    finally:
+        if _kg is not None:
+            _kg.close()
+
 
 mcp = FastMCP(
     "pycodekg",
@@ -396,6 +414,7 @@ mcp = FastMCP(
         "- **Structure-aware query**: query_ranked(q='database connection', mode='hybrid')\n"
         "- **PPR query**: query_ranked(q='...', mode='ppr') → explain_rank(node_id, q='...')"
     ),
+    lifespan=_lifespan,
 )
 
 

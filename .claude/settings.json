@@ -4,7 +4,7 @@
       "Bash(git -C /Users/egs/repos/Metabo_kg status)",
       "Bash(git -C /Users/egs/repos/Metabo_kg diff --staged)",
       "Bash(.venv/bin/python -c \"import metabokg\")",
-      "Bash(.venv/bin/dockg analyze *)",
+      "Bash(dockg analyze *)",
       "Bash(git tag *)",
       "mcp__pycodekg__graph_stats",
       "mcp__pycodekg__analyze_repo",
