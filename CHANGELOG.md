@@ -9,6 +9,8 @@ Note: older entries preserve the API names used at that release (for example com
 
 ## [Unreleased]
 
+## [0.28.0] - 2026-09-20
+
 ### Added
 
 - **`pycodekg-mcp` closes the graph on shutdown** via `FastMCP(lifespan=...)`,
