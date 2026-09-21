@@ -114,6 +114,5 @@ uv.lock
 renders/*
 
 # MCP server config -- machine-specific, contains absolute paths
-.mcp.json
 .mcp.json.sav
 # === end KG generated artifacts ===
