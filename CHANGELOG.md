@@ -9,6 +9,8 @@ Note: older entries preserve the API names used at that release (for example com
 
 ## [Unreleased]
 
+## [0.28.1] - 2026-09-23
+
 ### Fixed
 
 - **Analysis no longer aborts on a graph with no vector index.**
