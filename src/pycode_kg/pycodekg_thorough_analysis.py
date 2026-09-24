@@ -43,6 +43,7 @@ from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
+from kg_utils.vector_backend import VectorStoreNotFoundError
 from rich.columns import Columns
 from rich.console import Console
 from rich.panel import Panel
@@ -444,6 +445,8 @@ class PyCodeKGAnalyzer:
         self.concern_analysis: list[dict] = []  # populated by _analyze_concerns
         # Single-line phase output: each phase fn writes its summary here
         self._phase_result: str = ""
+        # Phases that raised; rendered in the report (see _run_phase)
+        self.phase_failures: list[dict] = []
 
     # ── total phase count (update if phases are added/removed) ────────────────
     _TOTAL_PHASES = 15
@@ -455,13 +458,39 @@ class PyCodeKGAnalyzer:
         instead of printing directly, keeping the terminal output to one line
         per phase.
 
+        A phase that cannot run must not take the others and the report with
+        it. The concrete case is ``pycodekg build-sqlite``, a supported command
+        that builds the graph without the vector index: the fan-out and
+        concern-ranking phases seed on a semantic query and raise
+        ``VectorStoreNotFoundError``, while every other phase reads the graph
+        only. The failure is recorded in :attr:`phase_failures` and rendered in
+        the report, so a degraded run names its missing sections instead of
+        quietly omitting them.
+
         :param num: Phase number (1-based).
         :param name: Human-readable phase label.
         :param fn: Zero-argument callable to execute.
         """
         self._phase_result = ""
         t0 = time.monotonic()
-        fn()
+        try:
+            fn()
+        except Exception as exc:  # noqa: BLE001 -- see docstring
+            elapsed = time.monotonic() - t0
+            self.phase_failures.append(
+                {
+                    "phase": num,
+                    "name": name,
+                    "error": str(exc),
+                    "missing_index": isinstance(exc, VectorStoreNotFoundError),
+                }
+            )
+            logger.warning("Phase %d (%s) failed: %s", num, name, exc)
+            self.console.print(
+                f"  [cyan]▶ Phase {num:2d}/{self._TOTAL_PHASES}:[/cyan]"
+                f" {name}  [yellow]skipped: {exc}[/yellow]  [green]({elapsed:.1f}s)[/green]"
+            )
+            return
         elapsed = time.monotonic() - t0
         result = f"  {self._phase_result}" if self._phase_result else ""
         self.console.print(
@@ -2505,6 +2534,9 @@ class PyCodeKGAnalyzer:
             "coderank_top_nodes": self.coderank_top_nodes,
             # Option D: concern-based hybrid ranking
             "concern_analysis": self.concern_analysis,
+            # An empty section above may mean a phase did not run, not that
+            # the codebase has nothing to show.
+            "phase_failures": self.phase_failures,
         }
 
     def to_markdown(self, *, metadata: str = "", elapsed_seconds: float | None = None) -> str:

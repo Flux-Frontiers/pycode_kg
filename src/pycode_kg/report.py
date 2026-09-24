@@ -124,6 +124,35 @@ def render_markdown(analyzer, *, metadata: str = "", elapsed_seconds: float | No
     out += [f"# {repo_name} Analysis", "", f"**Generated:** {generated}"]
     rule()
 
+    # ── Incomplete Analysis ──────────────────────────────────────────────
+    # A phase that could not run leaves its section empty. Said plainly, that
+    # is a missing build step; left unsaid, it reads as a finding about the code.
+    failures = analyzer.phase_failures
+    if failures:
+        out += [
+            "## Incomplete Analysis",
+            "",
+            f"{len(failures)} of {analyzer._TOTAL_PHASES} phases could not run. "
+            "The sections they produce are missing from this report -- that is a "
+            "gap in the analysis, not a finding about the code.",
+            "",
+        ]
+        out += md_table(
+            ["Phase", "Name", "Reason"],
+            [(f["phase"], f["name"], f"`{f['error']}`") for f in failures],
+            aligns="rll",
+        )
+        if any(f["missing_index"] for f in failures):
+            out += [
+                "",
+                "> The semantic index is missing. Only the fan-out and concern-based "
+                "ranking phases need it; every other phase reads the SQLite graph "
+                "directly, which is why the rest of this report is complete. Run "
+                "`pycodekg build-index` (or `pycodekg build`) to build it, then "
+                "re-run the analysis.",
+            ]
+        rule()
+
     # ── Executive Summary ────────────────────────────────────────────────
     out += [
         "## Executive Summary",
