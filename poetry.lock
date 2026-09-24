@@ -1516,14 +1516,14 @@ referencing = ">=0.31.0"
 
 [[package]]
 name = "kgmodule-utils"
-version = "0.23.0"
+version = "0.24.0"
 description = "Shared types, graph store, semantic index, and pipeline base for the KGModule SDK"
 optional = false
 python-versions = "<3.14,>=3.12"
 groups = ["main"]
 files = [
-    {file = "kgmodule_utils-0.23.0-py3-none-any.whl", hash = "sha256:f0ec8050f33fb0d71b4d1ca3fa8148627118df2201b53da0737f00622f35f97c"},
-    {file = "kgmodule_utils-0.23.0.tar.gz", hash = "sha256:264a137efdcf36265172f7c223816ef1c2e0697dc6dc7e35606f5835dc1a379d"},
+    {file = "kgmodule_utils-0.24.0-py3-none-any.whl", hash = "sha256:15a807ba35e2a781c2feda195c76f7b13399819e366ac631aa5bd2876f11236a"},
+    {file = "kgmodule_utils-0.24.0.tar.gz", hash = "sha256:ab367e286c46bc3f19c290c355fd1bd03ca245205c684c57bba36856dea0cb8d"},
 ]
 
 [package.dependencies]
@@ -3569,15 +3569,15 @@ test = ["pytest (>=6,!=7.0.0,!=7.0.1)", "pytest-cov (>=3.0.0)", "pytest-qt"]
 
 [[package]]
 name = "quiltwright"
-version = "0.15.0"
+version = "0.15.1"
 description = "Holographic output for Looking Glass displays: off-axis multi-view quilts from PyVista, POV-Ray or Blender Cycles scenes"
 optional = true
 python-versions = "<3.14,>=3.12"
 groups = ["main"]
 markers = "extra == \"viz3d\" or extra == \"all\""
 files = [
-    {file = "quiltwright-0.15.0-py3-none-any.whl", hash = "sha256:874012700434ac59f84ad34b34a9ffc168fc501e5e0f615a86634be845466acc"},
-    {file = "quiltwright-0.15.0.tar.gz", hash = "sha256:eabcfbeca5ce224c889017230f02df73f808531646edab744b93bedd218c6a6a"},
+    {file = "quiltwright-0.15.1-py3-none-any.whl", hash = "sha256:6645ef34d55bbd132525ced954172d25c4b4db8b4b2b047b479e23d12f8dc437"},
+    {file = "quiltwright-0.15.1.tar.gz", hash = "sha256:8afeb9f162e1a40bb0eb3d49ed8052a7205bee0fb6dbfff5f881463a74e729a9"},
 ]
 
 [package.dependencies]
