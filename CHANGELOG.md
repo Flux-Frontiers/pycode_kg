@@ -9,6 +9,25 @@ Note: older entries preserve the API names used at that release (for example com
 
 ## [Unreleased]
 
+### Fixed
+
+- **Analysis no longer aborts on a graph with no vector index.**
+  `pycodekg build-sqlite` writes `graph.sqlite` and no `vectors.sqlite`, by
+  design, and the fan-out and concern-based ranking phases seed on a semantic
+  query. Their `VectorStoreNotFoundError` escaped the analyzer, so `analyze`,
+  `snapshot save`, `init` and the MCP `analyze_repo` tool exited with a
+  traceback, no report and no snapshot, discarding the phases that had already
+  run. Each phase now runs under a guard, matching `tscode_kg`: a phase that
+  raises is recorded in `phase_failures` and skipped, the rest run, and the
+  report opens with an *Incomplete Analysis* section naming the skipped phases
+  and the command that builds the index. `phase_failures` is also in the dict
+  `run_analysis()` returns. `kgrag_priv` sweep item 23.
+
+### Changed
+
+- **Relocked to kgmodule-utils 0.24.0 and quiltwright 0.15.1.** Declared floors
+  are unchanged. `kgrag_priv` sweep item 46.
+
 ## [0.28.0] - 2026-09-20
 
 ### Added
