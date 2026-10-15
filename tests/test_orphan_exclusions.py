@@ -22,6 +22,7 @@ from pycode_kg.pycodekg_thorough_analysis import (
     _dotted_module,
     _format_stat,
     _has_property_decorator,
+    _has_route_decorator,
     _main_guard_block,
     _protocol_attr_names,
 )
@@ -387,6 +388,70 @@ def test_function_mentioned_only_at_def_site_stays_candidate(analyzer, tmp_path)
     mod.write_text("def rerank(results): ...\n\ndef other(): ...\n")
     node = _node(node_id="fn:src/p/legacy.py:rerank", name="rerank", module_path="src/p/legacy.py")
     assert not analyzer._is_special_entry_point(node, EMPTY_CTX)
+
+
+# Route handlers nested in an app factory, as satprint's app.py writes them
+# (the 2026-10-06 analysis flagged start_job, job_status, revalidate_page and
+# make_model as dead code).
+FASTAPI_FACTORY = """\
+def create_app():
+    app = FastAPI()
+
+    @app.post(
+        "/api/model",
+        response_model=ModelResponse,
+    )
+    def make_model(req):
+        return req
+
+    @app.get("/api/jobs/{job_id}")
+    def job_status(job_id):
+        return job_id
+
+    @app.middleware("http")
+    async def revalidate_page(request, call_next):
+        return await call_next(request)
+
+    @functools.lru_cache
+    def unrelated():
+        return 1
+
+    return app
+"""
+
+
+@pytest.mark.parametrize(
+    ("name", "lineno"),
+    [("make_model", 8), ("job_status", 12), ("revalidate_page", 16)],
+)
+def test_has_route_decorator_matches_routes_and_middleware(name: str, lineno: int) -> None:
+    """Single-line and multi-line route decorators and middleware all match."""
+    assert f"def {name}(" in FASTAPI_FACTORY.splitlines()[lineno - 1]
+    assert _has_route_decorator(FASTAPI_FACTORY, lineno)
+
+
+def test_has_route_decorator_ignores_other_attribute_decorators() -> None:
+    """``@functools.lru_cache`` is an attribute decorator but not a route."""
+    assert not _has_route_decorator(FASTAPI_FACTORY, 20)
+
+
+def test_has_route_decorator_tolerates_unparseable_source() -> None:
+    """A module that does not parse yields no exclusion rather than an error."""
+    assert not _has_route_decorator("def broken(:\n", 1)
+
+
+def test_route_handler_is_excluded(analyzer, tmp_path) -> None:
+    """A nested FastAPI handler is dispatched by the router, not dead code."""
+    mod = tmp_path / "src" / "p" / "app.py"
+    mod.parent.mkdir(parents=True)
+    mod.write_text(FASTAPI_FACTORY)
+    node = _node(
+        node_id="fn:src/p/app.py:create_app.job_status",
+        name="job_status",
+        module_path="src/p/app.py",
+        lineno=12,
+    )
+    assert analyzer._is_special_entry_point(node, EMPTY_CTX)
 
 
 # ── console summary formatting ───────────────────────────────────────────────
