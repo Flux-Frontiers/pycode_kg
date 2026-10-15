@@ -9,6 +9,19 @@ Note: older entries preserve the API names used at that release (for example com
 
 ## [Unreleased]
 
+### Fixed
+
+- **Web route handlers are no longer reported as dead code.** A function
+  decorated with `@app.get`, `@router.post`, `@app.middleware`,
+  `@app.route` and the other route-registration decorators of FastAPI,
+  Starlette and Flask is called by the framework's router, so the graph never
+  holds a CALLS edge to it. The orphan scan now treats these as entry points,
+  including multi-line decorators and handlers nested in an app factory. On
+  `satprint` this removes 4 of 13 dead-code candidates, all false, and lifts
+  the grade from C (74.6) to B (77.0). Pydantic models used only as
+  annotations, and calls at module scope, are still missed. `kgrag_priv`
+  sweep item 76.
+
 ### Changed
 
 - **Fleet floors raised and relocked:** `kgmodule-utils>=0.27.0` (core and the

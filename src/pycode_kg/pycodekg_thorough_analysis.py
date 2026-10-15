@@ -27,6 +27,7 @@ Author: Eric G. Suchanek, PhD
 License: Elastic 2.0
 """
 
+import ast
 import datetime
 import importlib
 import inspect
@@ -134,6 +135,28 @@ class CallChain:
 
 _PROPERTY_DECORATOR_RE = re.compile(
     r"@(?:functools\.)?(?:cached_)?property\b|@\w[\w.]*\.(?:setter|getter|deleter)\b"
+)
+
+# Route-registration decorator attributes on a web-framework app or router:
+# ``@app.get(...)``, ``@router.post(...)``, ``@app.middleware("http")``
+# (FastAPI, Starlette) and ``@app.route(...)`` (Flask).  The framework calls
+# the handler, so the graph never sees a CALLS edge to it.
+_ROUTE_DECORATOR_ATTRS = frozenset(
+    {
+        "get",
+        "post",
+        "put",
+        "patch",
+        "delete",
+        "head",
+        "options",
+        "api_route",
+        "route",
+        "middleware",
+        "websocket",
+        "exception_handler",
+        "on_event",
+    }
 )
 
 # Builtin container/str method names live in pycode_kg.resolution, where the
@@ -353,6 +376,33 @@ def _has_property_decorator(source_lines: list[str], def_lineno: int) -> bool:
         if _PROPERTY_DECORATOR_RE.match(stripped):
             return True
         i -= 1
+    return False
+
+
+def _has_route_decorator(source: str, def_lineno: int) -> bool:
+    """Check whether the ``def`` at *def_lineno* is registered as a web route.
+
+    Matches a decorator of the form ``@<obj>.<attr>`` or ``@<obj>.<attr>(...)``
+    with ``attr`` in :data:`_ROUTE_DECORATOR_ATTRS`.  The module is parsed
+    rather than scanned line by line because route decorators often span
+    several lines (``@app.post(\n    "/x",\n    response_model=M,\n)``).
+
+    :param source: Full module source text.
+    :param def_lineno: 1-based line number of the ``def`` statement.
+    :return: True when a route-registration decorator precedes the definition;
+        False when it does not, or the source does not parse.
+    """
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return False
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.lineno == def_lineno:
+            for dec in node.decorator_list:
+                target = dec.func if isinstance(dec, ast.Call) else dec
+                if isinstance(target, ast.Attribute) and target.attr in _ROUTE_DECORATOR_ATTRS:
+                    return True
+            return False
     return False
 
 
@@ -928,6 +978,8 @@ class PyCodeKGAnalyzer:
         - Property-family methods — accessed as attributes, not calls
         - MCP tools in ``mcp_server.py`` — dispatched by the MCP router
         - Click handlers in CLI modules — dispatched by Click
+        - Web route handlers (``@app.get``, ``@router.post``,
+          ``@app.middleware``, ...) -- dispatched by the web framework
         - ``visit_*`` on ``ast.NodeVisitor`` subclasses — ``getattr`` dispatch
         - Overrides of SDK protocol methods on classes with external bases —
           invoked by the kg_utils pipeline
@@ -1013,6 +1065,14 @@ class PyCodeKGAnalyzer:
                 # itself recursively is hidden by this rule.
                 if len(re.findall(rf"\b{re.escape(name)}\b", source)) > 1:
                     return True
+
+        # Web route handlers: registered by decorator and called by the
+        # framework's router, so no CALLS edge reaches them.
+        if kind in ("function", "method"):
+            source = self._module_source(module)
+            lineno = node.get("lineno")
+            if source and lineno and _has_route_decorator(source, lineno):
+                return True
 
         return False
 
