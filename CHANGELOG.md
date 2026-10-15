@@ -9,6 +9,8 @@ Note: older entries preserve the API names used at that release (for example com
 
 ## [Unreleased]
 
+## [0.28.2] - 2026-10-15
+
 ### Fixed
 
 - **Web route handlers are no longer reported as dead code.** A function
