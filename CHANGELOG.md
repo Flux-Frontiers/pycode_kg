@@ -9,6 +9,13 @@ Note: older entries preserve the API names used at that release (for example com
 
 ## [Unreleased]
 
+### Changed
+
+- **Fleet floors raised and relocked:** `kgmodule-utils>=0.27.0` (core and the
+  viz3d extras; was 0.23.0, locked at 0.24.0) and `quiltwright>=0.16.0` (the
+  lock held 0.15.1, below the `viz3d-qt` floor kgmodule-utils 0.27.0 sets).
+  Sweep item 46.
+
 ## [0.28.1] - 2026-09-23
 
 ### Fixed
