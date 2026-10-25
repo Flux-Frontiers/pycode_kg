@@ -619,7 +619,7 @@ class PyCodeKGAnalyzer:
     def _analyze_baseline(self) -> None:
         """Phase 1: Get overall codebase metrics.
 
-        Queries graph_stats() to establish baseline counts by node kind
+        Queries the graph's stats() to establish baseline counts by node kind
         and edge relationship type.
         """
         try:

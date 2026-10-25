@@ -1,9 +1,14 @@
 """
 cmd_mcp.py
 
-Click subcommand for starting the PyCodeKG MCP server:
+``pycodekg mcp`` -- the fleet's standard MCP command, from :mod:`kg_utils.mcp`:
 
-  mcp  — start the MCP server (thin wrapper around mcp_server.main)
+    pycodekg mcp [--repo DIR] [--db FILE] [--vectors FILE] [--model NAME]
+                 [--transport stdio|streamable-http] [--host H] [--port N]
+                 [--manifest]
+
+Registering it imports neither ``mcp`` nor the server module, so every other
+``pycodekg`` command starts as fast as before.
 
 Author: Eric G. Suchanek, PhD
 
@@ -12,64 +17,21 @@ License: Elastic 2.0
 
 from __future__ import annotations
 
-import click
+from pathlib import Path
+from typing import TYPE_CHECKING
+
+from kg_utils.mcp import add_mcp_command
 
 from pycode_kg.cli.main import cli
-from pycode_kg.pycodekg import DEFAULT_MODEL
+
+if TYPE_CHECKING:
+    from kg_utils.mcp import KGServer
 
 
-@cli.command("mcp")
-@click.option(
-    "--repo",
-    default=".",
-    type=click.Path(exists=True, file_okay=False),
-    help="Repository root directory.",
-)
-@click.option(
-    "--db",
-    default=".pycodekg/graph.sqlite",
-    type=click.Path(),
-    help="SQLite database path.",
-)
-@click.option(
-    "--vectors",
-    default=".pycodekg/vectors.sqlite",
-    type=click.Path(),
-    help="sqlite-vec vector store path.",
-)
-@click.option(
-    "--model",
-    default=DEFAULT_MODEL,
-    help="Sentence-transformer model name.",
-)
-@click.option(
-    "--transport",
-    type=click.Choice(["stdio", "sse"]),
-    default="stdio",
-    help="MCP transport protocol.",
-)
-def mcp(repo: str, db: str, vectors: str, model: str, transport: str) -> None:
-    """Start the PyCodeKG MCP server."""
-    try:
-        from mcp.server.fastmcp import (  # noqa: PLC0415
-            FastMCP,  # noqa: F401
-        )
-    except ImportError:
-        raise click.ClickException("'mcp' package not found. Install with: pip install mcp")
+def _build_server(repo: Path, db: Path | None, vectors: Path | None, model: str | None) -> KGServer:
+    from pycode_kg.mcp_server import build_server  # noqa: PLC0415 -- see the module docstring
 
-    argv = [
-        "--repo",
-        repo,
-        "--db",
-        db,
-        "--vectors",
-        vectors,
-        "--model",
-        model,
-        "--transport",
-        transport,
-    ]
+    return build_server(repo, db, vectors, model)
 
-    from pycode_kg.mcp_server import main  # noqa: PLC0415
 
-    main(argv=argv)
+mcp_command = add_mcp_command(cli, _build_server)

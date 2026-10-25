@@ -26,7 +26,7 @@ def render_explain(
     node_id: str,
     *,
     limit: int = 10,
-    snippets_hint: str = "pack_snippets()",
+    snippets_hint: str = "pack()",
 ) -> str:
     """
     Render a Markdown natural-language explanation of a code node.
@@ -37,7 +37,7 @@ def render_explain(
                     (e.g. ``fn:src/pycode_kg/store.py:GraphStore.expand``).
     :param limit: Maximum callers and callees to list.  Pass 0 to list all.
     :param snippets_hint: Closing call-to-action shown to the consumer for
-                          retrieving the full source — ``"pack_snippets()"``
+                          retrieving the full source — ``"pack()"``
                           for MCP, ``"pycodekg pack"`` for CLI.
     :return: Markdown string, or a "Node Not Found" header when the ID does
              not exist in the knowledge graph.
