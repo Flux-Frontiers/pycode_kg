@@ -22,7 +22,7 @@ Verify the graph is live before starting:
 stats()
 ```
 
-You should see node and edge counts broken down by kind. If `total_nodes` is 0
+You should see node and edge counts broken down by kind. If `nodes.total` is 0
 something went wrong with the build. Check `pyproject.toml` for `exclude` settings
 that might be too broad.
 

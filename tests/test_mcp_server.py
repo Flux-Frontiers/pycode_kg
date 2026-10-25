@@ -214,7 +214,7 @@ def test_stdio_subprocess_initializes_and_serves(tmp_path):
     init, tools, stats, found = anyio.run(session)
     assert (init.serverInfo.name, init.serverInfo.version) == ("pycodekg", pycode_kg.__version__)
     assert [t.name for t in tools.tools][:5] == list(CANONICAL_TOOLS)
-    assert not stats.isError and stats.structuredContent["total_nodes"] > 0
+    assert not stats.isError and stats.structuredContent["nodes"]["total"] > 0
     assert not found.isError and "helper" in found.content[0].text
 
 

@@ -20,6 +20,14 @@ Note: older entries preserve the API names used at that release (for example com
   `get_node` followed by the new `neighbors(node_id, rels, direction,
   limit)`. The server now has 20 tools: the five canonical ones first, then
   PyCodeKG's 15, unchanged apart from how they reach the graph.
+- **`stats` returns the fleet's stats shape**, from kgmodule-utils
+  0.29.0's `KGModule.stats()`: `{"kind": "code", "nodes": {"total",
+  "by_kind"}, "edges": {"total", "by_rel"}}` plus PyCodeKG's own measures
+  (`meaningful_nodes`, the vector backend) as extras. The flat
+  `total_nodes` / `node_counts` keys are gone from `PyCodeKG.stats()`; the
+  store's `stats()` and snapshots keep them, and the thorough analysis
+  flattens the shape for its report. The snapshot freshness check reads
+  `nodes.total`.
 - **`query` and `pack` keep PyCodeKG's richer search:** hybrid reranking by
   default, the per-module cap, `paths`, `include_symbols`, edge provenance
   and `missing_lineno_policy`. Two changes: `rels` takes a list

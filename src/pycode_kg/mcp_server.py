@@ -125,8 +125,7 @@ def _snapshot_freshness(kg: PyCodeKG, snapshot_total_nodes: int) -> dict:
     :param snapshot_total_nodes: ``metrics.total_nodes`` from a snapshot object.
     :return: Freshness metadata payload.
     """
-    current = kg.stats()
-    current_nodes = int(current.get("total_nodes", 0))
+    current_nodes = int(kg.stats()["nodes"]["total"])
     delta = current_nodes - int(snapshot_total_nodes)
 
     is_fresh = delta == 0

@@ -47,15 +47,22 @@ Always start here when approaching an unfamiliar codebase or after a rebuild.
 stats()
 ```
 
-Returns counts broken down by node kind and edge relation.
-For this repo you'll see:
+Returns counts broken down by node kind and edge relation, in the fleet's
+stats shape (every KG server answers `stats` the same way), plus PyCodeKG's
+own measures such as `meaningful_nodes`. For this repo you'll see:
 
 ```json
 {
-  "total_nodes": 3818,
-  "total_edges": 3717,
-  "node_counts": { "class": 27, "function": 80, "method": 132, "module": 32, "symbol": 3547 },
-  "edge_counts": { "ATTR_ACCESS": 1274, "CALLS": 1310, "CONTAINS": 239, "IMPORTS": 210, "INHERITS": 8, "RESOLVES_TO": 676 }
+  "kind": "code",
+  "nodes": {
+    "total": 3818,
+    "by_kind": { "class": 27, "function": 80, "method": 132, "module": 32, "symbol": 3547 }
+  },
+  "edges": {
+    "total": 3717,
+    "by_rel": { "ATTR_ACCESS": 1274, "CALLS": 1310, "CONTAINS": 239, "IMPORTS": 210, "INHERITS": 8, "RESOLVES_TO": 676 }
+  },
+  "meaningful_nodes": 271
 }
 ```
 
