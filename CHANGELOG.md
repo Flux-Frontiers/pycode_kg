@@ -9,6 +9,8 @@ Note: older entries preserve the API names used at that release (for example com
 
 ## [Unreleased]
 
+## [0.29.0] - 2026-10-26
+
 ### Changed
 
 - **The MCP server is built on the fleet's shared base, `kg_utils.mcp`.**
@@ -53,8 +55,9 @@ Note: older entries preserve the API names used at that release (for example com
   new names. `docs/MCP-CONSOLIDATION-PLAN.md` and
   `docs/UNIFIED-MCP-IMPLEMENTATION-PLAN.md` are marked superseded.
 
-**Needs `kgmodule-utils` 0.29.0**, unreleased: this branch is developed
-against its local wheel, and the floor and lock move when it ships.
+**Needs `kgmodule-utils` 0.29.0:** the floor is
+`kgmodule-utils[semantic,viz3d,mcp]>=0.29.0`, and its `[mcp]` extra replaces
+the direct `mcp` pin.
 
 ## [0.28.2] - 2026-10-15
 

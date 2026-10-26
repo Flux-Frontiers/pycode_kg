@@ -1,30 +1,43 @@
-# Release Notes -- v0.28.2
+# Release Notes -- v0.29.0
 
-> Released: 2026-10-15
+> Released: 2026-10-26
 
-`pycodekg analyze` no longer reports web route handlers as dead code. On a
-FastAPI repo this was enough to drop the analysis by a full grade.
+PyCodeKG's MCP server now runs on the fleet's shared base, `kg_utils.mcp`, so
+its first five tools have the same names on every fleet KG server: `stats`,
+`query`, `pack`, `get_node` and `neighbors`. PyCodeKG was the pilot for that
+change; its 15 domain tools are unchanged. Tool names, some arguments and the
+shape of `stats()` change, so read Upgrading before you install.
 
 ## What changed
 
-**Route handlers count as entry points.** A function decorated with
-`@app.get`, `@router.post`, `@app.middleware`, `@app.route` or another
-route-registration decorator of FastAPI, Starlette or Flask is called by the
-framework's router, so the graph never holds a call to it, and the orphan scan
-listed it as dead code. The scan now recognizes these decorators, including
-ones split across several lines and handlers defined inside an app factory.
-On `satprint`, a FastAPI app, dead-code candidates fall from 13 to 9, all four
-removed ones false, and the grade rises from C (74.6) to B (77.0). Two related
-blind spots remain: Pydantic models used only as type annotations, and
-classes instantiated at module scope, still show as unused.
+**Canonical tool names.** `graph_stats` is `stats`, `query_codebase` is
+`query`, `pack_snippets` is `pack`, and `get_node(include_edges=True)` is
+`get_node` followed by the new `neighbors`. There are no aliases. `query` and
+`pack` keep PyCodeKG's hybrid reranking, per-module cap, `paths`,
+`include_symbols` and edge provenance.
 
-**Dependencies.** The floors rise to kgmodule-utils 0.27.0 and quiltwright
-0.16.0, and the lock moves with them.
+**One command, standard flags.** `pycodekg mcp` and `pycodekg-mcp` are the
+same command, with `--repo`, `--db`, `--vectors`, `--model`,
+`--transport stdio|streamable-http`, `--host`, `--port` and `--manifest`, which
+lists the tools as JSON without opening the graph. The graph opens per session
+and closes after, a repository with no graph is refused instead of served
+empty, and stray output can no longer corrupt the stdio stream.
+
+**Generated instructions.** The server's instructions are built from a short
+preamble and each tool's docstring, so they cannot drift from the tools.
+
+**Statistics in the fleet shape.** `PyCodeKG.stats()` returns `kind`, `nodes`
+(`total`, `by_kind`) and `edges` (`total`, `by_rel`), plus `meaningful_nodes`
+and the vector backend. Snapshots keep their flat keys.
 
 ## Upgrading
 
-Nothing to do. Re-run `pycodekg analyze` on a web application to get the
-corrected dead-code list and grade.
+Rename the tools in agent instructions, permissions and scripts, pass `rels`
+as a list (`["CALLS"]`), and drop `format="markdown"` from `query` calls and
+`--transport sse` from configs. Code that read
+`PyCodeKG.stats()["total_nodes"]` reads `["nodes"]["total"]` instead.
+pycode-kg now needs kgmodule-utils 0.29.0, whose `[mcp]` extra brings the MCP
+SDK. Rebuild nothing: existing graphs and indexes work as they are.
 
 ---
 
