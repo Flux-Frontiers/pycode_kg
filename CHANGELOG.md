@@ -9,6 +9,56 @@ Note: older entries preserve the API names used at that release (for example com
 
 ## [Unreleased]
 
+## [0.29.0] - 2026-10-26
+
+### Changed
+
+- **The MCP server is built on the fleet's shared base, `kg_utils.mcp`.**
+  Step 1, the pilot, of `kgrag_priv/docs/MCP_CENTRALIZATION_PLAN.md` (sweep
+  item 93). **Breaking for agents and configs:** four tools take the fleet's
+  canonical names, the same on every KG server, with no aliases (decided by
+  EGS 2026-10-25): `graph_stats` is `stats`, `query_codebase` is `query`,
+  `pack_snippets` is `pack`, and `get_node(include_edges=True)` is
+  `get_node` followed by the new `neighbors(node_id, rels, direction,
+  limit)`. The server now has 20 tools: the five canonical ones first, then
+  PyCodeKG's 15, unchanged apart from how they reach the graph.
+- **`stats` returns the fleet's stats shape**, from kgmodule-utils
+  0.29.0's `KGModule.stats()`: `{"kind": "code", "nodes": {"total",
+  "by_kind"}, "edges": {"total", "by_rel"}}` plus PyCodeKG's own measures
+  (`meaningful_nodes`, the vector backend) as extras. The flat
+  `total_nodes` / `node_counts` keys are gone from `PyCodeKG.stats()`; the
+  store's `stats()` and snapshots keep them, and the thorough analysis
+  flattens the shape for its report. The snapshot freshness check reads
+  `nodes.total`.
+- **`query` and `pack` keep PyCodeKG's richer search:** hybrid reranking by
+  default, the per-module cap, `paths`, `include_symbols`, edge provenance
+  and `missing_lineno_policy`. Two changes: `rels` takes a list
+  (`["CALLS"]`) instead of a comma-separated string, and `query` returns
+  structured JSON only, so its `format="markdown"` option is gone. `stats`
+  and `get_node` return JSON rather than Markdown, with the same content.
+- **`pycodekg mcp` is the fleet's standard command:** `--repo`, `--db`,
+  `--vectors`, `--model`, `--transport stdio|streamable-http`, `--host`,
+  `--port`, and `--manifest`, which prints the tool list as JSON without
+  opening the graph (about 0.6 s). `--transport sse` is gone; it is
+  deprecated in the MCP specification. `pycodekg-mcp` is kept for Claude
+  Desktop and Copilot configs and is now the same command. Registering it
+  does not import `mcp`, so other `pycodekg` commands start as before.
+- **The server opens the graph per session and closes it after**, instead of
+  holding a module-level instance, and refuses a repository with no graph
+  instead of serving it empty. Under stdio, stray output from a tool or a C
+  library goes to stderr and can no longer corrupt the protocol stream.
+- **The instructions are generated** from a short hand-written preamble and
+  each tool's docstring, so they cannot drift from the tools. CLAUDE.md's
+  instruction-sync rule now says so.
+- `scripts/exercise_runner.py` runs the tools through a small session shim,
+  and the docs, skills, Copilot instructions and Claude permissions use the
+  new names. `docs/MCP-CONSOLIDATION-PLAN.md` and
+  `docs/UNIFIED-MCP-IMPLEMENTATION-PLAN.md` are marked superseded.
+
+**Needs `kgmodule-utils` 0.29.0:** the floor is
+`kgmodule-utils[semantic,viz3d,mcp]>=0.29.0`, and its `[mcp]` extra replaces
+the direct `mcp` pin.
+
 ## [0.28.2] - 2026-10-15
 
 ### Fixed

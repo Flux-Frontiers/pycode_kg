@@ -13,6 +13,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
+from kg_utils.stats import stats_problems
 
 from pycode_kg.graph import CodeGraph
 from pycode_kg.index import Embedder, SeedHit, SemanticIndex
@@ -166,7 +167,9 @@ def test_pycodekg_node_method(tmp_path):
 def test_pycodekg_stats(tmp_path):
     kg = _make_kg(tmp_path, {"mod.py": "def foo(): pass\n"})
     s = kg.stats()
-    assert "total_nodes" in s
+    assert stats_problems(s) == []
+    assert s["kind"] == "code" and s["nodes"]["total"] > 0
+    assert "meaningful_nodes" in s  # a domain measure, kept as an extra
     kg.close()
 
 
@@ -175,7 +178,7 @@ def test_pycodekg_context_manager(tmp_path):
     _write_repo(repo, {"mod.py": "x = 1\n"})
     with PyCodeKG(repo, tmp_path / "pycodekg.sqlite", tmp_path / "vectors.sqlite") as kg:
         kg.build_graph(wipe=True)
-        assert kg.stats()["total_nodes"] > 0
+        assert kg.stats()["nodes"]["total"] > 0
 
 
 def test_pycodekg_repr(tmp_path):

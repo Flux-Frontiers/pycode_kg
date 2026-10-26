@@ -5,7 +5,7 @@
 
 [![Python](https://img.shields.io/badge/python-3.12%20%7C%203.13-blue.svg)](https://www.python.org/)
 [![License: Elastic-2.0](https://img.shields.io/badge/License-Elastic%202.0-blue.svg)](https://www.elastic.co/licensing/elastic-license)
-[![Version](https://img.shields.io/badge/version-0.28.2-blue.svg)](https://github.com/Flux-Frontiers/pycode_kg/releases)
+[![Version](https://img.shields.io/badge/version-0.29.0-blue.svg)](https://github.com/Flux-Frontiers/pycode_kg/releases)
 [![CI](https://github.com/Flux-Frontiers/pycode_kg/actions/workflows/ci.yml/badge.svg)](https://github.com/Flux-Frontiers/pycode_kg/actions/workflows/ci.yml)
 [![Poetry](https://img.shields.io/endpoint?url=https://python-poetry.org/badge/v0.json)](https://python-poetry.org/)
 [![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.19737993-blue.svg)](https://doi.org/10.5281/zenodo.19737993)
@@ -82,9 +82,9 @@ jq '.docstring_coverage.total' ~/.claude/pycodekg_analysis_latest.json
 
 ### 2. Agentic — MCP server for grounded AI workflows
 
-Run `pycodekg mcp` and Claude (or any MCP-aware client) gets nineteen tools backed by the same graph: `graph_stats`, `query_codebase`, `pack_snippets`, `get_node`, `list_nodes`, `callers`, `explain`, `centrality`, `bridge_centrality`, `framework_nodes`, `analyze_repo`, `snapshot_list / show / diff`, and more. Setup for Claude Code, Claude Desktop, Kilo Code, Copilot, and Cline is a single line — see [docs/MCP.md](docs/MCP.md) and [docs/INSTALLATION.md](docs/INSTALLATION.md).
+Run `pycodekg mcp` and Claude (or any MCP-aware client) gets nineteen tools backed by the same graph: `stats`, `query`, `pack`, `get_node`, `list_nodes`, `callers`, `explain`, `centrality`, `bridge_centrality`, `framework_nodes`, `analyze_repo`, `snapshot_list / show / diff`, and more. Setup for Claude Code, Claude Desktop, Kilo Code, Copilot, and Cline is a single line — see [docs/MCP.md](docs/MCP.md) and [docs/INSTALLATION.md](docs/INSTALLATION.md).
 
-The agent benefit isn't subtle. Tools like `pack_snippets` return *actual source* with line numbers and surrounding context; `callers` returns the *real* fan-in resolved across import aliases, not a regex's best guess. The agent stops fabricating function signatures and starts citing them. Multi-step workflows — *"find the auth path, list its callers, summarize what changes if I rename it"* — collapse from dozens of `grep`s and file reads into a handful of source-grounded calls.
+The agent benefit isn't subtle. Tools like `pack` return *actual source* with line numbers and surrounding context; `callers` returns the *real* fan-in resolved across import aliases, not a regex's best guess. The agent stops fabricating function signatures and starts citing them. Multi-step workflows — *"find the auth path, list its callers, summarize what changes if I rename it"* — collapse from dozens of `grep`s and file reads into a handful of source-grounded calls.
 
 Independent assessments tend to put it the same way:
 
@@ -200,7 +200,7 @@ src/pycode_kg/
 └── viz3d_timeline.py                # Metric history timeline
 ```
 
-The MCP server, the CLI, and the Streamlit app are thin wrappers over the same store + index + ranking core — there is exactly one code path for each capability. The latest architectural deep-dive is in [docs/analysis_v0.28.2.md](docs/analysis_v0.28.2.md), produced (of course) by `pycodekg analyze` against this very repo.
+The MCP server, the CLI, and the Streamlit app are thin wrappers over the same store + index + ranking core — there is exactly one code path for each capability. The latest architectural deep-dive is in [docs/analysis_v0.29.0.md](docs/analysis_v0.29.0.md), produced (of course) by `pycodekg analyze` against this very repo.
 
 ---
 
@@ -227,13 +227,13 @@ If you use PyCodeKG in your research or project, please cite it:
 
 [![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.19737993-blue.svg)](https://doi.org/10.5281/zenodo.19737993)
 
-> Suchanek, E. G. (2026). *PyCodeKG: A Knowledge Graph for Python Codebases* (Version 0.28.2) [Software]. Flux-Frontiers. https://doi.org/10.5281/zenodo.19737993
+> Suchanek, E. G. (2026). *PyCodeKG: A Knowledge Graph for Python Codebases* (Version 0.29.0) [Software]. Flux-Frontiers. https://doi.org/10.5281/zenodo.19737993
 
 ```bibtex
 @software{suchanek_pycode_kg,
   author    = {Suchanek, Eric G.},
   title     = {{PyCodeKG}: A Knowledge Graph for Python Codebases},
-  version   = {0.28.2},
+  version   = {0.29.0},
   year      = {2026},
   publisher = {Flux-Frontiers},
   url       = {https://github.com/Flux-Frontiers/pycode_kg},

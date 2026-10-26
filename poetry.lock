@@ -1516,17 +1516,19 @@ referencing = ">=0.31.0"
 
 [[package]]
 name = "kgmodule-utils"
-version = "0.27.0"
+version = "0.29.0"
 description = "Shared types, graph store, semantic index, and pipeline base for the KGModule SDK"
 optional = false
 python-versions = "<3.14,>=3.12"
 groups = ["main"]
 files = [
-    {file = "kgmodule_utils-0.27.0-py3-none-any.whl", hash = "sha256:39da894124aae271b669726545d29f3342b40c5569a2174648ee4e8366a7d2a1"},
-    {file = "kgmodule_utils-0.27.0.tar.gz", hash = "sha256:eb43fba63ce918697be2f1207a2b1e943859c457c6563067da39fe08a1e6db91"},
+    {file = "kgmodule_utils-0.29.0-py3-none-any.whl", hash = "sha256:0f81eab4c16ddca303d251e0d0db1d75e7eba6dd7df749899f8d9735f021a955"},
+    {file = "kgmodule_utils-0.29.0.tar.gz", hash = "sha256:012f37819602c43eef57a5b33f2d2075147d70e2663912c41b71402c8768006a"},
 ]
 
 [package.dependencies]
+click = {version = ">=8.1.0", optional = true, markers = "extra == \"mcp\""}
+mcp = {version = ">=1.23.0,<2", optional = true, markers = "extra == \"mcp\""}
 numpy = [
     {version = ">=1.24.0", optional = true, markers = "extra == \"semantic\" or extra == \"viz3d\""},
     {version = ">=1.24.0", optional = true, markers = "extra == \"viz3d-qt\" or extra == \"viz3d-render\""},
@@ -1541,9 +1543,9 @@ torch = {version = ">=2.5.1", optional = true, markers = "extra == \"semantic\""
 transformers = {version = ">=5.5.0,<6", optional = true, markers = "extra == \"semantic\""}
 
 [package.extras]
-ingest = ["firecrawl-anydoc (>=0.1.9)", "pymupdf4llm (>=1.28.2)"]
-lancedb = ["lancedb (>=0.19.0)"]
-pdf = ["pymupdf4llm (>=1.28.2)"]
+ingest = ["firecrawl-anydoc (>=0.1.9)", "pymupdf (>=2.0)"]
+mcp = ["click (>=8.1.0)", "mcp (>=1.23.0,<2)"]
+pdf = ["pymupdf (>=2.0)"]
 semantic = ["numpy (>=1.24.0)", "rich (>=13.0.0,<15.0.0)", "sentence-transformers (>=5.4.1)", "sqlite-vec (==0.1.9)", "torch (>=2.5.1)", "transformers (>=5.5.0,<6)"]
 sqlite-vec = ["sqlite-vec (==0.1.9)"]
 synthesis = ["httpx (>=0.27.0)", "openai (>=1.30.0)", "pillow (>=10.0.0)"]
@@ -5108,4 +5110,4 @@ viz3d = ["PyQt5", "kgmodule-utils", "markdown", "param", "pyvistaqt", "quiltwrig
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12,<3.14"
-content-hash = "1bcce493750158dd666e07d9c4a100f8a6f212981c84594383aad0d6c020d338"
+content-hash = "4a24fcdb6b9cf6ea723c5eaf6e97a08a533ff9bf745cd7e9570d72b9ba81e202"

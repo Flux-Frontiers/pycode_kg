@@ -15,8 +15,11 @@ import json
 import textwrap
 from pathlib import Path
 
-import pycode_kg.mcp_server as mcp_server
+import anyio
+from mcp.shared.memory import create_connected_server_and_client_session
+
 from pycode_kg.kg import PyCodeKG
+from pycode_kg.mcp_server import build_server
 
 SAMPLE = {
     "pkg/__init__.py": "",
@@ -52,28 +55,35 @@ def _cold_kg(tmp_path: Path) -> PyCodeKG:
     return PyCodeKG(repo_root=repo, db_path=db, vectors_path=vectors)
 
 
-def _call(tool, **kwargs):
-    """Invoke an MCP tool, unwrapping the FastMCP decorator if present."""
-    return getattr(tool, "fn", tool)(**kwargs)
+def _first_call(tmp_path: Path, tool: str, args: dict) -> list:
+    """Make *tool* the first call of a fresh server session over a built graph.
+
+    The server opens its own handle when the session starts, so the store is
+    as cold as it is in a newly launched server process.
+    """
+    _cold_kg(tmp_path)
+    server = build_server(
+        tmp_path / "repo", tmp_path / "pycodekg.sqlite", tmp_path / "vectors.sqlite"
+    )
+
+    async def session():
+        async with create_connected_server_and_client_session(server) as client:
+            return await client.call_tool(tool, args)
+
+    result = anyio.run(session)
+    assert not result.isError, result.content
+    return json.loads(result.content[0].text)
 
 
-def test_list_nodes_works_on_cold_session(tmp_path, monkeypatch):
-    kg = _cold_kg(tmp_path)
-    assert kg._store is None, "precondition: store must be uninitialised"
-    monkeypatch.setattr(mcp_server, "_kg", kg)
-
-    payload = json.loads(_call(mcp_server.list_nodes, kind="class"))
+def test_list_nodes_works_on_cold_session(tmp_path):
+    payload = _first_call(tmp_path, "list_nodes", {"kind": "class"})
 
     assert not (isinstance(payload, dict) and "error" in payload), payload
     assert any(n["name"] == "Widget" for n in payload)
 
 
-def test_find_node_works_on_cold_session(tmp_path, monkeypatch):
-    kg = _cold_kg(tmp_path)
-    assert kg._store is None
-    monkeypatch.setattr(mcp_server, "_kg", kg)
-
-    payload = json.loads(_call(mcp_server.find_node, name="helper"))
+def test_find_node_works_on_cold_session(tmp_path):
+    payload = _first_call(tmp_path, "find_node", {"name": "helper"})
 
     assert not (isinstance(payload, dict) and "error" in payload), payload
     assert any(n["name"] == "helper" for n in payload)

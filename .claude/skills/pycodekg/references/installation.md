@@ -41,7 +41,7 @@
 | `--db` | `.pycodekg/graph.sqlite` | SQLite path |
 | `--vectors` | `.pycodekg/vectors.sqlite` | sqlite-vec vector store path |
 | `--model` | `BAAI/bge-small-en-v1.5` | Embedding model (override with `PYCODEKG_MODEL` env var) |
-| `--transport` | `stdio` | `stdio` or `sse` |
+| `--transport` | `stdio` | `stdio` or `streamable-http` |
 
 ### `pycodekg-query`
 
@@ -226,18 +226,18 @@ Get venv path: `poetry env info --path`
 | `CALLS` | Tracing execution flow |
 | `IMPORTS` | Dependency analysis |
 | `INHERITS` | OOP hierarchy |
-| `RESOLVES_TO` | Connecting `sym:` stubs to definitions — used internally by `callers()`; include in `query_codebase` rels for graph traversal through import aliases |
+| `RESOLVES_TO` | Connecting `sym:` stubs to definitions — used internally by `callers()`; include in `query` rels for graph traversal through import aliases |
 
 ### Typical session workflow
 
 ```
-1. graph_stats()                                              → orientation
-2. query_codebase("auth flow", k=8, hop=1)                   → find nodes
+1. stats()                                              → orientation
+2. query("auth flow", k=8, hop=1)                   → find nodes
 3. explain("cls:src/auth/jwt.py:JWTValidator")               → understand before reading
-4. pack_snippets("JWT validation", k=6, hop=1)               → read source
-5. get_node("fn:src/auth/jwt.py:JWTValidator.validate", include_edges=True)
+4. pack("JWT validation", k=6, hop=1)               → read source
+5. neighbors("fn:src/auth/jwt.py:JWTValidator.validate")
                                                               → node detail + neighborhood in one call
-6. pack_snippets("error handling", k=4, hop=2, rels="CALLS") → deeper
+6. pack("error handling", k=4, hop=2, rels=["CALLS"]) → deeper
 7. snapshot_list() / snapshot_diff("a", "b")                 → track codebase evolution
 ```
 
@@ -289,7 +289,7 @@ sqlite3 .pycodekg/graph.sqlite "SELECT COUNT(*) FROM nodes; SELECT COUNT(*) FROM
 | `error: the following arguments are required: --sqlite` | Wrong flag for index builder | Use `--sqlite`, not `--db` |
 | `ERROR: 'mcp' package not found` | Optional dep missing | `poetry add mcp` |
 | `WARNING: SQLite database not found` | Graph not built | Run `pycodekg-build-sqlite` first |
-| Empty results from `query_codebase` | Vector index stale or missing | `pycodekg-build-index --wipe` |
+| Empty results from `query` | Vector index stale or missing | `pycodekg-build-index --wipe` |
 | `RuntimeError: PyCodeKG not initialised` | Server not started via CLI | Always use `pycodekg-mcp` CLI |
 | Snippets show wrong line numbers | Source changed since build | `pycodekg-build-sqlite --wipe` |
 | MCP server not in Claude Code / Kilo Code | Relative paths or wrong location | Absolute paths in `.mcp.json` (project root); restart |

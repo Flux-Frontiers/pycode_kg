@@ -205,13 +205,13 @@ Thin wrapper around `PyCodeKG`. Stateful (one instance per process), read-only.
 
 | Tool | Returns |
 |---|---|
-| `query_codebase(q, k, hop, rels, include_symbols, max_nodes, min_score, max_per_module)` | JSON |
-| `pack_snippets(q, k, hop, rels, context, max_lines, max_nodes, min_score, max_per_module)` | Markdown |
+| `query(q, k, hop, rels, include_symbols, max_nodes, min_score, max_per_module)` | JSON |
+| `pack(q, k, hop, rels, context, max_lines, max_nodes, min_score, max_per_module)` | Markdown |
 | `callers(node_id, rel)` | JSON |
 | `get_node(node_id)` | JSON |
-| `graph_stats()` | JSON |
+| `stats()` | JSON |
 
-Start: `pycodekg-mcp --repo /path [--db ...] [--vectors ...] [--transport stdio|sse]`
+Start: `pycodekg-mcp --repo /path [--db ...] [--vectors ...] [--transport stdio|streamable-http]`
 
 ### CLI Entry Points
 

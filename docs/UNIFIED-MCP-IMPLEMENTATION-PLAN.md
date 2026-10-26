@@ -1,5 +1,7 @@
 # Unified MCP Implementation Plan
 
+> **Superseded 2026-10-25** by `kgrag_priv/docs/MCP_CENTRALIZATION_PLAN.md` (sweep item 93), the fleet's plan of record, which builds the shared server in `kg_utils.mcp` and has started with this repo. One decision differs: tool names are renamed to the canonical set without compatibility aliases (EGS, 2026-10-25), where this plan kept old names. Kept for its history.
+
 ## Purpose
 
 The KG repository family currently implements Model Context Protocol servers

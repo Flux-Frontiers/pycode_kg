@@ -70,7 +70,7 @@ torch = [
 # ---------------------------------------------------------------------------
 [project]
 name = "pycode-kg"
-version = "0.28.2"
+version = "0.29.0"
 description = "A tool to build a searchable knowledge graph from Python repositories"
 readme = "README.md"
 license = "Elastic-2.0"
@@ -90,13 +90,6 @@ classifiers = [
 requires-python = ">=3.12,<3.14"
 dependencies = [
     "click>=8.1.0,<9",
-    # Upper-bounded: mcp 2.0 removed the bundled `mcp.server.fastmcp` module
-    # (FastMCP was split out into the standalone `fastmcp` package) and rebuilt
-    # mcp.server around new submodules. src/pycode_kg/mcp_server.py imports
-    # FastMCP from mcp, so an unbounded floor lets a clean install pull 2.x and
-    # break `pycodekg-mcp` at import time. Lift this only alongside a port to
-    # the standalone fastmcp package.
-    "mcp>=1.3.0,<2",
     "networkx>=3.0",
     "numpy>=1.24.0",
     "pandas>=2.0.0",
@@ -169,7 +162,11 @@ dependencies = [
     # and the _domain_metrics() hook, none of which exist before 0.20.0.
     # Against 0.19.x the manager silently reports itself as "kg-utils" and
     # drops module_node_counts entirely.
-    "kgmodule-utils[semantic,viz3d]>=0.27.0",
+    #
+    # 0.29.0: the MCP server is kg_utils.mcp's ([mcp] brings mcp itself, capped
+    # below 2.0 there), PyCodeKG.stats() is the fleet stats shape, and LanceDB
+    # is gone.
+    "kgmodule-utils[semantic,viz3d,mcp]>=0.29.0",
 ]
 
 [project.optional-dependencies]

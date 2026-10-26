@@ -19,10 +19,10 @@ pycodekg build --repo .
 Verify the graph is live before starting:
 
 ```python
-graph_stats()
+stats()
 ```
 
-You should see node and edge counts broken down by kind. If `total_nodes` is 0
+You should see node and edge counts broken down by kind. If `nodes.total` is 0
 something went wrong with the build. Check `pyproject.toml` for `exclude` settings
 that might be too broad.
 
@@ -33,7 +33,7 @@ that might be too broad.
 ### Exercise 1.1 — Get your bearings
 
 ```python
-graph_stats()
+stats()
 ```
 
 **What to notice:**
@@ -97,13 +97,13 @@ framework_nodes(top=10)
 ### Exercise 2.1 — Semantic search, broad then narrow
 
 ```python
-query_codebase("storage persistence database")
+query("storage persistence database")
 ```
 
 Note the top node IDs returned. Then narrow:
 
 ```python
-query_codebase("storage persistence database", rels="CALLS")
+query("storage persistence database", rels=["CALLS"])
 ```
 
 **What to notice:**
@@ -123,7 +123,7 @@ explain("fn:src/your_module.py:function_name")
 ### Exercise 2.2 — Find all implementations of a concept
 
 ```python
-query_codebase("error handling retry backoff", hop=2)
+query("error handling retry backoff", hop=2)
 ```
 
 **What to notice:**
@@ -139,7 +139,7 @@ query_codebase("error handling retry backoff", hop=2)
 ### Exercise 2.3 — Module structure in one call
 
 ```python
-query_codebase("module_name_here", rels="CONTAINS", hop=2)
+query("module_name_here", rels=["CONTAINS"], hop=2)
 ```
 
 Replace `module_name_here` with one of the modules from Exercise 1.2.
@@ -154,7 +154,7 @@ Replace `module_name_here` with one of the modules from Exercise 1.2.
 ### Exercise 2.4 — Follow the import graph
 
 ```python
-query_codebase("imports dependencies external", rels="IMPORTS")
+query("imports dependencies external", rels=["IMPORTS"])
 ```
 
 **What to notice:**
@@ -169,17 +169,17 @@ query_codebase("imports dependencies external", rels="IMPORTS")
 ### Exercise 3.1 — Get source for a concept
 
 ```python
-pack_snippets("query pipeline semantic search ranking")
+pack("query pipeline semantic search ranking")
 ```
 
 **What to notice:**
-- Unlike `query_codebase`, this returns actual source lines with line numbers
+- Unlike `query`, this returns actual source lines with line numbers
 - The `context=5` default means you see 5 lines above and below each definition
 - Results are deduplicated — the same function won't appear twice
 
 **Follow-up:** Widen the context for a dense function:
 ```python
-pack_snippets("query pipeline semantic search ranking", context=15)
+pack("query pipeline semantic search ranking", context=15)
 ```
 
 ---
@@ -187,7 +187,7 @@ pack_snippets("query pipeline semantic search ranking", context=15)
 ### Exercise 3.2 — Cross-module source comparison
 
 ```python
-pack_snippets("slugify normalize string identifier", max_per_module=1)
+pack("slugify normalize string identifier", max_per_module=1)
 ```
 
 **What to notice:**
@@ -201,7 +201,7 @@ pack_snippets("slugify normalize string identifier", max_per_module=1)
 ### Exercise 3.3 — Find a specific implementation
 
 ```python
-pack_snippets("write reference markdown metadata sidecar", k=12)
+pack("write reference markdown metadata sidecar", k=12)
 ```
 
 **What to notice:**
@@ -225,12 +225,12 @@ get_node("fn:src/your_module.py:your_function")
 Then fetch with its neighborhood:
 
 ```python
-get_node("fn:src/your_module.py:your_function", include_edges=True)
+neighbors("fn:src/your_module.py:your_function")
 ```
 
 **What to notice:**
-- The `include_edges=True` version returns `outgoing_edges` grouped by relation
-  type and `incoming_calls` — everything `callers()` would give you, in one call
+- `neighbors` returns the node's edges in both directions and the nodes at their
+  far ends; narrow it with `rels=["CALLS"]` or `direction="in"`
 - `lineno` and `end_lineno` tell you the exact source span
 
 ---
@@ -466,7 +466,7 @@ snapshot_diff("older_key", "newer_key")
 ### Exercise 9.1 — Attribute access patterns
 
 ```python
-query_codebase("self attribute property access", rels="ATTR_ACCESS", include_symbols=True)
+query("self attribute property access", rels=["ATTR_ACCESS"], include_symbols=True)
 ```
 
 **What to notice:**
@@ -479,13 +479,13 @@ query_codebase("self attribute property access", rels="ATTR_ACCESS", include_sym
 ### Exercise 9.2 — Variable resolution
 
 ```python
-query_codebase("variable assignment name binding resolved", rels="RESOLVES_TO", include_symbols=True)
+query("variable assignment name binding resolved", rels=["RESOLVES_TO"], include_symbols=True)
 ```
 
 **What to notice:**
 - `RESOLVES_TO` edges map local variable symbols to the definition nodes they
   resolve to — this is how you trace a variable back to where it was defined
-- A high `RESOLVES_TO` count in `graph_stats()` means import-aware name
+- A high `RESOLVES_TO` count in `stats()` means import-aware name
   resolution is active and call-graph accuracy is high
 
 ---
@@ -564,9 +564,9 @@ snapshot_diff("pre-refactor-key", "post-refactor-key")
 
 | I want to… | Use |
 |---|---|
-| Get oriented in an unfamiliar codebase | `graph_stats()` then `centrality(group_by="module")` |
-| Find what a concept maps to in code | `query_codebase(q)` |
-| Read the actual source | `pack_snippets(q)` |
+| Get oriented in an unfamiliar codebase | `stats()` then `centrality(group_by="module")` |
+| Find what a concept maps to in code | `query(q)` |
+| Read the actual source | `pack(q)` |
 | Look up a specific function | `get_node(node_id)` or `find_node(name)` |
 | Find what depends on a function | `callers(node_id)` |
 | Understand a function completely | `explain(node_id)` |

@@ -37,9 +37,9 @@ Always use these first — they're faster and source-grounded:
 
 | Tool | Purpose | Example |
 |------|---------|---------|
-| `graph_stats` | View node/edge counts by kind/relation | Understand graph structure |
-| `query_codebase(q, k, hop, rels, include_symbols, max_nodes, min_score, max_per_module)` | Hybrid semantic + structural query with precision/diversity controls | "database connection setup" |
-| `pack_snippets(q, k, hop, ...)` | Extract source-grounded code snippets | Get relevant code for LLM analysis |
+| `stats` | View node/edge counts by kind/relation | Understand graph structure |
+| `query(q, k, hop, rels, include_symbols, max_nodes, min_score, max_per_module)` | Hybrid semantic + structural query with precision/diversity controls | "database connection setup" |
+| `pack(q, k, hop, ...)` | Extract source-grounded code snippets | Get relevant code for LLM analysis |
 | `get_node(node_id)` | Fetch a single node by stable ID | Precise node lookup |
 | `callers(node_id, rel)` | Find all callers of a function, including import-aware disambiguation of same-name symbols | Understand call graph |
 | `centrality(top, kinds, group_by)` | SIR PageRank — rank nodes or modules by structural importance | Identify hotspots before refactoring |
@@ -128,7 +128,7 @@ This project uses [Codex Copilot](https://github.com/Everyone-Needs-A-Copilot/Co
 | **Agents** | 11 specialists via `/protocol` | Expert guidance routed by task type |
 | **Knowledge** | `knowledge_search`, `knowledge_get` | Search company/product documentation |
 | **Skills** | `skill_search`, `skill_get` | Load expertise on demand |
-| **PyCodeKG** | `graph_stats`, `query_codebase`, `pack_snippets`, `get_node` | Source-grounded codebase exploration via MCP |
+| **PyCodeKG** | `stats`, `query`, `pack`, `get_node` | Source-grounded codebase exploration via MCP |
 
 ### Agents
 

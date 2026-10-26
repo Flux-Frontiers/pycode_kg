@@ -20,10 +20,11 @@ Read `src/pycode_kg/mcp_server.py` and extract the **authoritative tool list**:
 **Example format:**
 ```
 TOOL INVENTORY (from mcp_server.py):
-  1. graph_stats()                          → JSON   — node/edge counts by kind/relation
-  2. query_codebase(q, k, hop, rels, ...)   → JSON   — hybrid semantic + structural search
-  3. pack_snippets(q, k, hop, ...)          → MD     — source-grounded snippet extraction
-  4. get_node(node_id, include_edges)       → JSON   — single node lookup + optional neighborhood
+  1. stats()                          → JSON   — node/edge counts by kind/relation
+  2. query(q, k, hop, rels, ...)   → JSON   — hybrid semantic + structural search
+  3. pack(q, k, hop, ...)          → MD     — source-grounded snippet extraction
+  4. get_node(node_id)                      → JSON   — single node lookup
+  5. neighbors(node_id, rels, direction, limit) → JSON — one-hop neighbourhood
   5. callers(node_id, rel, paths)           → JSON   — reverse edge lookup / fan-in analysis
   6. explain(node_id)                       → MD     — natural-language node explanation
   7. analyze_repo()                         → MD     — full nine-phase architectural analysis
@@ -80,7 +81,7 @@ Do NOT homogenize formats — each file has its own style.
 
 ### 2b. `.claude/skills/pycodekg/SKILL.md`
 
-- **Frontmatter `description:` field** — The `using the graph_stats / ... MCP tools` list
+- **Frontmatter `description:` field** — The `using the stats / ... MCP tools` list
   must include all tools by name (slash-separated).
 - **"## MCP Tools" table** — Two-column (Tool | When to use). Every tool must appear with
   correct signature. Missing tools: add a row. Changed signatures: update in place.

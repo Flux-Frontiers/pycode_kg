@@ -301,9 +301,9 @@ Present a summary of everything that was done:
 Restart Claude Code / Claude Desktop to activate the pycodekg MCP server.
 
 Available tools once active:
-  • graph_stats()          — codebase size and shape
-  • query_codebase(q)      — semantic + structural exploration
-  • pack_snippets(q)       — source-grounded code snippets
+  • stats()          — codebase size and shape
+  • query(q)      — semantic + structural exploration
+  • pack(q)       — source-grounded code snippets
   • get_node(node_id)      — single node metadata + neighborhood
   • list_nodes(module_path, kind) — enumerate nodes in a module
   • callers(node_id)       — find all callers of a function
@@ -312,7 +312,7 @@ Available tools once active:
   • analyze_repo()         — full architectural analysis
 
 Suggested first query after restart:
-  graph_stats()
+  stats()
 ```
 
 ---

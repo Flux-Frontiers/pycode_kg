@@ -20,7 +20,7 @@ Performs comprehensive architectural analysis of any Python repository using PyC
 
 ### Phase 1: Graph Statistics & Baseline
 ```
-1. Get overall codebase metrics: graph_stats()
+1. Get overall codebase metrics: stats()
    - Total nodes/edges by kind
    - Edge density (CALLS, CONTAINS, IMPORTS, INHERITS)
 

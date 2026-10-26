@@ -6,7 +6,7 @@
       "Bash(.venv/bin/python -c \"import metabokg\")",
       "Bash(dockg analyze *)",
       "Bash(git tag *)",
-      "mcp__pycodekg__graph_stats",
+      "mcp__pycodekg__stats",
       "mcp__pycodekg__analyze_repo",
       "mcp__pycodekg__get_node",
       "mcp__pycodekg__explain",

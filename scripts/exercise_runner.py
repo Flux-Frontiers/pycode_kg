@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""exercise_runner.py — Run all 19 PyCodeKG tool exercises with real output.
+"""exercise_runner.py — Run the PyCodeKG MCP tool exercises with real output.
 
 Companion to docs/exercises.md. Initialises a PyCodeKG instance against a
 built repository and exercises every MCP tool in the same order as the
@@ -99,12 +99,51 @@ def build_graph(repo: Path) -> None:
     print("Build complete.\n")
 
 
-def init_kg(repo: Path) -> None:
-    """Initialise the PyCodeKG global state used by mcp_server tool functions."""
-    import pycode_kg.mcp_server as _srv  # noqa: PLC0415
+class _Tools:
+    """Call the server's tools the way an MCP session would, without a client.
+
+    Each tool takes its session's graph from an injected context, so the
+    facade hands every call a context whose lifespan value is *kg*. Results
+    an agent receives as structured data are rendered as JSON text, since the
+    exercises print text.
+
+    :param kg: The graph to serve.
+    """
+
+    def __init__(self, kg) -> None:
+        from types import SimpleNamespace  # noqa: PLC0415
+
+        import pycode_kg.mcp_server as srv  # noqa: PLC0415
+
+        self._kg = kg
+        self._srv = srv
+        self._ctx = SimpleNamespace(request_context=SimpleNamespace(lifespan_context=kg))
+
+    def stats(self) -> str:
+        return json.dumps(self._kg.stats(), indent=2)
+
+    def get_node(self, node_id: str) -> str:
+        return json.dumps(self._kg.node(node_id), indent=2)
+
+    def neighbors(self, node_id: str, **kwargs) -> str:
+        return json.dumps(self._kg.neighbors(node_id, **kwargs), indent=2)
+
+    def __getattr__(self, name: str):
+        fn = getattr(self._srv, name)
+
+        def call(*args, **kwargs):
+            if "rels" in kwargs and isinstance(kwargs["rels"], str) and name in ("query", "pack"):
+                kwargs["rels"] = [r.strip() for r in kwargs["rels"].split(",") if r.strip()]
+            result = fn(*args, ctx=self._ctx, **kwargs)
+            return result if isinstance(result, str) else json.dumps(result, indent=2)
+
+        return call
+
+
+def init_kg(repo: Path) -> _Tools:
+    """Open the repository's graph behind a tool facade."""
     from pycode_kg import PyCodeKG  # noqa: PLC0415
     from pycode_kg.pycodekg import DEFAULT_MODEL  # noqa: PLC0415
-    from pycode_kg.snapshots import SnapshotManager  # noqa: PLC0415
 
     db = repo / ".pycodekg" / "graph.sqlite"
     vectors = repo / ".pycodekg" / "vectors.sqlite"
@@ -118,19 +157,14 @@ def init_kg(repo: Path) -> None:
         sys.exit(1)
 
     kg = PyCodeKG(repo_root=repo, db_path=db, vectors_path=vectors, model=DEFAULT_MODEL)
-    _srv._kg = kg  # type: ignore[attr-defined]
-    _srv._snapshot_mgr = SnapshotManager(  # type: ignore[attr-defined]
-        repo / ".pycodekg" / "snapshots", db_path=db
-    )
     print(f"Knowledge graph loaded from {db}\n")
+    return _Tools(kg)
 
 
 # ── exercises ──────────────────────────────────────────────────────────────────
 
 
-def run_exercises(repo: Path) -> None:
-    import pycode_kg.mcp_server as srv  # noqa: PLC0415
-
+def run_exercises(srv: _Tools) -> None:
     # State extracted from early exercises to feed into later ones
     node_id: str | None = None
     file_path: str | None = None
@@ -144,8 +178,8 @@ def run_exercises(repo: Path) -> None:
 
     run_exercise(
         "Exercise 1.1 — Get your bearings",
-        "graph_stats()",
-        srv.graph_stats,
+        "stats()",
+        srv.stats,
     )
 
     run_exercise(
@@ -183,9 +217,9 @@ def run_exercises(repo: Path) -> None:
     # ═══════════════════════════════════════════════════════════════════════════
 
     section("Exercise 2.1 — Semantic search: storage persistence database")
-    call_header("query_codebase('storage persistence database')")
+    call_header("query('storage persistence database')")
     try:
-        raw_json = srv.query_codebase("storage persistence database", format="json")
+        raw_json = srv.query("storage persistence database")
         result_data = json.loads(raw_json)
         # Extract a node_id + file location for subsequent exercises
         nodes = result_data.get("nodes", [])
@@ -201,57 +235,50 @@ def run_exercises(repo: Path) -> None:
                     class_module = n.get("module_path", "")
                     break
             print(f"[node_id extracted for subsequent exercises: {node_id}]\n")
-        # Display as markdown
-        md = srv.query_codebase("storage persistence database", format="markdown")
-        print(md)
+        print(raw_json)
         print()
     except Exception as exc:  # noqa: BLE001
         print(f"[ERROR] {exc}\n")
 
     run_exercise(
         "Exercise 2.1 — Same query, CALLS edges only",
-        "query_codebase('storage persistence database', rels='CALLS')",
-        srv.query_codebase,
+        "query('storage persistence database', rels='CALLS')",
+        srv.query,
         "storage persistence database",
         rels="CALLS",
-        format="markdown",
     )
 
     run_exercise(
         "Exercise 2.2 — Error handling: hop=2 (broad)",
-        "query_codebase('error handling retry backoff', hop=2)",
-        srv.query_codebase,
+        "query('error handling retry backoff', hop=2)",
+        srv.query,
         "error handling retry backoff",
         hop=2,
-        format="markdown",
     )
 
     run_exercise(
         "Exercise 2.2 — Error handling: hop=1 (default, for comparison)",
-        "query_codebase('error handling retry backoff', hop=1)",
-        srv.query_codebase,
+        "query('error handling retry backoff', hop=1)",
+        srv.query,
         "error handling retry backoff",
         hop=1,
-        format="markdown",
     )
 
     run_exercise(
         "Exercise 2.3 — Module structure via CONTAINS edges",
-        "query_codebase('query pipeline', rels='CONTAINS', hop=2)",
-        srv.query_codebase,
+        "query('query pipeline', rels='CONTAINS', hop=2)",
+        srv.query,
         "query pipeline",
         rels="CONTAINS",
         hop=2,
-        format="markdown",
     )
 
     run_exercise(
         "Exercise 2.4 — Import graph",
-        "query_codebase('imports dependencies external', rels='IMPORTS')",
-        srv.query_codebase,
+        "query('imports dependencies external', rels='IMPORTS')",
+        srv.query,
         "imports dependencies external",
         rels="IMPORTS",
-        format="markdown",
     )
 
     # ═══════════════════════════════════════════════════════════════════════════
@@ -260,23 +287,23 @@ def run_exercises(repo: Path) -> None:
 
     run_exercise(
         "Exercise 3.1 — Source for a concept",
-        "pack_snippets('query pipeline semantic search ranking')",
-        srv.pack_snippets,
+        "pack('query pipeline semantic search ranking')",
+        srv.pack,
         "query pipeline semantic search ranking",
     )
 
     run_exercise(
         "Exercise 3.2 — Cross-module comparison (max_per_module=1)",
-        "pack_snippets('normalize string identifier', max_per_module=1)",
-        srv.pack_snippets,
+        "pack('normalize string identifier', max_per_module=1)",
+        srv.pack,
         "normalize string identifier",
         max_per_module=1,
     )
 
     run_exercise(
         "Exercise 3.3 — Broaden seed set (k=12)",
-        "pack_snippets('write reference metadata sidecar', k=12)",
-        srv.pack_snippets,
+        "pack('write reference metadata sidecar', k=12)",
+        srv.pack,
         "write reference metadata sidecar",
         k=12,
     )
@@ -293,11 +320,10 @@ def run_exercises(repo: Path) -> None:
             node_id,
         )
         run_exercise(
-            "Exercise 4.1 — Same node with edges",
-            f"get_node('{node_id}', include_edges=True)",
-            srv.get_node,
+            "Exercise 4.1 — Its neighbourhood",
+            f"neighbors('{node_id}')",
+            srv.neighbors,
             node_id,
-            include_edges=True,
         )
     else:
         print("  [skipped — no node_id extracted from Part 2]\n")
@@ -344,9 +370,9 @@ def run_exercises(repo: Path) -> None:
     # Find a class for 5.3 — try query if we didn't find one in Part 2
     if not class_id:
         section("Exercise 5.3 — Searching for a class node ...")
-        call_header("query_codebase('class', format='json')")
+        call_header("query('class object')")
         try:
-            cls_raw = srv.query_codebase("class object", format="json")
+            cls_raw = srv.query("class object")
             cls_data = json.loads(cls_raw)
             for n in cls_data.get("nodes", []):
                 if n.get("kind") == "class":
@@ -515,22 +541,20 @@ def run_exercises(repo: Path) -> None:
 
     run_exercise(
         "Exercise 9.1 — Attribute access patterns (ATTR_ACCESS edges)",
-        "query_codebase('self attribute property access', rels='ATTR_ACCESS', include_symbols=True)",
-        srv.query_codebase,
+        "query('self attribute property access', rels='ATTR_ACCESS', include_symbols=True)",
+        srv.query,
         "self attribute property access",
         rels="ATTR_ACCESS",
         include_symbols=True,
-        format="markdown",
     )
 
     run_exercise(
         "Exercise 9.2 — Variable resolution (RESOLVES_TO edges)",
-        "query_codebase('variable assignment name binding resolved', rels='RESOLVES_TO', include_symbols=True)",
-        srv.query_codebase,
+        "query('variable assignment name binding resolved', rels='RESOLVES_TO', include_symbols=True)",
+        srv.query,
         "variable assignment name binding resolved",
         rels="RESOLVES_TO",
         include_symbols=True,
-        format="markdown",
     )
 
     # ═══════════════════════════════════════════════════════════════════════════
@@ -538,9 +562,9 @@ def run_exercises(repo: Path) -> None:
     # ═══════════════════════════════════════════════════════════════════════════
 
     print(
-        "Tools exercised (19 total):\n"
-        "  graph_stats, centrality, bridge_centrality, framework_nodes,\n"
-        "  query_codebase, pack_snippets, get_node, find_node,\n"
+        "Tools exercised (20 total):\n"
+        "  stats, centrality, bridge_centrality, framework_nodes,\n"
+        "  query, pack, get_node, neighbors, find_node,\n"
         "  find_definition_at, callers, explain, list_nodes,\n"
         "  rank_nodes, query_ranked, explain_rank, analyze_repo,\n"
         "  snapshot_list, snapshot_show, snapshot_diff\n"
@@ -584,8 +608,7 @@ def main() -> None:
     if args.build:
         build_graph(repo)
 
-    init_kg(repo)
-    run_exercises(repo)
+    run_exercises(init_kg(repo))
 
 
 if __name__ == "__main__":

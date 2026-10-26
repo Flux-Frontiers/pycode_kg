@@ -1,5 +1,7 @@
 # MCP Consolidation Plan
 
+> **Superseded 2026-10-25** by `kgrag_priv/docs/MCP_CENTRALIZATION_PLAN.md` (sweep item 93), the fleet's plan of record, which builds the shared server in `kg_utils.mcp` and has started with this repo. One decision differs: tool names are renamed to the canonical set without compatibility aliases (EGS, 2026-10-25), where this plan kept old names. Kept for its history.
+
 Cross-repo plan for the KG module family. Written in `pycode_kg/docs/` because that
 is where the work started; the Phase B implementation lands in `KG_utils`, and this
 document should move there once Phase B begins.

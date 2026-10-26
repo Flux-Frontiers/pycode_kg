@@ -16,10 +16,11 @@ Once configured, the agent gains nineteen tools, grouped by purpose:
 
 | Tool | Purpose |
 |---|---|
-| `graph_stats()` | Codebase size and shape — good first call |
-| `query_codebase(q)` | Semantic + structural graph exploration |
-| `pack_snippets(q)` | Source-grounded code snippets for implementation detail |
-| `get_node(node_id, include_edges)` | Single node metadata; optionally returns immediate neighborhood |
+| `stats()` | Codebase size and shape — good first call |
+| `query(q)` | Semantic + structural graph exploration |
+| `pack(q)` | Source-grounded code snippets for implementation detail |
+| `get_node(node_id)` | Single node metadata |
+| `neighbors(node_id, rels, direction, limit)` | A node's one-hop neighbourhood: edges and far-end nodes |
 | `list_nodes(module_path, kind)` | List nodes filtered by module path prefix and/or kind |
 | `find_node(name, kind)` | Search nodes by (partial) name when you don't know the stable ID |
 | `find_definition_at(file, line)` | Reverse-lookup the node spanning a `file:line` location |
@@ -93,7 +94,7 @@ If this succeeds, the MCP server will work correctly.
 
 ## Tool Reference
 
-### `graph_stats()`
+### `stats()`
 
 Return node and edge counts broken down by kind and relation.
 
@@ -119,7 +120,7 @@ Return node and edge counts broken down by kind and relation.
 
 ---
 
-### `query_codebase(q, k, hop, rels, include_symbols, max_nodes, min_score, max_per_module)`
+### `query(q, k, hop, rels, include_symbols, max_nodes, min_score, max_per_module)`
 
 Hybrid semantic + structural query. Returns ranked nodes and edges as JSON.
 
@@ -142,11 +143,11 @@ Hybrid semantic + structural query. Returns ranked nodes and edges as JSON.
 
 ---
 
-### `pack_snippets(q, k, hop, rels, include_symbols, context, max_lines, max_nodes, min_score, max_per_module)`
+### `pack(q, k, hop, rels, include_symbols, context, max_lines, max_nodes, min_score, max_per_module)`
 
 Hybrid query + source-grounded snippet extraction. Returns a Markdown context pack.
 
-**When to use:** Any time you need to read actual source code — understanding an implementation, debugging, writing tests, reviewing logic. **Prefer this over `query_codebase` when implementation details matter.**
+**When to use:** Any time you need to read actual source code — understanding an implementation, debugging, writing tests, reviewing logic. **Prefer this over `query` when implementation details matter.**
 
 **Parameters:**
 
@@ -167,18 +168,17 @@ Hybrid query + source-grounded snippet extraction. Returns a Markdown context pa
 
 ---
 
-### `get_node(node_id, include_edges)`
+### `get_node(node_id)`
 
-Fetch a single node by its stable ID, optionally including its immediate neighborhood.
+Fetch a single node by its stable ID. A canonical tool: the same name and meaning on every fleet KG server.
 
-**When to use:** You have a node ID from a previous query result and want its full metadata. Pass `include_edges=True` to get outgoing edges and incoming callers in one call, avoiding a separate `callers()` round-trip.
+**When to use:** You have a node ID from a previous query result and want its full metadata. For its edges, follow with `neighbors(node_id)`; for callers resolved through import stubs, `callers(node_id)`.
 
 **Parameters:**
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
 | `node_id` | `str` | — | Stable node ID, e.g. `fn:src/auth/jwt.py:JWTValidator.validate` |
-| `include_edges` | `bool` | `false` | If `true`, attach `outgoing_edges` (by relation type) and `incoming_calls` |
 
 **Node ID format:** `<kind>:<module_path>:<qualname>`
 
@@ -189,8 +189,22 @@ Fetch a single node by its stable ID, optionally including its immediate neighbo
 | `fn:` | function / method |
 | `sym:` | unresolved external symbol |
 
-**Returns:** JSON object with all node fields, or `{"error": "Node not found: '...'"}`.\
-When `include_edges=True`: also includes `outgoing_edges` (dict keyed by relation type) and `incoming_calls` (list of caller node dicts).
+**Returns:** JSON object with all node fields. An unknown ID is a tool error, `no node with id '...'`.
+
+---
+
+### `neighbors(node_id, rels, direction, limit)`
+
+A node's one-hop neighbourhood: its edges and the nodes at their far ends. A canonical tool. Reads the graph only, so it never loads the embedding model.
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `node_id` | `str` | — | Stable node ID |
+| `rels` | `list[str]` | all | Edge types to follow, e.g. `["CALLS"]` |
+| `direction` | `"out" \| "in" \| "both"` | `"both"` | Edges from the node, to it, or both |
+| `limit` | `int` | `50` | Most edges to return (1-500) |
+
+**Returns:** JSON `{"node": ..., "edges": [...], "nodes": [...]}`, where `nodes` holds each distinct far-end node in edge order.
 
 ---
 
@@ -249,7 +263,7 @@ Reverse-resolve a `(file, line)` pair to the innermost node spanning that locati
 
 Find all callers of a specific node by inverting a relation — fan-in analysis.
 
-**When to use:** Finding all callers of a specific function/method/class. More precise than `query_codebase` for this use case because it resolves cross-module callers through `sym:` import stubs.
+**When to use:** Finding all callers of a specific function/method/class. More precise than `query` for this use case because it resolves cross-module callers through `sym:` import stubs.
 
 **Parameters:**
 
@@ -281,7 +295,7 @@ Find all callers of a specific node by inverting a relation — fan-in analysis.
 
 Return a natural-language Markdown explanation of a single code node.
 
-**When to use:** You want to understand what a specific function, method, or class does — its role, who calls it, what it calls — without reading the raw source. Use as the first step when a user asks about a specific node before reaching for `pack_snippets`.
+**When to use:** You want to understand what a specific function, method, or class does — its role, who calls it, what it calls — without reading the raw source. Use as the first step when a user asks about a specific node before reaching for `pack`.
 
 **Parameters:**
 
@@ -377,7 +391,7 @@ Compute global weighted CodeRank (PageRank) over the repository graph.
 
 ### `query_ranked(q, mode, k, top, rels, radius, exclude_tests)`
 
-Rank query results using CodeRank-enhanced hybrid or personalized PageRank — a more explainable alternative to `query_codebase` when you care *why* a result ranked highly.
+Rank query results using CodeRank-enhanced hybrid or personalized PageRank — a more explainable alternative to `query` when you care *why* a result ranked highly.
 
 **When to use:** Search where ranking transparency matters. Two modes:
 
@@ -489,7 +503,7 @@ Compare two codebase metric snapshots side-by-side.
 | Broad context sweep | `k=12, hop=2` — pulls in more of the call graph |
 | Deep dependency trace | `k=8, hop=2, rels="CALLS,IMPORTS"` — follow execution paths |
 
-Higher `hop` values expand the result set geometrically. Use `max_nodes` in `pack_snippets` to keep output manageable.
+Higher `hop` values expand the result set geometrically. Use `max_nodes` in `pack` to keep output manageable.
 
 ### Choosing `rels`
 
@@ -503,22 +517,22 @@ Higher `hop` values expand the result set geometrically. Use `max_nodes` in `pac
 ### Typical agent workflow
 
 ```
-1. graph_stats()
+1. stats()
    → understand codebase size and shape
 
-2. query_codebase("authentication flow", k=8, hop=1)
+2. query("authentication flow", k=8, hop=1)
    → identify relevant classes and functions, note their IDs
 
 3. explain("cls:src/auth/jwt.py:JWTValidator")
    → natural-language orientation before reading source
 
-4. pack_snippets("JWT token validation", k=6, hop=1)
+4. pack("JWT token validation", k=6, hop=1)
    → read the actual implementation
 
-5. get_node("fn:src/auth/jwt.py:JWTValidator.validate", include_edges=True)
+5. neighbors("fn:src/auth/jwt.py:JWTValidator.validate")
    → fetch node metadata + outgoing edges + incoming callers in one call
 
-6. pack_snippets("JWT token validation error handling", k=4, hop=2, rels="CALLS")
+6. pack("JWT token validation error handling", k=4, hop=2, rels=["CALLS"])
    → follow the call graph deeper into error paths
 
 7. snapshot_list()
@@ -534,7 +548,7 @@ Higher `hop` values expand the result set geometrically. Use `max_nodes` in `pac
 | User asked about a name from a traceback or chat — no node ID | `find_node(name)` |
 | User pointed at a file and a line number in their editor | `find_definition_at(file, line)` |
 | You need to know "what's actually important in this codebase?" | `centrality()` or `framework_nodes()` |
-| You need explainable search results with score components | `query_ranked(q)` instead of `query_codebase(q)` |
+| You need explainable search results with score components | `query_ranked(q)` instead of `query(q)` |
 | A ranked result surprised you — why did this node rank so high? | `explain_rank(node_id, q)` |
 | You want a persisted CodeRank baseline for dashboards / regression checks | `rank_nodes(persist_metric="coderank_global")` |
 
@@ -544,7 +558,7 @@ Higher `hop` values expand the result set geometrically. Use `max_nodes` in `pac
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| Empty results from `query_codebase` | sqlite-vec index missing or stale | `pycodekg build-index --wipe` |
+| Empty results from `query` | sqlite-vec index missing or stale | `pycodekg build-index --wipe` |
 | Node IDs in results don't resolve with `get_node` | Graph rebuilt since last query | Rebuild both the SQLite graph and vector index; restart the MCP server |
 | `RuntimeError: PyCodeKG not initialised` | Server called without `main()` | Always start via `pycodekg mcp` CLI |
 | Snippets show wrong line numbers | Source files changed since build | `pycodekg build-sqlite --wipe` |
@@ -559,10 +573,10 @@ For installation, build, and per-agent config issues see [INSTALLATION.md](INSTA
 
 | Concern | Answer |
 |---|---|
-| What does the MCP server expose? | 19 tools across discovery (`graph_stats`, `query_codebase`, `pack_snippets`, `get_node`, `list_nodes`, `find_node`, `find_definition_at`), relationships (`callers`, `explain`, `analyze_repo`), centrality & ranking (`centrality`, `bridge_centrality`, `framework_nodes`, `rank_nodes`, `query_ranked`, `explain_rank`), and snapshots (`snapshot_list`, `snapshot_show`, `snapshot_diff`) |
+| What does the MCP server expose? | 20 tools across discovery (`stats`, `query`, `pack`, `get_node`, `neighbors`, `list_nodes`, `find_node`, `find_definition_at`), relationships (`callers`, `explain`, `analyze_repo`), centrality & ranking (`centrality`, `bridge_centrality`, `framework_nodes`, `rank_nodes`, `query_ranked`, `explain_rank`), and snapshots (`snapshot_list`, `snapshot_show`, `snapshot_diff`) |
 | What must exist before starting? | `.pycodekg/graph.sqlite` + `.pycodekg/vectors.sqlite` directory |
 | How do I build those? | `pycodekg build` (or `build-sqlite` then `build-index`) — see [INSTALLATION.md](INSTALLATION.md) |
 | Is the server stateful? | Yes — one `PyCodeKG` instance per server process |
 | Can it modify the graph? | No — strictly read-only |
-| Which tool should I call first? | `graph_stats()` for orientation |
+| Which tool should I call first? | `stats()` for orientation |
 | How do I automate setup? | One-line installer or `/setup-mcp` — see [INSTALLATION.md](INSTALLATION.md) |

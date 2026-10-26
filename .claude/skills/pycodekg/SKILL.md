@@ -1,13 +1,13 @@
 ---
 name: pycodekg
-description: Expert knowledge for installing, configuring, and using the PyCodeKG MCP server — a hybrid semantic + structural knowledge graph for Python codebases. Use this skill when the user asks about: setting up PyCodeKG in a project, adding pycode-kg as a Poetry dependency, building the SQLite or vector knowledge graph, configuring .mcp.json for Claude Code or Kilo Code, configuring .vscode/mcp.json for GitHub Copilot, configuring claude_desktop_config.json for Claude Desktop, configuring Cline MCP settings, using the pycodekg CLI (pycodekg build, pycodekg build-sqlite, pycodekg build-index, pycodekg mcp, pycodekg query, pycodekg pack, pycodekg analyze, pycodekg centrality, pycodekg viz, pycodekg viz3d, pycodekg viz-timeline, pycodekg explain, pycodekg snapshot, pycodekg architecture, pycodekg download-model, pycodekg install-hooks), using the graph_stats / query_codebase / pack_snippets / get_node / list_nodes / callers / explain / centrality / bridge_centrality / framework_nodes / analyze_repo / rank_nodes / query_ranked / explain_rank / snapshot_list / snapshot_show / snapshot_diff MCP tools, or troubleshooting PyCodeKG errors.
+description: Expert knowledge for installing, configuring, and using the PyCodeKG MCP server — a hybrid semantic + structural knowledge graph for Python codebases. Use this skill when the user asks about: setting up PyCodeKG in a project, adding pycode-kg as a Poetry dependency, building the SQLite or vector knowledge graph, configuring .mcp.json for Claude Code or Kilo Code, configuring .vscode/mcp.json for GitHub Copilot, configuring claude_desktop_config.json for Claude Desktop, configuring Cline MCP settings, using the pycodekg CLI (pycodekg build, pycodekg build-sqlite, pycodekg build-index, pycodekg mcp, pycodekg query, pycodekg pack, pycodekg analyze, pycodekg centrality, pycodekg viz, pycodekg viz3d, pycodekg viz-timeline, pycodekg explain, pycodekg snapshot, pycodekg architecture, pycodekg download-model, pycodekg install-hooks), using the stats / query / pack / get_node / neighbors / list_nodes / callers / explain / centrality / bridge_centrality / framework_nodes / analyze_repo / rank_nodes / query_ranked / explain_rank / snapshot_list / snapshot_show / snapshot_diff MCP tools, or troubleshooting PyCodeKG errors.
 ---
 
 # PyCodeKG Skill
 
 > **Use PyCodeKG first — before grep, Glob, or file reads.**
 >
-> Grep and file search find text. PyCodeKG understands code. It knows what calls what, what inherits from what, which modules are imported where, and surfaces the most semantically relevant source snippets in a single query. One `pack_snippets` call replaces five rounds of grep-and-read and gives the agent real structural insight into the codebase — not just line matches.
+> Grep and file search find text. PyCodeKG understands code. It knows what calls what, what inherits from what, which modules are imported where, and surfaces the most semantically relevant source snippets in a single query. One `pack` call replaces five rounds of grep-and-read and gives the agent real structural insight into the codebase — not just line matches.
 
 PyCodeKG indexes Python repos into a hybrid knowledge graph (SQLite + sqlite-vec) and exposes it as MCP tools for AI agents.
 
@@ -192,10 +192,11 @@ This installs, builds, smoke-tests, and writes both config files automatically.
 
 | Tool | When to use |
 |---|---|
-| `graph_stats()` | First call — understand codebase size/shape |
-| `query_codebase(q)` | Explore graph structure, find relevant nodes; tune precision with `min_score` and result diversity with `max_per_module` |
-| `pack_snippets(q)` | Read actual source code (prefer over query_codebase); supports `min_score` and `max_per_module` |
-| `get_node(node_id, include_edges)` | Fetch node metadata; `include_edges=True` also returns outgoing edges + incoming callers |
+| `stats()` | First call — understand codebase size/shape |
+| `query(q)` | Explore graph structure, find relevant nodes; tune precision with `min_score` and result diversity with `max_per_module` |
+| `pack(q)` | Read actual source code (prefer over query); supports `min_score` and `max_per_module` |
+| `get_node(node_id)` | Fetch one node's metadata by stable ID |
+| `neighbors(node_id, rels, direction, limit)` | A node's one-hop neighbourhood: edges and far-end nodes |
 | `list_nodes(module_path, kind)` | List nodes filtered by module path prefix and/or kind |
 | `callers(node_id)` | Find all callers of a node — fan-in lookup resolving cross-module sym: stubs with import-aware filtering for ambiguous names |
 | `explain(node_id)` | Natural-language explanation of a node: role, docstring, callers, callees |
@@ -241,18 +242,18 @@ Structure-aware ranking that blends PageRank with semantic search.
 | `CALLS` | Tracing execution flow |
 | `IMPORTS` | Dependency analysis |
 | `INHERITS` | OOP hierarchy |
-| `RESOLVES_TO` | Connecting `sym:` stubs to definitions | Used internally by `callers()` — include in `query_codebase` rels for graph traversal through import aliases |
+| `RESOLVES_TO` | Connecting `sym:` stubs to definitions | Used internally by `callers()` — include in `query` rels for graph traversal through import aliases |
 
 ### Typical session workflow
 
 ```
-1. graph_stats()                                         → orientation
-2. query_codebase("auth flow", k=8, hop=1)               → find nodes
+1. stats()                                         → orientation
+2. query("auth flow", k=8, hop=1)               → find nodes
 3. explain("cls:src/auth/jwt.py:JWTValidator")           → understand before reading
-4. pack_snippets("JWT validation", k=6, hop=1)           → read source
-5. get_node("fn:src/auth/jwt.py:JWTValidator.validate", include_edges=True)
+4. pack("JWT validation", k=6, hop=1)           → read source
+5. neighbors("fn:src/auth/jwt.py:JWTValidator.validate")
                                                          → node detail + neighborhood in one call
-6. pack_snippets("error handling", k=4, hop=2, rels="CALLS")  → deeper
+6. pack("error handling", k=4, hop=2, rels=["CALLS"])  → deeper
 7. snapshot_list() / snapshot_diff("a", "b")             → track codebase evolution
 ```
 
@@ -286,7 +287,7 @@ Add this to `.gitignore` when installing PyCodeKG in a new repo. Commit snapshot
 - `k=8, hop=1, rels="CONTAINS,CALLS,IMPORTS,INHERITS"`
 - Node ID format: `<kind>:<module_path>:<qualname>` (e.g. `fn:src/auth/jwt.py:JWTValidator.validate`)
 - Node ID prefixes: `mod:` module, `cls:` class, `fn:` function/method, `sym:` external symbol
-- Transport: `stdio` (Claude Code/Desktop), `sse` (HTTP clients)
+- Transport: `stdio` (Claude Code/Desktop), `streamable-http` (HTTP clients)
 
 ## Troubleshooting
 

@@ -28,10 +28,10 @@ In Copilot chat, you can reference or ask to run these tasks:
 ## MCP Integration
 
 The repo is also configured with PyCodeKG MCP server in `.vscode/mcp.json`. You have access to:
-- `graph_stats()` — Get codebase metrics (node/edge counts by type)
-- `query_codebase(q, k=8, hop=1, max_nodes=25, min_score=0.0, max_per_module=0)` — Semantic + structural query with precision/diversity controls
-- `pack_snippets(q, k=8, hop=1, max_nodes=15, min_score=0.0, max_per_module=0)` — Source-grounded code snippets with context and precision controls
-- `get_node(node_id, include_edges)` — Fetch node details by stable ID; `include_edges=True` also returns outgoing edges and incoming callers in one call
+- `stats()` — Get codebase metrics (node/edge counts by type)
+- `query(q, k=8, hop=1, max_nodes=25, min_score=0.0, max_per_module=0)` — Semantic + structural query with precision/diversity controls
+- `pack(q, k=8, hop=1, max_nodes=15, min_score=0.0, max_per_module=0)` — Source-grounded code snippets with context and precision controls
+- `get_node(node_id)` — Fetch one node's metadata by stable ID; `neighbors(node_id)` returns its edges and far-end nodes.
 - `callers(node_id)` — Find all callers of a function (impact analysis), with import-aware filtering for ambiguous same-name symbols
 - `explain(node_id)` — Natural-language explanation of a node (callers, callees, role)
 - `analyze_repo()` — Full architectural analysis (complexity, coupling, hotspots)

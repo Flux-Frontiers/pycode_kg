@@ -2,114 +2,23 @@
 """
 mcp_server.py — PyCodeKG MCP Server
 
-Exposes the PyCodeKG hybrid query and snippet-pack pipeline as
-Model Context Protocol (MCP) tools, allowing any MCP-compatible
-agent (Claude Desktop, Cursor, Continue, etc.) to query a codebase
-knowledge graph directly.
+Serves a Python codebase's knowledge graph to any MCP-compatible agent
+(Claude Code, Claude Desktop, Cursor, Copilot) over the fleet's shared server
+base, :mod:`kg_utils.mcp`.
 
-Operational notes:
-- Entry points and configuration: the CLI ``main()`` resolves repo, SQLite,
-    and sqlite-vec store paths with sensible defaults under ``.pycodekg/``.
-- Logging approach: startup diagnostics and warnings are written to stderr so
-    host MCP clients can capture runtime state.
-- Error handling strategy: startup reports misconfiguration warnings clearly
-    (for example missing SQLite graph) before attempting tool execution.
+The server answers the fleet's canonical tools -- ``stats``, ``query``,
+``pack``, ``get_node``, ``neighbors`` -- under the same names as every other
+KG server, plus PyCodeKG's own code-graph tools (``callers``, ``explain``,
+``centrality``, the CodeRank and snapshot tools, ...). ``query`` and ``pack``
+are PyCodeKG's richer versions of the canonical pair: hybrid reranking by
+default, a per-module cap, a ``paths`` filter and inferred-edge provenance.
 
-Tools
------
-query_codebase(q, k, hop, rels, include_symbols, max_nodes, min_score, max_per_module, paths, rerank_mode, rerank_semantic_weight, rerank_lexical_weight, include_edge_provenance, format)
-    Hybrid semantic + structural query.  Returns ranked nodes and edges.
-    Default rerank_mode='hybrid' (70% semantic + 30% lexical overlap).
-    Default format='json'; pass format='markdown' for a ranked Markdown
-    table instead of raw JSON.
+The tool list is not kept by hand anywhere. Each tool's docstring is its
+description, the server's instructions are generated from them, and::
 
-pack_snippets(q, k, hop, rels, include_symbols, context, max_lines, max_nodes, min_score, max_per_module, rerank_mode, rerank_semantic_weight, rerank_lexical_weight, missing_lineno_policy, include_edge_provenance)
-    Hybrid query + source-grounded snippet extraction.  Returns a
-    Markdown context pack suitable for direct LLM ingestion.  Default
-    rerank_mode='hybrid'.  Emits Warnings section when snippets are
-    capped or omitted due to missing line metadata.
+    pycodekg mcp --manifest
 
-get_node(node_id, include_edges)
-    Fetch a single node by its stable ID.  Returns Markdown with kind,
-    location, and docstring.  Pass include_edges=True to also render
-    outgoing edges by relation type and incoming CALLS callers, avoiding
-    a separate callers() round-trip.  Use query_codebase() to discover
-    node IDs.
-
-graph_stats()
-    Return node and edge counts by kind/relation as a Markdown summary
-    with tables, plus docstring_coverage and snapshot_count.  Call this
-    first to understand graph scale before issuing query_codebase() or
-    pack_snippets().
-
-callers(node_id, rel)
-    Find all callers of a node, resolving through ``sym:`` import stubs
-    with import-aware filtering for ambiguous same-name targets.
-    Returns JSON.  Use get_node(include_edges=True) for a combined
-    node + callers view without a separate round-trip.
-
-find_definition_at(file, line)
-    Reverse-resolve a (file, line) pair to the innermost graph node that
-    spans it, then return the same Markdown report as explain().  Useful
-    when reading a file in the IDE without knowing the node ID.
-
-analyze_repo()
-    Run the full nine-phase architectural analysis pipeline and return
-    results as Markdown (complexity, coupling, docstring coverage, etc.).
-
-explain(node_id, limit=10)
-    Return a Markdown natural-language explanation of a single code node,
-    including metadata, docstring, callers, callees, and role assessment.
-    limit controls how many callers/callees are listed (0 = all).
-
-snapshot_list(limit, branch)
-    List saved temporal snapshots in reverse chronological order.
-    Returns JSON array of snapshot metadata with key metrics and
-    freshness indicator vs. current DB node count.
-
-snapshot_show(key)
-    Show full details of a specific snapshot by key (tree hash), or the
-    most recent snapshot when key="latest".  Returns JSON with
-    freshness indicator vs. current DB node count.
-
-snapshot_diff(key_a, key_b)
-    Compare two snapshots side-by-side and return computed deltas for
-    nodes, edges, docstring coverage, and critical issues.  Returns JSON
-    including freshness metadata and lists of introduced/resolved issues.
-
-list_nodes(module_path, kind, include_symbols)
-    List nodes filtered by module path prefix and/or kind.  Returns a
-    JSON array of matching node dicts.  Useful for enumerating classes
-    or functions in a specific module.  ``sym:`` import-stub nodes are
-    excluded by default; pass ``include_symbols=True`` to include them.
-
-find_node(name, kind)
-    Find nodes by plain name or qualname substring without knowing the
-    full stable ID.  Returns a JSON array of matching node dicts.
-    Use when you know a function name from a traceback or reading code
-    and need to obtain its stable ID for explain(), callers(), etc.
-
-centrality(top, kinds, group_by)
-    Compute Structural Importance Ranking (SIR): a deterministic weighted
-    PageRank over the resolved call graph that scores every node by
-    structural centrality.  Returns a Markdown ranking table.  Use
-    group_by='module' for per-module rollup.
-
-rank_nodes(top, rels, persist_metric, exclude_tests)
-    Compute global weighted CodeRank (PageRank) over the repository graph.
-    Returns JSON array of top-ranked nodes with score, top_pct (e.g. "top 0.5%"),
-    kind, qualname, and module_path.  Optionally persists scores to node_metrics.
-
-query_ranked(q, k, mode, top, rels, radius, exclude_tests)
-    Rank query results using CodeRank-enhanced hybrid or personalized
-    PageRank.  mode='hybrid' (default) or 'ppr'.  Returns JSON with
-    per-node score components (semantic, centrality, proximity) and
-    explainability ``why`` strings.
-
-explain_rank(node_id, q)
-    Explain the CodeRank score components for a specific node.  Returns
-    Markdown with global rank position, inbound/outbound edge counts, and
-    optional query-conditioned semantic + proximity scores.
+prints the whole list as JSON without opening the graph.
 
 Usage
 -----
@@ -118,15 +27,16 @@ Install the package, then run::
     pycodekg mcp --repo /path/to/repo
 
 ``--db`` and ``--vectors`` are optional; they default to
-``.pycodekg/graph.sqlite`` and ``.pycodekg/vectors.sqlite`` relative to
-``--repo``.
+``.pycodekg/graph.sqlite`` and ``.pycodekg/vectors.sqlite``, and a relative
+path is taken from ``--repo``. ``pycodekg-mcp`` is the same command under the
+name older Claude Desktop and Copilot configs use.
 
 Per-project config for Claude Code and Kilo Code (``.mcp.json``)::
 
     {
       "mcpServers": {
         "pycodekg": {
-          "command": "/path/to/.venv/bin/pycodekg",
+          "command": "pycodekg",
           "args": ["mcp", "--repo", "/path/to/repo"]
         }
       }
@@ -139,55 +49,30 @@ License: Elastic 2.0
 
 from __future__ import annotations
 
-import argparse
 import json
-import sys
-from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Any
 
-from mcp.server.fastmcp import FastMCP
+from kg_utils.mcp import Context, KGServer, kg_from, make_server
 
-from pycode_kg import PyCodeKG
+from pycode_kg import PyCodeKG, __version__
 from pycode_kg.pycodekg import DEFAULT_MODEL
 from pycode_kg.pycodekg_thorough_analysis import PyCodeKGAnalyzer
 from pycode_kg.snapshots import SnapshotManager
 from pycode_kg.store import DEFAULT_RELS
 
 # ---------------------------------------------------------------------------
-# Global state — initialised in main() before the server starts
+# Helpers
 # ---------------------------------------------------------------------------
 
-_kg: PyCodeKG | None = None
-_snapshot_mgr: SnapshotManager | None = None
 
+def _snapshots(kg: PyCodeKG) -> SnapshotManager:
+    """Return the snapshot manager for the session's graph.
 
-def _get_kg() -> PyCodeKG:
+    :param kg: The session's graph.
+    :return: A :class:`SnapshotManager` over ``<repo>/.pycodekg/snapshots``.
     """
-    Return the global PyCodeKG instance, raising if it has not been initialised.
-
-    :return: The active PyCodeKG instance.
-    :raises RuntimeError: If ``main()`` has not been called to initialise the graph.
-    """
-    if _kg is None:
-        raise RuntimeError(
-            "PyCodeKG not initialised.  Run the server via 'pycodekg-mcp --repo /path/to/repo'"
-        )
-    return _kg
-
-
-def _get_snapshot_mgr() -> SnapshotManager:
-    """
-    Return the global SnapshotManager instance, raising if not initialised.
-
-    :return: The active SnapshotManager instance.
-    :raises RuntimeError: If ``main()`` has not been called to initialise the server.
-    """
-    if _snapshot_mgr is None:
-        raise RuntimeError(
-            "SnapshotManager not initialised.  Run the server via 'pycodekg-mcp --repo /path/to/repo'"
-        )
-    return _snapshot_mgr
+    return SnapshotManager(kg.repo_root / ".pycodekg" / "snapshots", db_path=kg.db_path)
 
 
 def _enrich_edges_with_provenance(edges: list[dict]) -> list[dict]:
@@ -233,14 +118,14 @@ def _enrich_edges_with_provenance(edges: list[dict]) -> list[dict]:
     return enriched
 
 
-def _snapshot_freshness(snapshot_total_nodes: int) -> dict:
+def _snapshot_freshness(kg: PyCodeKG, snapshot_total_nodes: int) -> dict:
     """Compare a snapshot's node count against the currently loaded graph DB.
 
+    :param kg: The session's graph.
     :param snapshot_total_nodes: ``metrics.total_nodes`` from a snapshot object.
     :return: Freshness metadata payload.
     """
-    current = _get_kg().stats()
-    current_nodes = int(current.get("total_nodes", 0))
+    current_nodes = int(kg.stats()["nodes"]["total"])
     delta = current_nodes - int(snapshot_total_nodes)
 
     is_fresh = delta == 0
@@ -265,165 +150,43 @@ def _snapshot_freshness(snapshot_total_nodes: int) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# MCP server
+# Instructions: the hand-written part. The tool list is appended by kg_utils.mcp.
 # ---------------------------------------------------------------------------
 
-
-@asynccontextmanager
-async def _lifespan(_server: FastMCP) -> AsyncIterator[None]:
-    """Close the graph's SQLite connection(s) when the server shuts down.
-
-    ``main()`` sets the module-level ``_kg`` before ``mcp.run()`` calls into
-    this, and both the stdio and SSE transports route through the same
-    underlying ``Server.run()``, so this fires on either one.
-    """
-    try:
-        yield
-    finally:
-        if _kg is not None:
-            _kg.close()
-
-
-mcp = FastMCP(
-    "pycodekg",
-    instructions=(
-        "PyCodeKG is a hybrid semantic + structural knowledge graph for a Python codebase. "
-        "It indexes every module, class, function, and method as a node, with typed edges "
-        "(CALLS, IMPORTS, CONTAINS, INHERITS) connecting them. Use these tools to navigate "
-        "and understand the codebase precisely and efficiently.\n\n"
-        "## Tools\n\n"
-        "**graph_stats()** — Start here when you first engage with a repo. Returns a Markdown "
-        "summary with total node and edge counts broken down by kind (module, class, function, "
-        "method) and relation, plus meaningful_nodes (real code entities, excluding sym: stubs). "
-        "Use it to understand the size and shape of the codebase before issuing "
-        "query_codebase() or pack_snippets() queries.\n\n"
-        "**query_codebase(q, k, hop, rels, include_symbols, max_nodes, min_score, max_per_module, paths, rerank_mode, rerank_semantic_weight, rerank_lexical_weight, include_edge_provenance)** — Hybrid "
-        "semantic + structural search. Seeds on vector similarity then expands through the "
-        "graph. Use hop=0 for pure semantic lookup (highest precision), hop=1 (default) for "
-        "call chains and module relationships, hop=2 for broad dependency tracing. Use the "
-        "paths parameter to restrict results to a specific subtree (e.g. 'src/pycode_kg'). "
-        "rerank_mode controls result ordering: 'hybrid' (default) blends vector similarity "
-        "(70%) with lexical name/docstring overlap (30%) — best overall quality; 'semantic' "
-        "ranks by vector score only; 'legacy' uses hop-first ordering (pre-reranking behavior, "
-        "use only for stable comparisons). Set include_edge_provenance=True to annotate "
-        "inferred edges with confidence and resolution metadata. "
-        "For precision queries where you know the concept well, use min_score=0.5 to filter "
-        "out incidental docstring mentions. "
-        "Returns ranked nodes and edges as JSON.\n\n"
-        "**pack_snippets(q, k, hop, rels, include_symbols, context, max_lines, max_nodes, min_score, max_per_module, rerank_mode, rerank_semantic_weight, rerank_lexical_weight, missing_lineno_policy, include_edge_provenance)** — "
-        "Same hybrid search as query_codebase, but returns actual source code. Produces a "
-        "Markdown context pack with ranked, deduplicated snippets and line numbers. Prefer "
-        "this over query_codebase whenever you need to read or reason about implementation "
-        "details, trace logic, or answer 'how does X work?' questions. Default rerank_mode "
-        "is 'hybrid' (same as query_codebase). Includes a Warnings section when snippets "
-        "are capped or omitted due to missing line metadata.\n\n"
-        "**get_node(node_id, include_edges)** — Precise lookup of a single node by its stable ID "
-        "(format: '<kind>:<module_path>:<qualname>', e.g. "
-        "'cls:src/pycode_kg/store.py:GraphStore'). Returns Markdown with kind, location, ID, "
-        "and full docstring. Pass include_edges=True to also render the node's immediate "
-        "neighborhood: outgoing edges grouped by relation type (CALLS, CONTAINS, IMPORTS, "
-        "INHERITS) and resolved incoming CALLS callers, eliminating a separate callers() "
-        "round-trip. Use query_codebase() to discover node IDs, then get_node() to inspect "
-        "them, then pack_snippets() to read the source.\n\n"
-        "**list_nodes(module_path, kind, include_symbols=False)** — List nodes filtered "
-        "by module path prefix and/or kind (e.g. 'function', 'class'). Returns a JSON "
-        "array of matching nodes. ``sym:`` import-stub nodes are excluded by default; "
-        "pass include_symbols=True to include them. Use this to enumerate the contents "
-        "of a specific module before inspecting individual nodes with get_node().\n\n"
-        "**find_node(name, kind)** — Find nodes by plain name or qualname when the stable "
-        "ID is unknown. Case-insensitive match against name and qualname columns; sym: stubs "
-        "are excluded. Optional kind filter narrows to 'function', 'class', 'method', or "
-        "'module'. Returns a JSON array of matching node dicts including id, kind, "
-        "module_path, lineno, and docstring. Use this as the first step when you see a "
-        "function name in a traceback or file and need its stable ID for explain() or "
-        "callers().\n\n"
-        "**centrality(top, kinds, group_by)** — Compute Structural Importance Ranking (SIR): "
-        "a deterministic weighted PageRank over the sym-stub-resolved call graph. Edge weights "
-        "favour CALLS > INHERITS > IMPORTS > CONTAINS; cross-module edges receive a boost and "
-        "private symbols are penalized. Returns a Markdown ranking table. Use top to cap "
-        "results (default 20), kinds to filter by node type (e.g. 'class,function'), and "
-        "group_by='module' for a per-module rollup. Ideal for identifying hotspots before "
-        "refactoring, prioritizing test coverage, or understanding which modules are most "
-        "depended upon.\n\n"
-        "**explain(node_id, limit=10)** — Natural-language orientation for a single node. Returns a "
-        "Markdown report with: kind and qualified name, module path and line range, full "
-        "docstring, list of callers (what calls this node), list of callees (what this node "
-        "calls), and a role assessment (high-value / utility / orphaned) based on call count. "
-        "Pass limit=0 to list all callers and callees without truncation. "
-        "Use this as the first step when a user asks about a specific function or class, "
-        "before reaching for pack_snippets.\n\n"
-        "**callers(node_id, rel, paths)** — Reverse edge lookup: find every node that calls "
-        "(or imports, or inherits from) a given node. Resolves through sym: import stubs so "
-        "cross-module callers are included. Use paths to restrict to production code only "
-        "(e.g. paths='src/'). Returns JSON with node_id, rel, caller_count, and a callers "
-        "list of node dicts — suitable for programmatic processing or chaining into other "
-        "tools. Useful for impact analysis — 'what breaks if I change X?'. "
-        "Alternatively, use get_node(include_edges=True) to get callers alongside the full "
-        "node details in a single call.\n\n"
-        "**analyze_repo()** — Full nine-phase architectural analysis: complexity hotspots, "
-        "high fan-out functions, module coupling, circular dependencies, key call chains, "
-        "public API surface, docstring coverage, code quality issues, and orphaned code. "
-        "Returns structured Markdown. Use when the user wants a health check or architectural "
-        "overview of the entire codebase.\n\n"
-        "**snapshot_list(limit, branch)** — List saved temporal snapshots in reverse "
-        "chronological order. Each entry has a ``key`` (tree hash), branch, timestamp, "
-        "version, and key metrics (nodes, edges, coverage, critical issues) plus deltas vs. "
-        "the previous snapshot. Optional ``branch`` filters to a specific branch. Each "
-        "entry includes a freshness indicator comparing snapshot node count to the current DB. "
-        "Use to answer 'how has the codebase grown?' or 'when did coverage improve?'\n\n"
-        "**snapshot_show(key)** — Show full details of a specific snapshot by its ``key`` "
-        "(tree hash from snapshot_list), or the most recent snapshot when key='latest' "
-        "(default). Returns full metrics, complexity hotspots, deltas vs. both the "
-        "previous and baseline snapshots, plus freshness vs. current DB.\n\n"
-        "**snapshot_diff(key_a, key_b)** — Compare two snapshots side-by-side. Returns "
-        "metrics for both snapshots and a computed delta (b − a) for nodes, edges, coverage, "
-        "and critical issues, along with lists of introduced and resolved issues. Also reports "
-        "freshness for both snapshots. Use snapshot_list() first to get the ``key`` values.\n\n"
-        "## Recommended Workflows\n\n"
-        "- **Explore unfamiliar code**: graph_stats → query_codebase → list_nodes (to enumerate a module) → explain → pack_snippets\n"
-        "- **Understand a specific function**: get_node(include_edges=True) → pack_snippets\n"
-        "- **Look up by name (no ID known)**: find_node(name) → explain or callers\n"
-        "- **Impact analysis before a change**: explain → callers (with paths='src/')\n"
-        "- **Architecture review**: analyze_repo\n"
-        "- **Answer 'how does X work?'**: pack_snippets with a descriptive query\n"
-        "- **Track codebase evolution**: snapshot_list → snapshot_diff(key_a=..., key_b=...)\n"
-        "- **Identify most important code**: centrality(top=20) → explain → pack_snippets\n\n"
-        "## CodeRank Tools\n\n"
-        "**rank_nodes(top, rels, persist_metric, exclude_tests)** — Compute global weighted "
-        "CodeRank (PageRank) over the repository graph. Returns a JSON array of the top-N "
-        "most structurally important nodes with score, top_pct (e.g. 'top 0.5%'), kind, "
-        "qualname, and module_path. "
-        "Pass persist_metric='coderank_global' to save scores into the node_metrics table "
-        "for later use at query time. Relation weights: CALLS=1.0, IMPORTS=0.9, INHERITS=0.75. "
-        "Test paths are excluded by default.\n\n"
-        "**query_ranked(q, k, mode, top, rels, radius, exclude_tests)** — Rank query results "
-        "using CodeRank-enhanced hybrid or personalized PageRank. Combines semantic seed scores "
-        "from the vector index with structural centrality and graph proximity. "
-        "mode='hybrid' (default): 0.60×semantic + 0.25×centrality + 0.15×proximity. "
-        "mode='ppr': 0.70×personalized PageRank + 0.30×semantic. "
-        "Returns JSON with per-node score components and explainability 'why' strings. "
-        "Use this instead of query_codebase when you want structure-aware ranking.\n\n"
-        "**explain_rank(node_id, q)** — Explain the CodeRank score components for a specific "
-        "node. Returns Markdown with global rank position, inbound/outbound edge counts "
-        "(callers, importers, inheritors), and optional query-conditioned semantic + proximity "
-        "scores when q is provided. Use after rank_nodes or query_ranked to understand why "
-        "a node ranked where it did.\n\n"
-        "## CodeRank Workflows\n\n"
-        "- **Find most important nodes globally**: rank_nodes(top=25) → explain_rank\n"
-        "- **Persist global rank for later use**: rank_nodes(persist_metric='coderank_global')\n"
-        "- **Structure-aware query**: query_ranked(q='database connection', mode='hybrid')\n"
-        "- **PPR query**: query_ranked(q='...', mode='ppr') → explain_rank(node_id, q='...')"
-    ),
-    lifespan=_lifespan,
+PREAMBLE = (
+    "PyCodeKG is a hybrid semantic + structural knowledge graph for a Python codebase. "
+    "It indexes every module, class, function and method as a node, with typed edges "
+    "(CALLS, IMPORTS, CONTAINS, INHERITS) between them. Node IDs look like "
+    "'<kind>:<module_path>:<qualname>', e.g. 'cls:src/pycode_kg/store.py:GraphStore'.\n\n"
+    "## Recommended workflows\n\n"
+    "- **Explore unfamiliar code**: stats → query → list_nodes (to enumerate a module) "
+    "→ explain → pack\n"
+    "- **Understand a specific function**: get_node → neighbors → pack\n"
+    "- **Look up by name (no ID known)**: find_node(name) → explain or callers\n"
+    "- **Impact analysis before a change**: explain → callers (with paths='src/')\n"
+    "- **Architecture review**: analyze_repo\n"
+    "- **Answer 'how does X work?'**: pack with a descriptive query\n"
+    "- **Track codebase evolution**: snapshot_list → snapshot_diff(key_a=..., key_b=...)\n"
+    "- **Identify the most important code**: centrality(top=20) → explain → pack\n"
+    "- **Structure-aware search**: query_ranked(q='...', mode='hybrid'), or mode='ppr' "
+    "→ explain_rank(node_id, q='...')\n"
+    "- **Global importance**: rank_nodes(top=25) → explain_rank; "
+    "rank_nodes(persist_metric='coderank_global') to keep the scores\n\n"
+    "For a precision query on a concept you know well, query(min_score=0.5) filters out "
+    "incidental docstring mentions."
 )
 
 
-@mcp.tool()
-def query_codebase(
+# ---------------------------------------------------------------------------
+# Canonical tools: PyCodeKG's richer query and pack, under the fleet's names
+# ---------------------------------------------------------------------------
+
+
+def query(
     q: str,
     k: int = 8,
     hop: int = 1,
-    rels: str = "CONTAINS,CALLS,IMPORTS,INHERITS",
+    rels: list[str] | None = None,
     include_symbols: bool = False,
     max_nodes: int = 25,
     min_score: float = 0.0,
@@ -433,73 +196,48 @@ def query_codebase(
     rerank_semantic_weight: float = 0.7,
     rerank_lexical_weight: float = 0.3,
     include_edge_provenance: bool = False,
-    format: str = "json",
-) -> str:
+    *,
+    ctx: Context,
+) -> dict[str, Any]:
     """
-    Hybrid semantic + structural query over the codebase knowledge graph.
+    Hybrid semantic + structural search: ranked code nodes and the edges among them.
 
-    Performs vector-similarity seeding followed by graph expansion to return
-    a ranked set of relevant nodes (modules, classes, functions, methods) and
-    the edges between them.
+    Seeds on vector similarity, then expands through the graph. Use ``pack``
+    instead when you want the source itself.
 
-    **hop heuristic:**
+    **hop:** ``0`` is pure semantic search, highest precision, best for
+    concept lookup ("find the retry logic"); ``1`` (default) adds call chains
+    and module relationships; ``2`` traces dependencies broadly and may return
+    many loosely related nodes.
 
-    - ``hop=0`` — pure semantic search; highest precision, no graph expansion.
-      Best for concept lookup ("find the retry logic").
-    - ``hop=1`` — semantic seeds + 1-hop expansion (default); reveals call
-      chains and module relationships. Best for architecture questions.
-    - ``hop=2`` — deep dependency tracing; may return many loosely related
-      nodes. Use only when you need broad coverage.
-
-    **rerank_mode** controls result ordering after graph expansion:
-
-    - ``hybrid`` (default) — blends vector similarity (70%) with lexical
-      overlap on name/qualname/module/docstring (30%). Best overall quality:
-      surfaces the right node even when the embedding alone is weak.
-    - ``semantic`` — ranks purely by vector similarity score. Use when
-      exact name matching is not important.
-    - ``legacy`` — hop distance first, then vector distance. Preserves
-      pre-reranking behavior; use only if you need stable ordering for
-      comparisons against older results.
-
-    **format** controls the output representation:
-
-    - ``json`` (default) — structured JSON with full relevance metadata.
-      Best for programmatic consumption or when scores matter.
-    - ``markdown`` — compact ranked Markdown table.  Easier to read in
-      conversation context; omits raw score fields.
+    **rerank_mode:** ``hybrid`` (default) blends vector similarity (70%) with
+    lexical overlap on name, qualname, module and docstring (30%), the best
+    overall; ``semantic`` ranks by vector score only; ``legacy`` orders by hop
+    distance first, for stable comparisons with older results.
 
     :param q: Natural-language query, e.g. "database connection setup".
-    :param k: Number of semantic seed nodes (default 8).
-    :param hop: Graph expansion hops from each seed (default 1).
-    :param rels: Comma-separated edge types to follow
-                 (CONTAINS, CALLS, IMPORTS, INHERITS).
-    :param include_symbols: Include low-level symbol nodes (default False).
-    :param max_nodes: Maximum nodes to return (default 25).
-    :param min_score: Minimum semantic score for seed inclusion in ``[0, 1]``.
-    :param max_per_module: Maximum nodes per module (default 3; 0 disables).
-        Prevents a single popular module from dominating hop-1 expansion results.
-        Lower for precision (e.g. 2), raise or disable for broad coverage queries.
-    :param paths: Comma-separated module path prefixes to include, e.g.
-                  ``"src/pycode_kg"`` to exclude tests and scripts.
-                  Empty string (default) returns all paths.
-    :param rerank_mode: Ranking strategy: ``hybrid`` (default), ``semantic``,
-        or ``legacy``.
-    :param rerank_semantic_weight: Semantic component weight for ``hybrid``
-        mode (default 0.7).
-    :param rerank_lexical_weight: Lexical component weight for ``hybrid``
-        mode (default 0.3).
-    :param include_edge_provenance: When ``True``, inferred edges include
-        confidence/provenance fields when available.
-    :param format: Output format: ``json`` (default) or ``markdown``.
-    :return: JSON string (format='json') or Markdown table (format='markdown').
+    :param k: Semantic seed nodes (1-100, default 8).
+    :param hop: Graph expansion hops from each seed (0-5, default 1).
+    :param rels: Edge types to follow; omit for CONTAINS, CALLS, IMPORTS, INHERITS.
+    :param include_symbols: Include ``sym:`` import-stub nodes (default False).
+    :param max_nodes: Most nodes to return (default 25).
+    :param min_score: Minimum semantic score for a seed, 0.0-1.0; 0.5 filters
+        out incidental docstring mentions.
+    :param max_per_module: Most nodes from one module (default 3; 0 disables),
+        so one popular module cannot dominate a hop-1 expansion.
+    :param paths: Comma-separated module path prefixes to keep, e.g.
+        ``"src/pycode_kg"`` to leave out tests and scripts.
+    :param rerank_mode: ``hybrid`` (default), ``semantic`` or ``legacy``.
+    :param rerank_semantic_weight: Semantic weight for ``hybrid`` (default 0.7).
+    :param rerank_lexical_weight: Lexical weight for ``hybrid`` (default 0.3).
+    :param include_edge_provenance: Annotate inferred edges with confidence
+        and resolution metadata.
     """
-    rel_tuple = tuple(r.strip() for r in rels.split(",") if r.strip())
-    result = _get_kg().query(
+    result = kg_from(ctx).query(
         q,
         k=k,
         hop=hop,
-        rels=rel_tuple or DEFAULT_RELS,
+        rels=tuple(rels) if rels else DEFAULT_RELS,
         include_symbols=include_symbols,
         max_nodes=max_nodes,
         min_score=min_score,
@@ -508,54 +246,27 @@ def query_codebase(
         rerank_semantic_weight=rerank_semantic_weight,
         rerank_lexical_weight=rerank_lexical_weight,
     )
-    data = json.loads(result.to_json())
+    data: dict[str, Any] = json.loads(result.to_json())
     if include_edge_provenance:
         data["edges"] = _enrich_edges_with_provenance(data.get("edges", []))
-
     if paths:
-        path_prefixes = [p.strip() for p in paths.split(",") if p.strip()]
-        included_ids = {
+        prefixes = [p.strip() for p in paths.split(",") if p.strip()]
+        kept = {
             n["id"]
             for n in data["nodes"]
-            if any((n.get("module_path") or "").startswith(pfx) for pfx in path_prefixes)
+            if any((n.get("module_path") or "").startswith(pfx) for pfx in prefixes)
         }
-        data["nodes"] = [n for n in data["nodes"] if n["id"] in included_ids]
-        data["edges"] = [
-            e for e in data["edges"] if e["src"] in included_ids and e["dst"] in included_ids
-        ]
+        data["nodes"] = [n for n in data["nodes"] if n["id"] in kept]
+        data["edges"] = [e for e in data["edges"] if e["src"] in kept and e["dst"] in kept]
         data["returned_nodes"] = len(data["nodes"])
-
-    if format == "markdown":
-        out: list[str] = [
-            f"## Query Results: `{q}`\n",
-            f"**Seeds:** {data['seeds']}  |  "
-            f"**Expanded:** {data['expanded_nodes']}  |  "
-            f"**Returned:** {data['returned_nodes']}  |  "
-            f"**hop:** {data['hop']}\n",
-            "| Rank | Score | Kind | Name | Module |",
-            "|-----:|------:|------|------|--------|",
-        ]
-        for rank_idx, node in enumerate(data["nodes"], start=1):
-            score = node.get("relevance", {}).get("score", 0.0)
-            kind = node.get("kind", "?")
-            name = node.get("qualname") or node.get("name", "?")
-            module = node.get("module_path", "")
-            out.append(f"| {rank_idx} | {score:.3f} | {kind} | `{name}` | `{module}` |")
-        if data.get("edges"):
-            out.append("\n### Edges\n")
-            for e in data["edges"][:20]:
-                out.append(f"- `{e['src']}` -[{e['rel']}]-> `{e['dst']}`")
-        return "\n".join(out)
-
-    return json.dumps(data, indent=2, ensure_ascii=False)
+    return data
 
 
-@mcp.tool()
-def pack_snippets(
+def pack(
     q: str,
     k: int = 8,
     hop: int = 1,
-    rels: str = "CONTAINS,CALLS,IMPORTS,INHERITS",
+    rels: list[str] | None = None,
     include_symbols: bool = False,
     context: int = 5,
     max_lines: int = 60,
@@ -567,54 +278,40 @@ def pack_snippets(
     rerank_lexical_weight: float = 0.3,
     missing_lineno_policy: str = "cap_or_skip",
     include_edge_provenance: bool = False,
+    *,
+    ctx: Context,
 ) -> str:
     """
-    Hybrid query + source-grounded snippet extraction.
+    Hybrid search rendered as a Markdown context pack of source code with line numbers.
 
-    Returns a Markdown context pack containing ranked, deduplicated code
-    snippets with line numbers — ready for direct LLM ingestion.
-
-    **rerank_mode** controls result ordering after graph expansion:
-
-    - ``hybrid`` (default) — blends vector similarity (70%) with lexical
-      overlap on name/qualname/module/docstring (30%). Best overall quality:
-      surfaces the right node even when the embedding alone is weak.
-    - ``semantic`` — ranks purely by vector similarity score. Use when
-      exact name matching is not important.
-    - ``legacy`` — hop distance first, then vector distance. Preserves
-      pre-reranking behavior; use only if you need stable ordering for
-      comparisons against older results.
+    The answer to "how does X work?": ranked, deduplicated snippets ready to
+    read, with a Warnings section when a snippet is capped or omitted for
+    missing line metadata. Same search and ``rerank_mode`` as ``query``.
 
     :param q: Natural-language query, e.g. "configuration loading".
-    :param k: Number of semantic seed nodes (default 8).
-    :param hop: Graph expansion hops (default 1).
-    :param rels: Comma-separated edge types to follow.
-    :param include_symbols: Include symbol nodes (default False).
-    :param context: Extra context lines around each definition (default 5).
-    :param max_lines: Maximum lines per snippet block (default 60).
-    :param max_nodes: Maximum nodes to include in the pack (default 15).
-    :param min_score: Minimum semantic score for seed inclusion in ``[0, 1]``.
-    :param max_per_module: Maximum nodes per module (default 3; 0 disables).
-        Prevents a single popular module from dominating hop-1 expansion results.
-    :param rerank_mode: Ranking strategy: ``hybrid`` (default), ``semantic``,
-        or ``legacy``.
-    :param rerank_semantic_weight: Semantic component weight for ``hybrid``
-        mode (default 0.7).
-    :param rerank_lexical_weight: Lexical component weight for ``hybrid``
-        mode (default 0.3).
-    :param missing_lineno_policy: Behavior when a non-module node has missing
-        line metadata: ``cap_or_skip`` (default) falls back to a capped parent
-        span or omits the snippet; ``legacy`` uses the old uncapped behavior.
-    :param include_edge_provenance: When ``True``, enrich edges in markdown
-        output with inferred confidence/provenance fields.
-    :return: Markdown string with source-grounded code snippets.
+    :param k: Semantic seed nodes (1-100, default 8).
+    :param hop: Graph expansion hops (0-5, default 1).
+    :param rels: Edge types to follow; omit for CONTAINS, CALLS, IMPORTS, INHERITS.
+    :param include_symbols: Include ``sym:`` import-stub nodes (default False).
+    :param context: Extra lines around each definition (default 5).
+    :param max_lines: Longest snippet, in lines (default 60).
+    :param max_nodes: Most snippets (default 15).
+    :param min_score: Minimum semantic score for a seed, 0.0-1.0.
+    :param max_per_module: Most nodes from one module (default 3; 0 disables).
+    :param rerank_mode: ``hybrid`` (default), ``semantic`` or ``legacy``.
+    :param rerank_semantic_weight: Semantic weight for ``hybrid`` (default 0.7).
+    :param rerank_lexical_weight: Lexical weight for ``hybrid`` (default 0.3).
+    :param missing_lineno_policy: ``cap_or_skip`` (default) falls back to a
+        capped parent span or omits the snippet; ``legacy`` keeps the old
+        uncapped behaviour.
+    :param include_edge_provenance: Annotate inferred edges with confidence
+        and resolution metadata.
     """
-    rel_tuple = tuple(r.strip() for r in rels.split(",") if r.strip())
-    pack = _get_kg().pack(
+    result = kg_from(ctx).pack(
         q,
         k=k,
         hop=hop,
-        rels=rel_tuple or DEFAULT_RELS,
+        rels=tuple(rels) if rels else DEFAULT_RELS,
         include_symbols=include_symbols,
         context=context,
         max_lines=max_lines,
@@ -627,16 +324,20 @@ def pack_snippets(
         missing_lineno_policy=missing_lineno_policy,
     )
     if include_edge_provenance:
-        pack.edges = _enrich_edges_with_provenance(pack.edges)
-    return pack.to_markdown()
+        result.edges = _enrich_edges_with_provenance(result.edges)
+    return result.to_markdown()
 
 
-@mcp.tool()
-def callers(node_id: str, rel: str = "CALLS", paths: str = "") -> str:
+# ---------------------------------------------------------------------------
+# PyCodeKG's own tools
+# ---------------------------------------------------------------------------
+
+
+def callers(node_id: str, rel: str = "CALLS", paths: str = "", *, ctx: Context) -> str:
     """
     Return all nodes that call a given node, resolving through ``sym:`` stubs.
 
-    Unlike ``query_codebase`` (which seeds on semantics and expands outward),
+    Unlike ``query`` (which seeds on semantics and expands outward),
     this tool performs a precise reverse lookup: it finds every caller of the
     specified node, including cross-module callers that reference it via an
     import alias recorded as a ``sym:`` stub.
@@ -663,7 +364,7 @@ def callers(node_id: str, rel: str = "CALLS", paths: str = "") -> str:
     :return: JSON with ``node_id``, ``rel``, ``caller_count``, and
              ``callers`` list of node dicts.
     """
-    caller_list = _get_kg().callers(node_id, rel=rel)
+    caller_list = kg_from(ctx).callers(node_id, rel=rel)
     if paths:
         path_prefixes = [p.strip() for p in paths.split(",") if p.strip()]
         caller_list = [
@@ -683,166 +384,12 @@ def callers(node_id: str, rel: str = "CALLS", paths: str = "") -> str:
     )
 
 
-@mcp.tool()
-def get_node(node_id: str, include_edges: bool = False) -> str:
-    """
-    Fetch a single node by its stable ID and render it as Markdown.
-
-    Node IDs follow the pattern ``<kind>:<module_path>:<qualname>``,
-    e.g. ``cls:src/pycode_kg/store.py:GraphStore`` or
-    ``fn:src/pycode_kg/store.py:GraphStore.expand``.  Use
-    ``query_codebase()`` to discover node IDs when the exact ID is
-    unknown.
-
-    When *include_edges* is ``True`` the Markdown report also contains
-    the node's immediate neighborhood — outgoing edges grouped by
-    relation type (CALLS, CONTAINS, IMPORTS, INHERITS) and all resolved
-    incoming CALLS callers — eliminating a separate ``callers()``
-    round-trip for routine inspection.  Follow up with ``pack_snippets()``
-    to retrieve the actual source implementation.
-
-    Example workflow::
-
-        # 1. Discover the node ID
-        query_codebase("graph database storage")
-
-        # 2. Inspect the node and its neighborhood
-        get_node("cls:src/pycode_kg/store.py:GraphStore", include_edges=True)
-
-        # 3. Read the source
-        pack_snippets("GraphStore implementation")
-
-    :param node_id: Stable node identifier in ``<kind>:<module_path>:<qualname>``
-                    format, e.g. ``fn:src/pycode_kg/store.py:GraphStore.expand``.
-    :param include_edges: If ``True``, append outgoing edges by relation type
-                          and incoming CALLS callers to the report
-                          (default ``False``).
-    :return: Markdown-formatted node summary with optional neighborhood, or an
-             error section if the node does not exist.
-    """
-    kg = _get_kg()
-    node = kg.node(node_id)
-    if node is None:
-        return f"## Node Not Found\n\nNode ID `{node_id}` does not exist in the knowledge graph."
-
-    kind = node.get("kind", "unknown")
-    name = node.get("qualname") or node.get("name", "unknown")
-    out: list[str] = [f"## `{name}` ({kind})\n"]
-
-    module = node.get("module_path", "")
-    lineno = node.get("lineno")
-    end_lineno = node.get("end_lineno")
-    if module:
-        out.append(f"- **Module:** `{module}`")
-    if lineno is not None:
-        loc = f"line {lineno}"
-        if end_lineno:
-            loc += f"–{end_lineno}"
-        out.append(f"- **Location:** {loc}")
-    out.append(f"- **ID:** `{node_id}`")
-    out.append("")
-
-    docstring = node.get("docstring", "").strip()
-    if docstring:
-        out.append("### Documentation\n")
-        out.append(docstring)
-        out.append("")
-
-    if not include_edges:
-        return "\n".join(out)
-
-    # Build neighborhood: outgoing edges per relation type
-    store = kg.store
-    for rel in ("CALLS", "CONTAINS", "IMPORTS", "INHERITS"):
-        edges = store.edges_from(node_id, rel=rel)
-        visible = [e for e in edges if not e["dst"].startswith("sym:")] if edges else []
-        if visible:
-            out.append(f"### Outgoing {rel}\n")
-            for e in visible:
-                out.append(f"- `{e['dst']}`")
-            out.append("")
-
-    # Incoming CALLS callers (resolved through sym: stubs)
-    try:
-        caller_nodes = kg.callers(node_id, rel="CALLS")
-        if caller_nodes:
-            out.append("### Incoming Calls\n")
-            for c in caller_nodes:
-                cname = c.get("qualname") or c.get("name", "")
-                cmod = c.get("module_path", "")
-                cline = c.get("lineno")
-                cid = c.get("id", "")
-                loc_str = f" (line {cline})" if cline else ""
-                out.append(f"- `{cid}` — `{cname}` in `{cmod}`{loc_str}")
-            out.append("")
-    except (AttributeError, ValueError, RuntimeError):
-        pass
-
-    return "\n".join(out)
-
-
-@mcp.tool()
-def graph_stats() -> str:
-    """
-    Return node and edge counts broken down by kind and relation as Markdown.
-
-    Call this first when engaging with a new repo to understand the scale and
-    shape of the knowledge graph before issuing ``query_codebase()`` or
-    ``pack_snippets()`` queries.  ``meaningful_nodes`` excludes ``sym:``
-    infrastructure stubs so the count reflects real code entities (modules,
-    classes, functions, methods).
-
-    Also reports ``docstring_coverage`` (fraction of functions/methods with
-    docstrings) and ``snapshot_count`` (number of saved temporal snapshots).
-
-    :return: Markdown-formatted summary with total counts, domain metrics,
-             a nodes-by-kind table, and an edges-by-relation table.
-    """
-    stats = _get_kg().stats()
-    out: list[str] = ["## PyCodeKG Graph Statistics\n"]
-    out.append(f"- **Database:** `{stats.get('db_path', '')}`")
-    out.append(f"- **Total nodes:** {stats.get('total_nodes', 0):,}")
-    out.append(
-        f"- **Meaningful nodes:** {stats.get('meaningful_nodes', 0):,} *(excludes sym: stubs)*"
-    )
-    out.append(f"- **Total edges:** {stats.get('total_edges', 0):,}")
-    cov = stats.get("docstring_coverage")
-    if cov is not None:
-        out.append(f"- **Docstring coverage:** {cov:.1%} *(functions + methods)*")
-    snap = stats.get("snapshot_count")
-    if snap is not None:
-        out.append(f"- **Snapshots:** {snap:,}")
-    out.append("")
-
-    node_counts: dict = stats.get("node_counts", {})
-    if node_counts:
-        out.append("### Nodes by Kind\n")
-        out.append("| Kind | Count |")
-        out.append("|------|------:|")
-        for kind, count in sorted(node_counts.items(), key=lambda x: -x[1]):
-            out.append(f"| {kind} | {count:,} |")
-        out.append("")
-
-    edge_counts: dict = stats.get("edge_counts", {})
-    if edge_counts:
-        out.append("### Edges by Relation\n")
-        out.append("| Relation | Count |")
-        out.append("|----------|------:|")
-        for rel, count in sorted(edge_counts.items(), key=lambda x: -x[1]):
-            out.append(f"| {rel} | {count:,} |")
-        out.append("")
-
-    out.append(
-        "> `sym:` nodes are import stub placeholders used for cross-module caller resolution — they are not local code entities."
-    )
-    return "\n".join(out)
-
-
-@mcp.tool()
 def list_nodes(
     module_path: str = "",
     kind: str = "",
     include_symbols: bool = False,
+    *,
+    ctx: Context,
 ) -> str:
     """
     List nodes filtered by module path prefix and/or kind.
@@ -853,7 +400,7 @@ def list_nodes(
                             False so only meaningful code entities are returned.
     :return: JSON array of matching node dicts.
     """
-    kg = _get_kg()
+    kg = kg_from(ctx)
     store = kg.store
 
     query = "SELECT id, name, qualname, kind, module_path, lineno, docstring FROM nodes WHERE 1=1"
@@ -895,8 +442,7 @@ def list_nodes(
         return json.dumps({"error": str(e)}, indent=2)
 
 
-@mcp.tool()
-def find_node(name: str, kind: str = "") -> str:
+def find_node(name: str, kind: str = "", *, ctx: Context) -> str:
     """
     Find graph nodes by name without knowing their full stable ID.
 
@@ -909,10 +455,10 @@ def find_node(name: str, kind: str = "") -> str:
     Example workflow::
 
         # 1. Look up a name you saw in a traceback
-        find_node("_get_kg")
+        find_node("build_server")
 
         # 2. Use the returned id with explain or get_node
-        explain("fn:src/pycode_kg/mcp_server.py:_get_kg")
+        explain("fn:src/pycode_kg/mcp_server.py:build_server")
 
     :param name: Function, method, or class name to search for.
                  Matched case-insensitively against ``name`` and ``qualname``.
@@ -923,7 +469,7 @@ def find_node(name: str, kind: str = "") -> str:
              truncated ``docstring``.  Returns an empty array when no match
              is found.
     """
-    kg = _get_kg()
+    kg = kg_from(ctx)
     store = kg.store
 
     name_lower = name.lower()
@@ -962,11 +508,12 @@ def find_node(name: str, kind: str = "") -> str:
         return json.dumps({"error": str(e)}, indent=2)
 
 
-@mcp.tool()
 def centrality(
     top: int = 20,
     kinds: str = "",
     group_by: str = "node",
+    *,
+    ctx: Context,
 ) -> str:
     """
     Compute Structural Importance Ranking (SIR) for the indexed codebase.
@@ -1000,7 +547,7 @@ def centrality(
             aggregate_module_scores,
         )
 
-        db_path = _get_kg().db_path
+        db_path = kg_from(ctx).db_path
         ranker = StructuralImportanceRanker(db_path)
         all_records = ranker.compute()
     except Exception as e:  # noqa: BLE001
@@ -1044,10 +591,11 @@ def centrality(
     return "\n".join(out)
 
 
-@mcp.tool()
 def bridge_centrality(
     top: int = 20,
     include_imports: bool = True,
+    *,
+    ctx: Context,
 ) -> str:
     """
     Compute module connectivity: how many unique modules each module interacts with.
@@ -1071,7 +619,7 @@ def bridge_centrality(
             compute_bridge_centrality,
         )
 
-        db_path = str(_get_kg().db_path)
+        db_path = str(kg_from(ctx).db_path)
         modules = compute_bridge_centrality(
             kind="module",
             include_imports=include_imports,
@@ -1096,8 +644,7 @@ def bridge_centrality(
     return "\n".join(out)
 
 
-@mcp.tool()
-def framework_nodes(top: int = 20) -> str:
+def framework_nodes(top: int = 20, *, ctx: Context) -> str:
     """
     Identify framework-like (hub) modules using SIR + module connectivity.
 
@@ -1123,7 +670,7 @@ def framework_nodes(top: int = 20) -> str:
             detect_framework_nodes,
         )
 
-        kg = _get_kg()
+        kg = kg_from(ctx)
         db_path = str(kg.db_path)
 
         # Compute and persist SIR scores (structural importance)
@@ -1159,8 +706,7 @@ def framework_nodes(top: int = 20) -> str:
     return "\n".join(out)
 
 
-@mcp.tool()
-def find_definition_at(file: str, line: int) -> str:
+def find_definition_at(file: str, line: int, *, ctx: Context) -> str:
     """
     Find the code node whose definition spans a given file location.
 
@@ -1179,7 +725,7 @@ def find_definition_at(file: str, line: int) -> str:
     :return: Markdown explanation from ``explain()``, or an informative error
              message if no node spans that location.
     """
-    kg = _get_kg()
+    kg = kg_from(ctx)
     store = kg.store
 
     norm_file = file.lstrip("./")
@@ -1211,17 +757,16 @@ def find_definition_at(file: str, line: int) -> str:
                 f"## No Definition Found\n\n"
                 f"No function, method, or class spans `{file}:{line}` in the graph.\n\n"
                 "Check that the file path matches the module path stored in the graph "
-                "(use `graph_stats()` or `list_nodes()` to browse available modules)."
+                "(use `stats()` or `list_nodes()` to browse available modules)."
             )
         node_id = mod_rows[0][0]
     else:
         node_id = rows[0][0]
 
-    return explain(node_id)
+    return explain(node_id, ctx=ctx)
 
 
-@mcp.tool()
-def analyze_repo() -> str:
+def analyze_repo(*, ctx: Context) -> str:
     """
     Run a full architectural analysis of the indexed repository.
 
@@ -1237,7 +782,7 @@ def analyze_repo() -> str:
 
     The output is optimized for LLM ingestion, with clear sections for metrics,
     hotspots, issues, strengths, and recommendations — similar to the
-    ``pack_snippets()`` tool's Markdown output format.
+    ``pack()`` tool's Markdown output format.
 
     :return: Markdown-formatted string containing timestamp, baseline metrics,
              complexity hotspots, high fan-out functions, module architecture,
@@ -1249,13 +794,12 @@ def analyze_repo() -> str:
     from rich.console import Console  # noqa: PLC0415
 
     silent = Console(file=StringIO(), highlight=False)
-    analyzer = PyCodeKGAnalyzer(_get_kg(), console=silent, snapshot_mgr=_snapshot_mgr)
+    analyzer = PyCodeKGAnalyzer(kg_from(ctx), console=silent, snapshot_mgr=_snapshots(kg_from(ctx)))
     analyzer.run_analysis()
     return analyzer.to_markdown()
 
 
-@mcp.tool()
-def explain(node_id: str, limit: int = 10) -> str:
+def explain(node_id: str, limit: int = 10, *, ctx: Context) -> str:
     """
     Return a natural-language explanation of a code node.
 
@@ -1269,7 +813,7 @@ def explain(node_id: str, limit: int = 10) -> str:
     - **Documentation**: Full docstring if available
 
     This is ideal for understanding the role and context of a specific node
-    without needing to read the full source code. Use ``pack_snippets()``
+    without needing to read the full source code. Use ``pack()``
     to then retrieve the actual implementation.
 
     :param node_id: Stable node identifier, e.g.
@@ -1281,24 +825,20 @@ def explain(node_id: str, limit: int = 10) -> str:
     from pycode_kg.explain import render_explain  # noqa: PLC0415
 
     return render_explain(
-        _get_kg(),
+        kg_from(ctx),
         node_id,
         limit=limit,
-        snippets_hint="pack_snippets()",
+        snippets_hint="pack()",
     )
 
 
-# ---------------------------------------------------------------------------
-# CodeRank MCP tools
-# ---------------------------------------------------------------------------
-
-
-@mcp.tool()
 def rank_nodes(
     top: int = 25,
     rels: str = "CALLS,IMPORTS,INHERITS",
     persist_metric: str = "",
     exclude_tests: bool = True,
+    *,
+    ctx: Context,
 ) -> str:
     """
     Compute global weighted CodeRank (PageRank) over the repository graph.
@@ -1327,7 +867,7 @@ def rank_nodes(
         persist_metric_scores,
     )
 
-    db_path = str(_get_kg().db_path)
+    db_path = str(kg_from(ctx).db_path)
     rel_list = [r.strip() for r in rels.split(",") if r.strip()]
 
     try:
@@ -1372,7 +912,6 @@ def rank_nodes(
     return json.dumps(results, indent=2, ensure_ascii=False)
 
 
-@mcp.tool()
 def query_ranked(
     q: str,
     k: int = 8,
@@ -1381,6 +920,8 @@ def query_ranked(
     rels: str = "CALLS,IMPORTS,INHERITS",
     radius: int = 2,
     exclude_tests: bool = True,
+    *,
+    ctx: Context,
 ) -> str:
     """
     Rank query results using CodeRank-enhanced hybrid or personalized PageRank.
@@ -1412,7 +953,7 @@ def query_ranked(
         rank_query_ppr,
     )
 
-    kg = _get_kg()
+    kg = kg_from(ctx)
     db_path = str(kg.db_path)
     rel_list = [r.strip() for r in rels.split(",") if r.strip()]
 
@@ -1479,8 +1020,7 @@ def query_ranked(
     )
 
 
-@mcp.tool()
-def explain_rank(node_id: str, q: str = "") -> str:
+def explain_rank(node_id: str, q: str = "", *, ctx: Context) -> str:
     """
     Explain the CodeRank score components for a specific node.
 
@@ -1502,7 +1042,7 @@ def explain_rank(node_id: str, q: str = "") -> str:
         compute_seed_proximity,
     )
 
-    kg = _get_kg()
+    kg = kg_from(ctx)
     db_path = str(kg.db_path)
 
     node = kg.node(node_id)
@@ -1603,13 +1143,7 @@ def explain_rank(node_id: str, q: str = "") -> str:
     return "\n".join(out)
 
 
-# ---------------------------------------------------------------------------
-# Temporal snapshot tools
-# ---------------------------------------------------------------------------
-
-
-@mcp.tool()
-def snapshot_list(limit: int = 10, branch: str = "") -> str:
+def snapshot_list(limit: int = 10, branch: str = "", *, ctx: Context) -> str:
     """
     List saved temporal snapshots of codebase metrics in reverse chronological order.
 
@@ -1627,19 +1161,18 @@ def snapshot_list(limit: int = 10, branch: str = "") -> str:
                    (e.g. ``"main"`` or ``"develop"``).
     :return: JSON array of snapshot metadata dicts, most recent first.
     """
-    mgr = _get_snapshot_mgr()
+    mgr = _snapshots(kg_from(ctx))
     snapshots = mgr.list_snapshots(
         limit=limit if limit > 0 else None,
         branch=branch if branch else None,
     )
     for snap in snapshots:
         snap_metrics = snap.get("metrics", {})
-        snap["freshness"] = _snapshot_freshness(snap_metrics.get("total_nodes", 0))
+        snap["freshness"] = _snapshot_freshness(kg_from(ctx), snap_metrics.get("total_nodes", 0))
     return json.dumps(snapshots, indent=2, ensure_ascii=False)
 
 
-@mcp.tool()
-def snapshot_show(key: str = "latest") -> str:
+def snapshot_show(key: str = "latest", *, ctx: Context) -> str:
     """
     Show full details of a specific codebase metrics snapshot.
 
@@ -1660,7 +1193,7 @@ def snapshot_show(key: str = "latest") -> str:
     :return: JSON object with full snapshot details, or an error dict if
              the requested snapshot does not exist.
     """
-    mgr = _get_snapshot_mgr()
+    mgr = _snapshots(kg_from(ctx))
 
     if key == "latest":
         entries = mgr.list_snapshots(limit=1)
@@ -1672,12 +1205,11 @@ def snapshot_show(key: str = "latest") -> str:
     if snapshot is None:
         return json.dumps({"error": f"Snapshot not found for key: {key!r}"})
     out = snapshot.to_dict()
-    out["freshness"] = _snapshot_freshness(snapshot.metrics.get("total_nodes", 0))
+    out["freshness"] = _snapshot_freshness(kg_from(ctx), snapshot.metrics.get("total_nodes", 0))
     return json.dumps(out, indent=2, ensure_ascii=False)
 
 
-@mcp.tool()
-def snapshot_diff(key_a: str, key_b: str) -> str:
+def snapshot_diff(key_a: str, key_b: str, *, ctx: Context) -> str:
     """
     Compare two codebase metric snapshots side-by-side.
 
@@ -1704,126 +1236,80 @@ def snapshot_diff(key_a: str, key_b: str) -> str:
              only modules that differ). Returns an error dict if either snapshot
              is missing.
     """
-    mgr = _get_snapshot_mgr()
+    mgr = _snapshots(kg_from(ctx))
     result = mgr.diff_snapshots(key_a, key_b)
     if "error" not in result:
         result["freshness"] = {
-            "a": _snapshot_freshness(result.get("a", {}).get("metrics", {}).get("total_nodes", 0)),
-            "b": _snapshot_freshness(result.get("b", {}).get("metrics", {}).get("total_nodes", 0)),
+            "a": _snapshot_freshness(
+                kg_from(ctx), result.get("a", {}).get("metrics", {}).get("total_nodes", 0)
+            ),
+            "b": _snapshot_freshness(
+                kg_from(ctx), result.get("b", {}).get("metrics", {}).get("total_nodes", 0)
+            ),
         }
     return json.dumps(result, indent=2, ensure_ascii=False)
 
 
-# ---------------------------------------------------------------------------
-# CLI entry point
-# ---------------------------------------------------------------------------
+#: PyCodeKG's own tools, registered after the canonical set in this order.
+EXTRA_TOOLS = (
+    callers,
+    list_nodes,
+    find_node,
+    centrality,
+    bridge_centrality,
+    framework_nodes,
+    find_definition_at,
+    analyze_repo,
+    explain,
+    rank_nodes,
+    query_ranked,
+    explain_rank,
+    snapshot_list,
+    snapshot_show,
+    snapshot_diff,
+)
 
 
-def _parse_args(argv: list | None = None) -> argparse.Namespace:
+def build_server(
+    repo: str | Path,
+    db: str | Path | None = None,
+    vectors: str | Path | None = None,
+    model: str | None = None,
+) -> KGServer:
+    """Build the PyCodeKG MCP server for one repository, without opening its graph.
+
+    :param repo: Repository root the graph was built from.
+    :param db: Graph database; ``None`` for ``<repo>/.pycodekg/graph.sqlite``.
+    :param vectors: Vector store; ``None`` for ``<repo>/.pycodekg/vectors.sqlite``.
+    :param model: Embedding model; ``None`` for :data:`DEFAULT_MODEL`.
+    :return: The server; serve it with :func:`kg_utils.mcp.run`.
     """
-    Parse command-line arguments for the PyCodeKG MCP server entry point.
+    root = Path(repo).resolve()
 
-    Centralizes runtime configuration for repository path, graph/index paths,
-    embedder model selection, and transport wiring (stdio vs sse).
+    def open_kg() -> PyCodeKG:
+        return PyCodeKG(root, db, vectors, model=model or DEFAULT_MODEL)
 
-    :param argv: Argument list to parse; defaults to ``sys.argv[1:]`` when ``None``.
-    :return: Parsed argument namespace.
+    server = make_server(
+        open_kg, name="pycodekg", kind="code", version=__version__, instructions=PREAMBLE
+    )
+    server.canonical("query")(query)
+    server.canonical("pack")(pack)
+    for tool in EXTRA_TOOLS:
+        server.add_tool(tool)
+    return server
+
+
+def main(argv: list[str] | None = None) -> None:
+    """Entry point for ``pycodekg-mcp``: the same command as ``pycodekg mcp``.
+
+    Kept as a console script because Claude Desktop and Copilot configs name
+    it; it runs the standard command, so both spellings take the same flags.
+
+    :param argv: Arguments; ``None`` for ``sys.argv[1:]``.
     """
-    p = argparse.ArgumentParser(
-        prog="pycodekg-mcp",
-        description="PyCodeKG MCP server — exposes codebase query tools to AI agents.",
-    )
-    p.add_argument(
-        "--repo",
-        default=".",
-        help="Repository root directory (default: current directory)",
-    )
-    p.add_argument(
-        "--db",
-        default=".pycodekg/graph.sqlite",
-        help="Path to the SQLite knowledge graph (default: .pycodekg/graph.sqlite)",
-    )
-    p.add_argument(
-        "--vectors",
-        default=".pycodekg/vectors.sqlite",
-        help="Path to the sqlite-vec vector store (default: .pycodekg/vectors.sqlite)",
-    )
-    p.add_argument(
-        "--model",
-        default=DEFAULT_MODEL,
-        help=f"Sentence-transformer model name (default: {DEFAULT_MODEL})",
-    )
-    p.add_argument(
-        "--transport",
-        choices=["stdio", "sse"],
-        default="stdio",
-        help="MCP transport: stdio (default, for Claude Desktop) or sse (HTTP)",
-    )
-    return p.parse_args(argv)
+    from pycode_kg.cli.cmd_mcp import mcp_command  # noqa: PLC0415
 
-
-def main(argv: list | None = None) -> None:
-    """
-    CLI entry point for the PyCodeKG MCP server.
-
-    Initialises the PyCodeKG instance, the SnapshotManager, and starts the
-    MCP server using the requested transport (stdio for Claude Desktop,
-    sse for HTTP clients).
-
-    This startup path is the operational "entry point and configuration"
-    surface for MCP usage, including model selection and database/index
-    location handling. It also provides warning output for common
-    misconfiguration states (missing SQLite graph before startup).
-
-    Logging approach: writes startup diagnostics and warnings to stderr so
-    MCP hosts can capture them without mixing with tool payloads.
-    Error handling strategy: emits actionable warnings for missing inputs
-    and continues initialization when safe to do so.
-
-    :param argv: Argument list forwarded to ``_parse_args``; defaults to
-                 ``sys.argv[1:]`` when ``None``.
-    """
-    global _kg, _snapshot_mgr
-
-    args = _parse_args(argv)
-
-    repo = Path(args.repo).resolve()
-    db = Path(args.db) if Path(args.db).is_absolute() else repo / args.db
-    vectors = Path(args.vectors) if Path(args.vectors).is_absolute() else repo / args.vectors
-
-    if not db.exists():
-        print(
-            f"WARNING: SQLite database not found at '{db}'.\nRun 'pycodekg build' first.",
-            file=sys.stderr,
-        )
-    if not vectors.exists():
-        print(
-            f"WARNING: sqlite-vec store not found at '{vectors}'.\n"
-            "Run 'pycodekg build' (or 'pycodekg build-index') first — "
-            "semantic queries will fail until it exists.",
-            file=sys.stderr,
-        )
-
-    print(
-        f"PyCodeKG MCP server starting\n"
-        f"  repo     : {repo}\n"
-        f"  db       : {db}\n"
-        f"  vectors  : {vectors}\n"
-        f"  model    : {args.model}\n"
-        f"  transport: {args.transport}",
-        file=sys.stderr,
-    )
-
-    _kg = PyCodeKG(
-        repo_root=repo,
-        db_path=db,
-        vectors_path=vectors,
-        model=args.model,
-    )
-
-    _snapshot_mgr = SnapshotManager(repo / ".pycodekg" / "snapshots", db_path=db)
-
-    mcp.run(transport=args.transport)
+    mcp_command.main(args=argv, prog_name="pycodekg-mcp")
 
 
 if __name__ == "__main__":
