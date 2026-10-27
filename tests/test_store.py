@@ -400,3 +400,27 @@ def test_callers_of_prefers_import_disambiguation_for_same_name(tmp_path):
     assert any("cmd_mcp.py:mcp" in cid for cid in caller_ids_mcp)
     assert not any("cmd_mcp.py:mcp" in cid for cid in caller_ids_app)
     store.close()
+
+
+def test_extractor_flags_scope_local_variable_nodes(tmp_path):
+    """Per-scope variable and attribute nodes carry ``scope_local``; call stubs do not.
+
+    ``kg_utils`` ``resolve_symbols()`` skips flagged stubs, so a local named
+    like a definition never resolves to it.
+    """
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "a.py").write_text("def context(): pass\nclass Log:\n    def render(self): pass\n")
+    (repo / "b.py").write_text(
+        "def install(obj):\n    context = 1\n    obj.render()\n    return context\n"
+    )
+    specs = {
+        s.node_id: s
+        for s in PyCodeKGExtractor(repo).extract()
+        if isinstance(s, NodeSpec) and s.kind == "symbol"
+    }
+
+    local_ids = [nid for nid in specs if nid.endswith("install.context")]
+    assert local_ids
+    assert all(specs[nid].metadata == {"scope_local": True} for nid in local_ids)
+    assert specs["sym:obj.render"].metadata == {}

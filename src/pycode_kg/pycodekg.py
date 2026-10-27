@@ -66,6 +66,9 @@ class Node:
         annotation, if any — e.g. ``"Plotter"`` for a call site
         ``plotter.render()`` where ``plotter: pv.Plotter``. ``None`` when the
         receiver has no known annotation, or the node isn't a call stub.
+    :param scope_local: True for the data-flow visitor's per-scope variable
+        and attribute nodes (``kind == "symbol"``), which name a local, not a
+        definition, so symbol resolution skips them.
     """
 
     id: str
@@ -77,6 +80,7 @@ class Node:
     end_lineno: int | None
     docstring: str | None
     receiver_class: str | None = None
+    scope_local: bool = False
 
 
 @dataclass(frozen=True)
@@ -630,6 +634,7 @@ def extract_repo(
                     lineno=props.get("lineno"),
                     end_lineno=props.get("end_lineno"),
                     docstring=props.get("docstring"),
+                    scope_local=props["kind"] == "symbol",
                 ),
             )
 

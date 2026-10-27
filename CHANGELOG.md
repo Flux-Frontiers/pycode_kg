@@ -9,6 +9,17 @@ Note: older entries preserve the API names used at that release (for example com
 
 ## [Unreleased]
 
+### Fixed
+
+- **Local variables no longer resolve to definitions.** The data-flow
+  visitor's per-scope variable and attribute nodes (`kind="symbol"`) now
+  carry `{"scope_local": true}` in their metadata, and kgmodule-utils skips
+  them in `resolve_symbols()`. Before, a local named `context` got a
+  `RESOLVES_TO` edge to every definition named `context`: 84% of those
+  edges on ansible, and an 18 GB graph for a 7,920-file checkout. Takes
+  effect with the next kgmodule-utils release; against 0.29.0 the flag is
+  written and ignored.
+
 ## [0.29.0] - 2026-10-26
 
 ### Changed
