@@ -16,9 +16,10 @@ Note: older entries preserve the API names used at that release (for example com
   carry `{"scope_local": true}` in their metadata, and kgmodule-utils skips
   them in `resolve_symbols()`. Before, a local named `context` got a
   `RESOLVES_TO` edge to every definition named `context`: 84% of those
-  edges on ansible, and an 18 GB graph for a 7,920-file checkout. Takes
-  effect with the next kgmodule-utils release; against 0.29.0 the flag is
-  written and ignored.
+  edges on ansible, and an 18 GB graph for a 7,920-file checkout.
+- **`kgmodule-utils` floor raised to `>=0.29.1`**, the release that reads
+  the flag and also leaves ambiguous names unresolved. Against 0.29.0 the
+  flag is written and ignored.
 
 ## [0.29.0] - 2026-10-26
 
