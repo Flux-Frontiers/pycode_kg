@@ -166,7 +166,9 @@ dependencies = [
     # 0.29.0: the MCP server is kg_utils.mcp's ([mcp] brings mcp itself, capped
     # below 2.0 there), PyCodeKG.stats() is the fleet stats shape, and LanceDB
     # is gone.
-    "kgmodule-utils[semantic,viz3d,mcp]>=0.29.0",
+    # 0.29.1: resolve_symbols() skips the scope_local nodes this module flags
+    # and leaves ambiguous names unresolved (the RESOLVES_TO fan-out fix).
+    "kgmodule-utils[semantic,viz3d,mcp]>=0.29.1",
 ]
 
 [project.optional-dependencies]
