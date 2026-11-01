@@ -9,6 +9,8 @@ Note: older entries preserve the API names used at that release (for example com
 
 ## [Unreleased]
 
+## [0.29.1] - 2026-11-01
+
 ### Fixed
 
 - **Local variables no longer resolve to definitions.** The data-flow
