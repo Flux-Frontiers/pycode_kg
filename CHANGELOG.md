@@ -9,6 +9,15 @@ Note: older entries preserve the API names used at that release (for example com
 
 ## [Unreleased]
 
+## [0.29.2] - 2026-11-01
+
+### Security
+
+- **Lock refreshed to clear 56 Dependabot alerts** (6 critical). Pillow
+  12.3.0 -> 13.0.0, which needed Streamlit 1.63.0 -> 1.66.1 (1.63 capped
+  Pillow below 13); certifi 2026.10.23, filelock 4.2.6, setuptools 84.2.1,
+  virtualenv 21.15.2. `pyproject.toml` ranges are unchanged.
+
 ## [0.29.1] - 2026-11-01
 
 ### Fixed
