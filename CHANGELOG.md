@@ -9,6 +9,15 @@ Note: older entries preserve the API names used at that release (for example com
 
 ## [Unreleased]
 
+## [0.29.3] - 2026-11-02
+
+### Security
+
+- **The `viz3d` and `all` extras floor quiltwright at 0.17.0**, the first
+  quiltwright release that floors Pillow at 13.0.0, so neither extra can
+  pull Pillow 12.3.0 and its 41 advisories in through it. The lock moves
+  quiltwright to 0.17.0.
+
 ## [0.29.2] - 2026-11-01
 
 ### Security
