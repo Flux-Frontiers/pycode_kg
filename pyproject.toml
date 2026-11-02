@@ -70,7 +70,7 @@ torch = [
 # ---------------------------------------------------------------------------
 [project]
 name = "pycode-kg"
-version = "0.29.2"
+version = "0.29.3"
 description = "A tool to build a searchable knowledge graph from Python repositories"
 readme = "README.md"
 license = "Elastic-2.0"
@@ -202,8 +202,9 @@ viz3d = [
     # to open-code, and save_and_cast_quilt() underneath the SDK cast helper.
     # 0.14.1 is what kgmodule-utils[viz3d-qt] >=0.22.0 needs transitively, for
     # resolve_view_cone; declared here so this file states the real floor
-    # rather than leaving it to the resolver to discover.
-    "quiltwright>=0.16.0",
+    # rather than leaving it to the resolver to discover. 0.17.0 is the first
+    # release that floors Pillow at 13.0.0.
+    "quiltwright>=0.17.0",
 ]
 
 # Cross-KG sibling packages (doc-kg, pycode-kg, agent-kg, kg-rag) are NOT
@@ -228,7 +229,7 @@ all = [
     "pyvis>=0.3.2",
     "pyvista>=0.44.0",
     "pyvistaqt>=0.11.0",
-    "quiltwright>=0.16.0",
+    "quiltwright>=0.17.0",
     "streamlit>=1.56.0",
     "trame-vtk>=2.0.0",
 ]

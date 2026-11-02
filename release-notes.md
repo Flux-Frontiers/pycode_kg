@@ -1,24 +1,24 @@
-# Release Notes -- v0.29.2
+# Release Notes -- v0.29.3
 
-> Released: 2026-11-01
+> Released: 2026-11-02
 
-A security release. The lock file is refreshed to clear all 56 open
-Dependabot alerts, 6 of them critical. No code changes.
+A security release for the 3-D extras. 0.29.2 refreshed the lock past
+Pillow 12.3.0, but a pip install of `pycode-kg[viz3d]` or `pycode-kg[all]`
+could still resolve an older quiltwright and, through it, the vulnerable
+Pillow line. Both extras now floor quiltwright at 0.17.0, the first release
+that floors Pillow at 13.0.0. Nothing else changes.
 
 ## What changed
 
-**Pillow 13.** Most alerts were against Pillow 12.3.0. Streamlit 1.63 capped
-Pillow below 13, so the lock carried 12.3.0 for the `viz` extra; Streamlit
-1.66.1 lifts the cap and the lock now holds a single Pillow 13.0.0.
-
-**Other transitive updates.** certifi, filelock, setuptools and virtualenv
-move to their patched releases.
+**quiltwright 0.17.0 is the floor in `viz3d` and `all`.** The floor moves
+from 0.16.0 to 0.17.0, which carries `pillow>=13.0.0` in its own metadata,
+so every install of these extras gets the patched Pillow. The lock moves
+quiltwright to 0.17.0.
 
 ## Upgrading
 
-`pyproject.toml` ranges are unchanged, so a fresh install already resolves
-patched versions. Reinstall from the lock (`poetry install`) to pick them up
-in a development checkout. Graphs and indexes need no rebuild.
+`pip install -U "pycode-kg[viz3d]"` (or `[all]`). No command, tool or index
+changes, so existing graphs stay valid.
 
 ---
 
