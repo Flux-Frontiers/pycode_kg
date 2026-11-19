@@ -16,7 +16,7 @@ to the browser binary if it is not at the default macOS path.
 
 Writes:
 
-- ``assets/logos/pycodekg_logo.svg`` and ``assets/logos/pycodeKG.PNG``: the
+- ``assets/logos/pycodekg_logo.svg`` and ``assets/logos/pycodekg_logo.png``: the
   square mark (1024 px PNG)
 - ``assets/logos/pycodekg_icon.svg``: the mark reduced for 64 px and below
 - ``assets/logos/pycodekg_banner.svg`` and ``.png``
@@ -236,7 +236,7 @@ def main() -> None:
     icon_svg.write_text(icon())
     banner_svg.write_text(banner(display, mono))
 
-    mark_png = logos / "pycodeKG.PNG"
+    mark_png = logos / "pycodekg_logo.png"
     render(mark_svg, mark_png, 1024, 1024)
     render(banner_svg, banner_svg.with_suffix(".png"), 2560, 640)
     with tempfile.TemporaryDirectory() as tmp:

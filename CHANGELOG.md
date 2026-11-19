@@ -17,7 +17,8 @@ Note: older entries preserve the API names used at that release (for example com
   draws the square mark, a 64 px icon and a banner as SVG and writes every PNG
   size, `favicon.ico`, `assets/logo-md-256x256.png`, `docs/logo.png` and
   `src/logo.png`; sizes of 64 px and below come from the icon. The README
-  header shows the banner.
+  header shows the banner. This replaces the fleet baseline mark that #66
+  put in place of the brain; its SVGs stay in `assets/logos/`.
 
 ## [0.29.3] - 2026-11-02
 
