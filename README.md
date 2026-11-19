@@ -1,6 +1,6 @@
 
 <p align="center">
-  <img src="assets/logos/pycodeKG.PNG" alt="PyCodeKG" width="200"/>
+  <img src="assets/logos/pycodekg_banner.png" alt="PyCodeKG" width="720"/>
 </p>
 
 [![Python](https://img.shields.io/badge/python-3.12%20%7C%203.13-blue.svg)](https://www.python.org/)
