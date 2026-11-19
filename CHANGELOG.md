@@ -20,6 +20,13 @@ Note: older entries preserve the API names used at that release (for example com
   header shows the banner. This replaces the fleet baseline mark that #66
   put in place of the brain; its SVGs stay in `assets/logos/`.
 
+### Removed
+
+- **Logo files nothing references.** The fleet baseline SVGs from #66
+  (`assets/logos/pycode_kg-banner.svg`, `pycode_kg-mark.svg` and
+  `flux-frontiers-icon.svg`) and `article/logo.png`, which neither the paper's
+  LaTeX source nor its Medium draft uses.
+
 ## [0.29.3] - 2026-11-02
 
 ### Security
