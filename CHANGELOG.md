@@ -27,6 +27,12 @@ Note: older entries preserve the API names used at that release (for example com
   `flux-frontiers-icon.svg`) and `article/logo.png`, which neither the paper's
   LaTeX source nor its Medium draft uses.
 
+### Fixed
+
+- **README images show on PyPI.** The README's images used repository-relative
+  paths, which PyPI cannot resolve, so its project page showed broken images.
+  They now use absolute `raw.githubusercontent.com` URLs pinned to `main`.
+
 ## [0.29.3] - 2026-11-02
 
 ### Security
