@@ -1,17 +1,17 @@
 > **Analysis Report Metadata**
-> - **Generated:** 2026-11-02T21:20:13Z
-> - **Version:** pycode-kg 0.29.3
-> - **Commit:** 94cb5ab (release/0.29.3)
-> - **Index freshness:** [WARN] 8 uncommitted change(s) — the index may not reflect current file contents; line numbers and edge counts can drift. Re-run `pycodekg build` before trusting them.
-> - **Platform:** macOS 27.2 | arm64 (arm) | turing | Python 3.12.13
-> - **Graph:** 6888 nodes · 5552 edges (404 meaningful)
+> - **Generated:** 2026-11-25T00:09:20Z
+> - **Version:** pycode-kg 0.30.0
+> - **Commit:** 45a84b0 (main)
+> - **Index freshness:** [WARN] 5 uncommitted change(s) — the index may not reflect current file contents; line numbers and edge counts can drift. Re-run `pycodekg build` before trusting them.
+> - **Platform:** macOS 27.3 | arm64 (arm) | turing | Python 3.12.16
+> - **Graph:** 6891 nodes · 5556 edges (404 meaningful)
 > - **Included directories:** src
 > - **Excluded directories:** none
 > - **Elapsed time:** 3s
 
 # pycode_kg Analysis
 
-**Generated:** 2026-11-02 21:20:13 UTC
+**Generated:** 2026-11-25 00:09:20 UTC
 
 ---
 
@@ -38,8 +38,8 @@ Score components:
 
 | Metric | Value |
 | :--- | :--- |
-| **Total Nodes** | 6888 |
-| **Total Edges** | 5552 |
+| **Total Nodes** | 6891 |
+| **Total Edges** | 5556 |
 | **Modules** | 56 (of 56 total) |
 | **Functions** | 174 |
 | **Classes** | 31 |
@@ -49,10 +49,10 @@ Score components:
 
 | Relationship Type | Count |
 | :--- | ---: |
-| CALLS | 2373 |
+| CALLS | 2375 |
 | CONTAINS | 348 |
 | IMPORTS | 500 |
-| ATTR_ACCESS | 2200 |
+| ATTR_ACCESS | 2202 |
 | INHERITS | 10 |
 
 _Excludes 121 `RESOLVES_TO` edges: internal symbol-stub resolutions, not relationships between two pieces of code. This table therefore does not sum to Total Edges._
@@ -246,19 +246,18 @@ Weighted PageRank aggregated by module — reveals architectural spine. Cross-mo
 
 ## Snapshot History
 
-Recent snapshots in reverse chronological order. Δ columns show change vs. the immediately preceding snapshot.  1 unchanged snapshot(s) elided.
+Recent snapshots in reverse chronological order. Δ columns show change vs. the immediately preceding snapshot.  2 unchanged snapshot(s) elided.
 
 | # | Timestamp | Branch | Version | Nodes | Edges | Coverage | Δ Nodes | Δ Edges | Δ Coverage |
 | ---: | :--- | :--- | :--- | ---: | ---: | ---: | ---: | ---: | ---: |
-| 1 | 2026-11-01 20:19:23 | main | 0.29.2 | 6888 | 5552 | 94.6% (382/404) | +0 | +0 | +0.0% |
-| 2 | 2026-11-01 05:10:53 | main | 0.29.1 | 6888 | 5552 | 94.6% (382/404) | +1 | -789 | +0.0% |
-| 3 | 2026-10-26 04:00:08 | feat/mcp-server-base | 0.29.0 | 6887 | 6341 | 94.6% (382/404) | -56 | -87 | -0.5% |
-| 4 | 2026-10-15 12:53:46 | main | 0.28.2 | 6943 | 6428 | 95.1% (387/407) | +19 | +16 | +0.0% |
-| 5 | 2026-09-24 01:19:57 | main | 0.28.1 | 6924 | 6412 | 95.1% (386/406) | +14 | +12 | +0.0% |
-| 6 | 2026-09-21 00:09:46 | main | 0.28.0 | 6910 | 6400 | 95.1% (386/406) | +6 | +5 | +0.0% |
-| 8 | 2026-09-09 00:45:51 | main | 0.27.0 | 6904 | 6395 | 95.1% (385/405) | -27 | -23 | +0.0% |
-| 9 | 2026-09-06 21:11:19 | main | 0.26.0 | 6931 | 6418 | 95.1% (386/406) | -69 | -97 | +0.6% |
-| 10 | 2026-08-25 15:45:25 | main | 0.24.1 | 7000 | 6515 | 94.5% (395/418) | +819 | +687 | +2.1% |
+| 1 | 2026-11-02 21:20:25 | release/0.29.3 | 0.29.3 | 6888 | 5552 | 94.6% (382/404) | +0 | +0 | +0.0% |
+| 3 | 2026-11-01 05:10:53 | main | 0.29.1 | 6888 | 5552 | 94.6% (382/404) | +1 | -789 | +0.0% |
+| 4 | 2026-10-26 04:00:08 | feat/mcp-server-base | 0.29.0 | 6887 | 6341 | 94.6% (382/404) | -56 | -87 | -0.5% |
+| 5 | 2026-10-15 12:53:46 | main | 0.28.2 | 6943 | 6428 | 95.1% (387/407) | +19 | +16 | +0.0% |
+| 6 | 2026-09-24 01:19:57 | main | 0.28.1 | 6924 | 6412 | 95.1% (386/406) | +14 | +12 | +0.0% |
+| 7 | 2026-09-21 00:09:46 | main | 0.28.0 | 6910 | 6400 | 95.1% (386/406) | +6 | +5 | +0.0% |
+| 9 | 2026-09-09 00:45:51 | main | 0.27.0 | 6904 | 6395 | 95.1% (385/405) | -27 | -23 | +0.0% |
+| 10 | 2026-09-06 21:11:19 | main | 0.26.0 | 6931 | 6418 | 95.1% (386/406) | -69 | -97 | +0.6% |
 
 ---
 
@@ -328,7 +327,7 @@ Weighted PageRank over CALLS + IMPORTS + INHERITS edges (test paths excluded). S
 | 4 | 0.000327 | method | `PyCodeKGVisitor._get_node_id()` | src/pycode_kg/visitor.py |
 | 5 | 0.000327 | method | `PyCodeKGVisitor._add_edge()` | src/pycode_kg/visitor.py |
 | 6 | 0.000311 | function | `_own_scope_nodes()` | src/pycode_kg/pycodekg.py |
-| 7 | 0.000296 | function | `_run_pipeline()` | src/pycode_kg/cli/cmd_build_full.py |
+| 7 | 0.000295 | function | `_run_pipeline()` | src/pycode_kg/cli/cmd_build_full.py |
 | 8 | 0.000289 | function | `_format_table()` | src/pycode_kg/cli/cmd_centrality.py |
 | 9 | 0.000266 | method | `PyCodeKGVisitor._add_var_edge()` | src/pycode_kg/visitor.py |
 | 10 | 0.000262 | function | `_load_store()` | src/pycode_kg/app.py |
@@ -337,7 +336,7 @@ Weighted PageRank over CALLS + IMPORTS + INHERITS edges (test paths excluded). S
 | 13 | 0.000250 | function | `_annotation_class_name()` | src/pycode_kg/pycodekg.py |
 | 14 | 0.000241 | function | `_snapshots()` | src/pycode_kg/mcp_server.py |
 | 15 | 0.000239 | method | `MainWindow._h2()` | src/pycode_kg/viz3d.py |
-| 16 | 0.000237 | method | `PyCodeKGVisitor._extract_reads()` | src/pycode_kg/visitor.py |
+| 16 | 0.000236 | method | `PyCodeKGVisitor._extract_reads()` | src/pycode_kg/visitor.py |
 | 17 | 0.000231 | function | `_remove_highlight_actors()` | src/pycode_kg/viz3d.py |
 | 18 | 0.000228 | method | `KGVisualizer._load_scores()` | src/pycode_kg/viz3d.py |
 | 19 | 0.000227 | method | `CodeGraph.nodes()` | src/pycode_kg/graph.py |
@@ -391,4 +390,4 @@ Top structurally-dominant nodes per architectural concern (0.60 × semantic + 0.
 
 ---
 
-*Report generated by PyCodeKG Thorough Analysis Tool — analysis completed in 3.3s*
+*Report generated by PyCodeKG Thorough Analysis Tool — analysis completed in 3.2s*

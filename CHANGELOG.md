@@ -9,6 +9,8 @@ Note: older entries preserve the API names used at that release (for example com
 
 ## [Unreleased]
 
+## [0.30.0] - 2026-11-24
+
 ### Fixed
 
 - **`pack()` no longer serves a source file edited since the build.**
@@ -19,6 +21,9 @@ Note: older entries preserve the API names used at that release (for example com
   lists changed and missing files. Stores built before this have no hashes and
   pack as before; rebuild to turn the check on. Requires kgmodule-utils
   0.32.0 (fleet sweep item 97).
+- **README images show on PyPI.** The README's images used repository-relative
+  paths, which PyPI cannot resolve, so its project page showed broken images.
+  They now use absolute `raw.githubusercontent.com` URLs pinned to `main`.
 
 ### Changed
 
@@ -31,18 +36,17 @@ Note: older entries preserve the API names used at that release (for example com
   header shows the banner. This replaces the fleet baseline mark that #66
   put in place of the brain; its SVGs stay in `assets/logos/`.
 
+- **Dependencies.** The kgmodule-utils floor is 0.32.0 and the lock is on
+  0.32.0, written with Poetry 2.4.3. `tests/test_lock_markers.py` fails if the
+  lock would install two versions of a package on Linux, macOS or Windows,
+  the Poetry 2.5 marker regression that broke torch in other fleet CI.
+
 ### Removed
 
 - **Logo files nothing references.** The fleet baseline SVGs from #66
   (`assets/logos/pycode_kg-banner.svg`, `pycode_kg-mark.svg` and
   `flux-frontiers-icon.svg`) and `article/logo.png`, which neither the paper's
   LaTeX source nor its Medium draft uses.
-
-### Fixed
-
-- **README images show on PyPI.** The README's images used repository-relative
-  paths, which PyPI cannot resolve, so its project page showed broken images.
-  They now use absolute `raw.githubusercontent.com` URLs pinned to `main`.
 
 ## [0.29.3] - 2026-11-02
 

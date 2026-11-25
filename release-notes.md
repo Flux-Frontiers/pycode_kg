@@ -1,24 +1,39 @@
-# Release Notes -- v0.29.3
+# Release Notes -- v0.30.0
 
-> Released: 2026-11-02
+> Released: 2026-11-24
 
-A security release for the 3-D extras. 0.29.2 refreshed the lock past
-Pillow 12.3.0, but a pip install of `pycode-kg[viz3d]` or `pycode-kg[all]`
-could still resolve an older quiltwright and, through it, the vulnerable
-Pillow line. Both extras now floor quiltwright at 0.17.0, the first release
-that floors Pillow at 13.0.0. Nothing else changes.
+`pack()` no longer serves source text from a Python file that changed after
+the graph was built. A snippet is cut from the live file by the line numbers
+recorded at build, so an edited file used to return the wrong lines under a
+function's name, with nothing to say so. With kgmodule-utils 0.32.0 the build
+records a hash of every source file, and `pack()` leaves out the snippets of
+any file that no longer matches, with a warning to rebuild.
 
 ## What changed
 
-**quiltwright 0.17.0 is the floor in `viz3d` and `all`.** The floor moves
-from 0.16.0 to 0.17.0, which carries `pillow>=13.0.0` in its own metadata,
-so every install of these extras gets the patched Pillow. The lock moves
-quiltwright to 0.17.0.
+**Source hashes from the CLI.** `pycodekg build`, `update` and `build-sqlite`
+write the graph store directly rather than through the shared pipeline, so
+they now record the hashes themselves, after symbol resolution. `pack()`,
+the MCP `pack` tool and kgrag's federated pack all leave out a changed file's
+text, and `PyCodeKG.stale_sources()` names the files that changed or went
+missing. The rest of a result is unaffected: other files' snippets, and the
+nodes themselves, still come back.
+
+**Dependencies.** The kgmodule-utils floor is 0.32.0. The lock was written with
+Poetry 2.4.3, and a new test fails if a lock would install two versions of a
+package on Linux, macOS or Windows, the Poetry 2.5 regression that crashed
+torch in other fleet CI.
+
+**A new logo.** The brain is gone. The Art Techno mark is a call tree: a
+module holding two classes of two functions each, with one call edge between
+them. The README's images now use absolute URLs, so they show on PyPI too.
 
 ## Upgrading
 
-`pip install -U "pycode-kg[viz3d]"` (or `[all]`). No command, tool or index
-changes, so existing graphs stay valid.
+Run `pycodekg build` once after upgrading. A store built by an earlier version
+has no hashes and packs exactly as before, so the check only starts after a
+rebuild. From then on, editing a file and packing before the next build
+returns that file's nodes without source text, plus a warning naming the file.
 
 ---
 
