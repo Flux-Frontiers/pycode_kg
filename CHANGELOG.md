@@ -9,6 +9,17 @@ Note: older entries preserve the API names used at that release (for example com
 
 ## [Unreleased]
 
+### Fixed
+
+- **`pack()` no longer serves a source file edited since the build.**
+  `pycodekg build`, `update` and `build-sqlite` write the graph store
+  directly, so they now call `GraphStore.record_sources()` after symbol
+  resolution. `pack()` then omits the snippets of any file whose bytes changed
+  since the build, with a warning to rebuild, and `PyCodeKG.stale_sources()`
+  lists changed and missing files. Stores built before this have no hashes and
+  pack as before; rebuild to turn the check on. Requires kgmodule-utils
+  0.32.0 (fleet sweep item 97).
+
 ### Changed
 
 - **The logo is redrawn in Art Techno.** The brain is replaced by the call

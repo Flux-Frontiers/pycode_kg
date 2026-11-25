@@ -140,6 +140,9 @@ def _run_pipeline(
     store = GraphStore(db_path)
     store.write(node_specs, edge_specs, wipe=wipe)
     resolved = resolve_symbols_pruned(store)
+    # Hash each source file so pack() omits snippets from files edited since
+    # this build (kg_utils 0.32.0, sweep item 97).
+    store.record_sources(repo_root)
     store.close()
 
     _step_result(

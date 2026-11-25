@@ -168,7 +168,9 @@ dependencies = [
     # is gone.
     # 0.29.1: resolve_symbols() skips the scope_local nodes this module flags
     # and leaves ambiguous names unresolved (the RESOLVES_TO fan-out fix).
-    "kgmodule-utils[semantic,viz3d,mcp]>=0.29.1",
+    # 0.32.0: GraphStore.record_sources(), which the CLI build commands call
+    # so pack() never serves a source file edited since the build.
+    "kgmodule-utils[semantic,viz3d,mcp]>=0.32.0",
 ]
 
 [project.optional-dependencies]
